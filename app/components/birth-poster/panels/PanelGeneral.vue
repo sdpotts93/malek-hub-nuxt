@@ -121,6 +121,7 @@ const scrollColors = (direction: 'left' | 'right') => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding-right: 20px;
   }
 
   &__color-nav {
