@@ -90,18 +90,18 @@ async function handleAddToCart() {
 
       <!-- Design Panel -->
       <div v-if="!isMobile" class="birth-poster__panel-wrapper">
-        <!-- Add to Cart Section (always visible) -->
+        <!-- Panel Content (scrollable) -->
+        <div class="birth-poster__panel-content">
+          <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
+        </div>
+
+        <!-- Add to Cart Section (fixed at bottom) -->
         <BirthPosterAddToCartSection
           :price="pricing.price"
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
           @add-to-cart="handleAddToCart"
         />
-
-        <!-- Panel Content -->
-        <div class="birth-poster__panel-content">
-          <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
-        </div>
       </div>
 
       <!-- Canvas Area -->
@@ -122,6 +122,15 @@ async function handleAddToCart() {
       </aside>
     </main>
 
+    <!-- Mobile: Fixed Add to Cart Bar -->
+    <BirthPosterMobileAddToCartBar
+      v-if="isMobile"
+      :price="pricing.price"
+      :compare-at-price="pricing.compareAtPrice"
+      :is-loading="uiStore.isLoading || isRendering"
+      @add-to-cart="handleAddToCart"
+    />
+
     <!-- Mobile: Bottom Navbar -->
     <BirthPosterBottomNavbar
       v-if="isMobile"
@@ -134,17 +143,8 @@ async function handleAddToCart() {
     <BirthPosterMobileBottomSheet
       v-if="isMobile"
       :is-open="birthPosterStore.activePanel !== 'general'"
+      @close="birthPosterStore.setActivePanel('general')"
     >
-      <template #header>
-        <BirthPosterAddToCartSection
-          :price="pricing.price"
-          :compare-at-price="pricing.compareAtPrice"
-          :is-loading="uiStore.isLoading || isRendering"
-          compact
-          @add-to-cart="handleAddToCart"
-        />
-      </template>
-
       <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
     </BirthPosterMobileBottomSheet>
 
@@ -169,11 +169,11 @@ async function handleAddToCart() {
   &__main {
     flex: 1;
     display: grid;
-    grid-template-columns: $sidebar-width $panel-width 1fr $history-width;
+    grid-template-columns: $sidebar-width $panel-width 1fr 106px;
     overflow: hidden;
 
     @include desktop {
-      grid-template-columns: $sidebar-width-collapsed $panel-width-md 1fr $history-width;
+      grid-template-columns: $sidebar-width-collapsed $panel-width-md 1fr 106px;
     }
 
     @include mobile {
@@ -188,7 +188,7 @@ async function handleAddToCart() {
     border-right: 1px solid $color-border;
     display: flex;
     flex-direction: column;
-    padding: $space-xl $space-lg;
+    align-items: center;
   }
 
   &__panel-wrapper {
@@ -229,10 +229,10 @@ async function handleAddToCart() {
   }
 
   &__history {
-    background: $color-bg-primary;
-    border-left: 1px solid $color-border;
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    width: 106px; // Fixed width: 82px panel + 24px margin
+    background: $color-bg-secondary;
+    flex-shrink: 0;
   }
 }
 </style>

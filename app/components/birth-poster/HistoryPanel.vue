@@ -40,20 +40,29 @@ function handleDelete(e: Event, id: string) {
   <div :class="['history-panel', { 'history-panel--collapsed': !isOpen }]">
     <!-- Header -->
     <div class="history-panel__header">
-      <button
-        class="history-panel__toggle"
-        :aria-expanded="isOpen"
-        @click="emit('toggle')"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="history-panel__header-left">
+        <button
+          class="history-panel__toggle"
+          :aria-expanded="isOpen"
+          @click="emit('toggle')"
+        >
+          <!-- Chevron icon - rotates based on state -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="8" height="12" viewBox="0 0 8 12" fill="none">
+            <path d="M1.5 1L6.5 6L1.5 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span v-if="isOpen" class="history-panel__title">Historial</span>
+      </div>
+      <div class="history-panel__header-right">
+        <!-- Clock icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" :width="isOpen ? 16 : 20" :height="isOpen ? 16 : 20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
-        <span v-if="isOpen">Historial</span>
-      </button>
+      </div>
     </div>
 
-    <!-- Content -->
+    <!-- Content (Expanded) -->
     <div v-if="isOpen" class="history-panel__content">
       <!-- Empty state -->
       <div v-if="designs.length === 0" class="history-panel__empty">
@@ -110,8 +119,8 @@ function handleDelete(e: Event, id: string) {
           v-if="design.thumbnail"
           :src="design.thumbnail"
           :alt="design.name"
-          width="40"
-          height="50"
+          width="68"
+          height="68"
         />
         <div v-else class="history-panel__placeholder" />
       </button>
@@ -121,41 +130,87 @@ function handleDelete(e: Event, id: string) {
 
 <style lang="scss" scoped>
 .history-panel {
+  position: absolute;
+  top: $space-lg;
+  right: $space-lg;
+  bottom: $space-lg;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  background: $color-bg-primary;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  box-shadow: 0 7px 21px rgba(51, 51, 51, 0.05);
   transition: width $transition-base;
+  z-index: $z-dropdown;
+
+  // Expanded state - overlays to the left
+  width: 220px;
 
   &--collapsed {
-    width: 60px;
+    width: 82px;
+    gap: $space-4xl;
 
     .history-panel__header {
-      justify-content: center;
+      // In collapsed state, stack toggle and clock icon
+      flex-direction: row;
+      justify-content: space-between;
+      padding: $space-md;
+    }
+
+    .history-panel__header-left {
+      gap: 0;
+    }
+
+    .history-panel__toggle {
+      // Flip chevron for collapsed state (pointing left)
+      svg {
+        transform: rotate(180deg);
+      }
     }
   }
 
   &__header {
-    padding: $space-xl $space-lg;
-    border-bottom: 1px solid $color-border;
+    padding: $space-md;
+    border-bottom: 1px solid #e6e7ea;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: $space-xl;
+  }
+
+  &__header-right {
+    display: flex;
+    align-items: center;
+    color: $color-text-primary;
   }
 
   &__toggle {
     @include button-reset;
-    display: flex;
-    align-items: center;
-    gap: $space-md;
-    padding: $space-md;
-    border-radius: $radius-md;
-    color: $color-text-secondary;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    @include flex-center;
+    width: 32px;
+    height: 32px;
+    background: #f7f7f7;
+    border-radius: $radius-sm;
+    color: $color-brand;
+    transition: background-color $transition-fast;
 
     @include hover {
       background: $color-bg-tertiary;
-      color: $color-text-primary;
     }
+  }
+
+  &__title {
+    font-family: $font-secondary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    line-height: 23px;
   }
 
   &__content {
@@ -186,7 +241,7 @@ function handleDelete(e: Event, id: string) {
     align-items: center;
     gap: $space-md;
     padding: $space-md;
-    border-radius: $radius-lg;
+    border-radius: $radius-xl;
     background: $color-bg-secondary;
     text-align: left;
     transition: background-color $transition-fast;
@@ -197,12 +252,13 @@ function handleDelete(e: Event, id: string) {
   }
 
   &__thumbnail {
-    width: 48px;
-    height: 60px;
-    border-radius: $radius-md;
+    width: 68px;
+    height: 68px;
+    border-radius: $radius-xl;
+    border: 1px solid $color-border-light;
     overflow: hidden;
     flex-shrink: 0;
-    background: $color-bg-tertiary;
+    background: $color-bg-primary;
 
     img {
       width: 100%;
@@ -261,23 +317,24 @@ function handleDelete(e: Event, id: string) {
     flex-direction: column;
     align-items: center;
     gap: $space-md;
-    padding: $space-lg $space-md;
+    padding: 0 7px $space-lg;
     overflow-y: auto;
     @include hide-scrollbar;
   }
 
   &__mini-thumb {
     @include button-reset;
-    width: 40px;
-    height: 50px;
-    border-radius: $radius-md;
+    width: 68px;
+    height: 68px;
+    border-radius: $radius-xl;
+    border: 1px solid $color-border-light;
     overflow: hidden;
-    background: $color-bg-tertiary;
+    background: $color-bg-primary;
     flex-shrink: 0;
     transition: transform $transition-fast;
 
     @include hover {
-      transform: scale(1.1);
+      transform: scale(1.05);
     }
 
     img {

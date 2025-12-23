@@ -78,10 +78,12 @@ const discountPercent = computed(() => {
 <style lang="scss" scoped>
 .add-to-cart {
   padding: $space-xl $space-3xl;
-  border-bottom: 1px solid $color-border;
+  border-top: 1px solid $color-border;
+  background: $color-bg-primary;
   display: flex;
   flex-direction: column;
   gap: $space-lg;
+  flex-shrink: 0;
 
   &--compact {
     padding: $space-lg $space-xl;

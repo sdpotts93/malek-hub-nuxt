@@ -10,6 +10,9 @@ const navigation = [
 ]
 
 const isActive = (href: string) => route.path === href
+
+// Check if on a tool page (for showing history button on mobile)
+const isToolPage = computed(() => route.path === '/birth-poster')
 </script>
 
 <template>
@@ -37,6 +40,19 @@ const isActive = (href: string) => route.path === href
 
       <!-- Actions -->
       <div class="the-header__actions">
+        <!-- History (mobile only, on tool pages) -->
+        <button
+          v-if="isToolPage"
+          class="the-header__action-btn the-header__action-btn--mobile-only"
+          aria-label="Historial"
+          @click="uiStore.openMobileNavWrapper('history')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </button>
+
         <!-- Notifications (placeholder) -->
         <button
           class="the-header__action-btn"
@@ -172,6 +188,14 @@ const isActive = (href: string) => route.path === href
     svg {
       width: 20px;
       height: 20px;
+    }
+
+    &--mobile-only {
+      display: none;
+
+      @include mobile {
+        display: flex;
+      }
     }
   }
 

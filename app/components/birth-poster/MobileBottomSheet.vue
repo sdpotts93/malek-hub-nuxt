@@ -4,12 +4,17 @@ interface Props {
 }
 
 defineProps<Props>()
+const emit = defineEmits<{
+  close: []
+}>()
 
 // Touch handling for drag to close
 const sheetRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const dragStartY = ref(0)
 const currentTranslateY = ref(0)
+
+const CLOSE_THRESHOLD = 100 // pixels to drag before closing
 
 function handleTouchStart(e: TouchEvent) {
   isDragging.value = true
@@ -21,6 +26,7 @@ function handleTouchMove(e: TouchEvent) {
   if (!isDragging.value) return
 
   const deltaY = e.touches[0].clientY - dragStartY.value
+  // Only allow dragging down (positive deltaY)
   if (deltaY > 0) {
     currentTranslateY.value = deltaY
   }
@@ -28,79 +34,115 @@ function handleTouchMove(e: TouchEvent) {
 
 function handleTouchEnd() {
   isDragging.value = false
-  // If dragged down more than 100px, could close
-  // For now, just reset
+
+  // If dragged down more than threshold, close the sheet
+  if (currentTranslateY.value > CLOSE_THRESHOLD) {
+    emit('close')
+  }
+
+  // Reset position
   currentTranslateY.value = 0
+}
+
+function handleOverlayClick() {
+  emit('close')
 }
 </script>
 
 <template>
-  <Transition name="slide-up">
-    <div
-      v-if="isOpen"
-      ref="sheetRef"
-      class="mobile-bottom-sheet"
-      :style="{
-        transform: isDragging ? `translateY(${currentTranslateY}px)` : undefined
-      }"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-      @touchend="handleTouchEnd"
-    >
-      <!-- Drag handle -->
-      <div class="mobile-bottom-sheet__handle">
-        <div class="mobile-bottom-sheet__handle-bar" />
-      </div>
+  <Teleport to="body">
+    <!-- Overlay -->
+    <Transition name="fade">
+      <div
+        v-if="isOpen"
+        class="mobile-bottom-sheet-overlay"
+        @click="handleOverlayClick"
+      />
+    </Transition>
 
-      <!-- Header slot (for Add to Cart) -->
-      <div class="mobile-bottom-sheet__header">
-        <slot name="header" />
-      </div>
+    <!-- Sheet -->
+    <Transition name="slide-up">
+      <div
+        v-if="isOpen"
+        ref="sheetRef"
+        class="mobile-bottom-sheet"
+        :class="{ 'mobile-bottom-sheet--dragging': isDragging }"
+        :style="{
+          transform: isDragging ? `translateY(${currentTranslateY}px)` : undefined
+        }"
+      >
+        <!-- Drag handle area -->
+        <div
+          class="mobile-bottom-sheet__handle"
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+        >
+          <div class="mobile-bottom-sheet__handle-bar" />
+        </div>
 
-      <!-- Content -->
-      <div class="mobile-bottom-sheet__content">
-        <slot />
+        <!-- Content -->
+        <div class="mobile-bottom-sheet__content">
+          <slot />
+        </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
+.mobile-bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: $z-fixed;
+  // Account for bottom navbar + cart bar
+  bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
+}
+
 .mobile-bottom-sheet {
   position: fixed;
-  bottom: $bottom-navbar-height;
+  // Position above bottom navbar + cart bar
+  bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
   left: 0;
   right: 0;
-  max-height: 60vh;
+  max-height: 55vh;
   background: $color-bg-primary;
-  border-top-left-radius: $radius-2xl;
-  border-top-right-radius: $radius-2xl;
-  box-shadow: $shadow-xl;
-  z-index: $z-fixed - 1;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  z-index: $z-fixed + 1;
   display: flex;
   flex-direction: column;
   touch-action: pan-y;
-  transition: transform 0.15s ease-out;
+  will-change: transform;
 
-  // Account for safe area
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  &--dragging {
+    transition: none;
+  }
+
+  &:not(&--dragging) {
+    transition: transform 0.2s ease-out;
+  }
 
   &__handle {
-    @include flex-center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     padding: $space-lg 0;
     flex-shrink: 0;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
   }
 
   &__handle-bar {
-    width: 40px;
-    height: 4px;
-    background: $color-border;
-    border-radius: $radius-full;
-  }
-
-  &__header {
-    flex-shrink: 0;
-    border-bottom: 1px solid $color-border;
+    width: 93px;
+    height: 6px;
+    background: #d9d9d9;
+    border-radius: 100px;
   }
 
   &__content {
@@ -110,5 +152,34 @@ function handleTouchEnd() {
     @include custom-scrollbar;
     padding: $space-xl;
   }
+}
+
+// Overlay fade animation
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// Slide up animation
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slide-up-enter-to,
+.slide-up-leave-from {
+  transform: translateY(0);
+  opacity: 1;
 }
 </style>

@@ -18,22 +18,13 @@ const emit = defineEmits<{
 }>()
 
 const uiStore = useUIStore()
-
-// Icon SVG paths (same as sidebar)
-const iconPaths: Record<string, string> = {
-  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
-  palette: 'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.5 0-.37-.13-.71-.37-.96A.7.7 0 0 1 13 19c0-.37.13-.71.37-.96.24-.25.57-.37.93-.37h2.2A6.5 6.5 0 0 0 22 12c0-5.5-4.5-10-10-10Z',
-  text: 'M4 7V4h16v3M9 20h6M12 4v16',
-  ruler: 'M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z',
-  frame: 'M3 3h18v18H3zM8 3v18M16 3v18M3 8h18M3 16h18',
-}
 </script>
 
 <template>
   <nav class="bottom-navbar">
     <!-- Home button -->
     <button
-      class="bottom-navbar__item bottom-navbar__item--special"
+      class="bottom-navbar__item bottom-navbar__item--home"
       @click="uiStore.openMobileNavWrapper('home')"
     >
       <span class="bottom-navbar__icon">
@@ -44,7 +35,7 @@ const iconPaths: Record<string, string> = {
       </span>
     </button>
 
-    <!-- Panel navigation items -->
+    <!-- Panel navigation items (exclude 'general') -->
     <button
       v-for="item in items.filter(i => i.id !== 'general')"
       :key="item.id"
@@ -55,24 +46,38 @@ const iconPaths: Record<string, string> = {
       @click="emit('select', item.id)"
     >
       <span class="bottom-navbar__icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path :d="iconPaths[item.icon]" />
+        <!-- Diseño icon (palette) -->
+        <svg v-if="item.icon === 'palette'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2Z"/>
+        </svg>
+        <!-- Datos icon (text) -->
+        <svg v-else-if="item.icon === 'text'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7V4h16v3"/>
+          <path d="M9 20h6"/>
+          <path d="M12 4v16"/>
+        </svg>
+        <!-- Medidas icon (ruler) -->
+        <svg v-else-if="item.icon === 'ruler'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/>
+          <path d="m14.5 12.5 2-2"/>
+          <path d="m11.5 9.5 2-2"/>
+          <path d="m8.5 6.5 2-2"/>
+          <path d="m17.5 15.5 2-2"/>
+        </svg>
+        <!-- Marco icon (frame) -->
+        <svg v-else-if="item.icon === 'frame'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M3 9h18"/>
+          <path d="M3 15h18"/>
+          <path d="M9 3v18"/>
+          <path d="M15 3v18"/>
         </svg>
       </span>
       <span class="bottom-navbar__label">{{ item.label }}</span>
-    </button>
-
-    <!-- History button -->
-    <button
-      class="bottom-navbar__item bottom-navbar__item--special"
-      @click="uiStore.openMobileNavWrapper('history')"
-    >
-      <span class="bottom-navbar__icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-      </span>
     </button>
   </nav>
 </template>
@@ -87,28 +92,29 @@ const iconPaths: Record<string, string> = {
   background: $color-bg-primary;
   border-top: 1px solid $color-border;
   display: flex;
-  align-items: stretch;
-  padding: 0 $space-md;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 $space-lg;
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: $z-fixed;
 
   &__item {
     @include button-reset;
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: $space-xs;
+    padding: $space-md $space-lg;
     color: $color-text-secondary;
     transition: color $transition-fast;
+    min-width: 56px;
 
     &--active {
       color: $color-brand;
     }
 
-    &--special {
-      flex: 0.7;
+    &--home {
       color: $color-text-muted;
 
       @include hover {
@@ -119,18 +125,19 @@ const iconPaths: Record<string, string> = {
 
   &__icon {
     @include flex-center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
 
     svg {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
     }
   }
 
   &__label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: $font-weight-medium;
+    white-space: nowrap;
   }
 }
 </style>
