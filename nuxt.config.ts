@@ -4,9 +4,64 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   modules: [
+    '@pinia/nuxt',
     '@nuxt/content',
     '@nuxt/fonts',
     '@nuxt/image',
     '@nuxt/test-utils'
-  ]
+  ],
+
+  // Global CSS
+  css: ['~/assets/scss/main.scss'],
+
+  // Vite configuration for SCSS
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `
+            @use "~/assets/scss/_variables.scss" as *;
+            @use "~/assets/scss/_mixins.scss" as *;
+          `
+        }
+      }
+    }
+  },
+
+  // Fonts configuration
+  fonts: {
+    families: [
+      {
+        name: 'DM Sans',
+        provider: 'google',
+        weights: [400, 500, 600, 700]
+      },
+      {
+        name: 'Lexend',
+        provider: 'google',
+        weights: [400, 500, 600, 700]
+      }
+    ]
+  },
+
+  // Image configuration
+  image: {
+    quality: 80,
+    format: ['webp', 'avif', 'png', 'jpg']
+  },
+
+  // App configuration
+  app: {
+    head: {
+      title: 'Studio Malek - Design Tools',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'description', content: 'Create personalized posters and designs with Studio Malek' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      ]
+    }
+  }
 })

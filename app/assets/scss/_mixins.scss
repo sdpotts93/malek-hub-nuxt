@@ -1,0 +1,223 @@
+// ==========================================================================
+// Mixins - Responsive Breakpoints & Utilities
+// ==========================================================================
+
+@use 'sass:map';
+
+// Breakpoints Map (from CLAUDE.md specification)
+$breakpoints: (
+  xxxs: 'screen and (max-width: 380px)',
+  xxs: 'screen and (max-width: 479px)',
+  xs: 'screen and (max-width: 767px)',
+  s: 'screen and (max-width: 991px)',
+  smd: 'screen and (max-width: 1024px)',
+  md: 'screen and (max-width: 1280px)',
+  xl: 'screen and (max-width: 1440px)',
+  xxl: 'screen and (max-width: 1600px)',
+  short: 'screen and (max-height: 550px)',
+  hover: '(hover: hover)',
+  reduce-motion: '(prefers-reduced-motion: reduce)'
+) !default;
+
+// Media Breakpoint Mixin
+@mixin media-breakpoint($breakpointName) {
+  $mediaQuery: map.get($breakpoints, $breakpointName);
+  @if ($mediaQuery == null) {
+    @content;
+  } @else {
+    @media #{$mediaQuery} {
+      @content;
+    }
+  }
+}
+
+// Shorthand breakpoint mixins for common usage
+@mixin mobile {
+  @include media-breakpoint('xs') {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @include media-breakpoint('s') {
+    @content;
+  }
+}
+
+@mixin desktop-sm {
+  @include media-breakpoint('smd') {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @include media-breakpoint('md') {
+    @content;
+  }
+}
+
+// Hover mixin (only applies on devices that support hover)
+@mixin hover {
+  @include media-breakpoint('hover') {
+    &:hover {
+      @content;
+    }
+  }
+}
+
+// Focus visible mixin
+@mixin focus-visible {
+  &:focus-visible {
+    @content;
+  }
+}
+
+// Reduced motion mixin
+@mixin reduced-motion {
+  @include media-breakpoint('reduce-motion') {
+    @content;
+  }
+}
+
+// ==========================================================================
+// Utility Mixins
+// ==========================================================================
+
+// Flexbox shortcuts
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// Text truncation
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Scrollbar styling
+@mixin custom-scrollbar($track-color: transparent, $thumb-color: #d1d5db) {
+  scrollbar-width: thin;
+  scrollbar-color: $thumb-color $track-color;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: 3px;
+
+    &:hover {
+      background: darken($thumb-color, 10%);
+    }
+  }
+}
+
+// Hide scrollbar but keep functionality
+@mixin hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Fixed full screen (for tool pages)
+@mixin fixed-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+// Button reset
+@mixin button-reset {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// Input reset
+@mixin input-reset {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  outline: none;
+
+  &::placeholder {
+    color: inherit;
+    opacity: 0.5;
+  }
+}
+
+// Visually hidden (for accessibility)
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Aspect ratio helper
+@mixin aspect-ratio($width, $height) {
+  aspect-ratio: #{$width} / #{$height};
+}
+
+// Transition helper
+@mixin transition($properties...) {
+  $value: ();
+  @each $property in $properties {
+    $value: append($value, $property 200ms ease, comma);
+  }
+  transition: $value;
+}
