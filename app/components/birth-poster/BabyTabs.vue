@@ -21,35 +21,34 @@ const store = useBirthPosterStore()
 <style lang="scss" scoped>
 .baby-tabs {
   display: flex;
-  gap: $space-md;
-  padding: $space-md;
-  background: $color-bg-secondary;
-  border-radius: $radius-lg;
+  border-radius: 8px;
+  overflow: hidden;
 
   &__tab {
     @include button-reset;
     flex: 1;
-    padding: $space-md $space-lg;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
-    color: $color-text-secondary;
-    border-radius: $radius-md;
+    min-height: 40px;
+    padding: 10px 16px;
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-bold;
+    background: #f5f5f5;
+    color: #414651;
+    border-right: 1px solid #e9eaeb;
     transition: background-color $transition-fast, color $transition-fast;
 
+    &:last-child {
+      border-right: none;
+    }
+
     @include hover {
-      background: $color-bg-tertiary;
-      color: $color-text-primary;
+      background: #ebebeb;
     }
 
     &--active {
-      background: $color-bg-primary;
-      color: $color-brand;
-      box-shadow: $shadow-sm;
-
-      @include hover {
-        background: $color-bg-primary;
-        color: $color-brand;
-      }
+      background: #fff0e5;
+      color: #db6800;
+      border-right-color: #eaddd3;
     }
   }
 }

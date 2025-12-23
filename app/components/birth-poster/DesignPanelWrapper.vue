@@ -22,10 +22,10 @@ defineProps<Props>()
 
 <style lang="scss" scoped>
 .design-panel-wrapper {
-  padding: $space-xl $space-3xl;
+  padding: 16px 0px;
 
   @include mobile {
-    padding: $space-xl;
+    padding: 16px 0px;
   }
 }
 </style>

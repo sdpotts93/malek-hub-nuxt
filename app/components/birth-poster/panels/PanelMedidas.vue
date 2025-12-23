@@ -19,7 +19,6 @@ function selectSize(size: PosterSize) {
 
 <template>
   <div class="panel-medidas">
-    <h3 class="panel-medidas__title">Medidas del poster</h3>
 
     <!-- Info about orientation -->
     <p class="panel-medidas__info">
@@ -66,25 +65,32 @@ function selectSize(size: PosterSize) {
 .panel-medidas {
   display: flex;
   flex-direction: column;
-  gap: $space-3xl;
+  gap: 20px;
+  padding-inline: 20px;
 
   &__title {
-    font-size: $font-size-lg;
+    font-family: $font-primary;
+    font-size: 16px;
     font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
   }
 
   &__info {
-    font-size: $font-size-sm;
-    color: $color-text-secondary;
-    padding: $space-lg;
-    background: $color-bg-secondary;
-    border-radius: $radius-lg;
+    font-family: $font-primary;
+    font-size: 14px;
+    color: #717680;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin: 0;
   }
 
   &__sizes {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: $space-lg;
+    grid-template-columns: repeat(4, 74px);
+    gap: 8px;
   }
 
   &__size {
@@ -92,56 +98,62 @@ function selectSize(size: PosterSize) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: $space-lg;
-    padding: $space-xl;
-    border: 2px solid $color-border;
-    border-radius: $radius-xl;
-    transition: border-color $transition-fast, background-color $transition-fast;
+    justify-content: center;
+    width: 74px;
+    height: 74px;
+    padding: 8px;
+    border: 1px solid #e9eaeb;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: border-color $transition-fast;
 
     @include hover {
-      border-color: $color-brand;
+      border-color: #db6800;
     }
 
     &--active {
-      border-color: $color-brand;
-      background: $color-brand-light;
+      border-color: #db6800;
+      border-width: 2px;
     }
   }
 
   &__preview {
-    width: 100%;
-    max-width: 80px;
-    max-height: 100px;
-    background: $color-bg-tertiary;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
+    width: 28px;
+    max-height: 36px;
+    background: #f3f4f6;
+    border: 1px solid #e9eaeb;
+    border-radius: 4px;
 
     .panel-medidas__size--active & {
-      background: $color-bg-primary;
-      border-color: $color-brand;
+      background: #fff0e5;
+      border-color: #db6800;
     }
   }
 
   &__size-info {
     text-align: center;
+    margin-top: 4px;
   }
 
   &__size-label {
     display: block;
-    font-size: $font-size-base;
+    font-family: $font-primary;
+    font-size: 12px;
     font-weight: $font-weight-semibold;
-    color: $color-text-primary;
+    color: #2f3038;
+    line-height: 1.2;
 
     .panel-medidas__size--active & {
-      color: $color-brand;
+      color: #db6800;
     }
   }
 
   &__size-dimensions {
     display: block;
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-    margin-top: $space-xs;
+    font-family: $font-primary;
+    font-size: 10px;
+    color: #717680;
+    margin-top: 2px;
   }
 }
 </style>

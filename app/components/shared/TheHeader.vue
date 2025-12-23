@@ -20,7 +20,7 @@ const isToolPage = computed(() => route.path === '/birth-poster')
     <div class="the-header__container">
       <!-- Logo -->
       <NuxtLink to="/" class="the-header__logo">
-        <span class="the-header__logo-text">studio<strong>M</strong></span>
+        <NuxtImg height="32" src="/logos/logo-full.png" />
       </NuxtLink>
 
       <!-- Desktop Navigation -->
@@ -96,7 +96,6 @@ const isToolPage = computed(() => route.path === '/birth-poster')
 
   &__container {
     height: 100%;
-    max-width: 1440px;
     margin: 0 auto;
     padding: 0 $space-3xl;
     display: flex;

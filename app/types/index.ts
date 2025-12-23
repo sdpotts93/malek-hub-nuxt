@@ -163,13 +163,14 @@ export const ILLUSTRATION_COLORS = [
 ]
 
 export const BACKGROUND_COLORS = [
-  { id: 'white', name: 'Blanco', hex: '#ffffff' },
-  { id: 'cream', name: 'Crema', hex: '#fef9f3' },
-  { id: 'soft-pink', name: 'Rosa suave', hex: '#fdf2f8' },
-  { id: 'soft-blue', name: 'Azul suave', hex: '#eff6ff' },
-  { id: 'soft-green', name: 'Verde suave', hex: '#f0fdf4' },
-  { id: 'soft-yellow', name: 'Amarillo suave', hex: '#fefce8' },
-  { id: 'light-gray', name: 'Gris claro', hex: '#f9fafb' },
+  { id: 'white', name: 'Blanco', hex: '#fafafa' },
+  { id: 'cream-1', name: 'Crema', hex: '#f8f6f2' },
+  { id: 'cream-2', name: 'Crema claro', hex: '#faf8f4' },
+  { id: 'light-blue', name: 'Azul claro', hex: '#d9ebf1' },
+  { id: 'medium-blue', name: 'Azul medio', hex: '#80b2cd' },
+  { id: 'light-purple', name: 'Lila', hex: '#dedae8' },
+  { id: 'gray', name: 'Gris', hex: '#d2d3d4' },
+  { id: 'peach', name: 'Durazno', hex: '#fbf1e8' },
 ]
 
 // Default baby configuration

@@ -116,59 +116,69 @@ const dateValue = computed({
 .panel-datos {
   display: flex;
   flex-direction: column;
-  gap: $space-3xl;
+  gap: 20px;
+  padding-inline: 20px;
+
 
   &__title {
-    font-size: $font-size-lg;
+    font-family: $font-primary;
+    font-size: 16px;
     font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
   }
 
   &__tabs {
-    margin-bottom: $space-lg;
+    margin-bottom: 8px;
   }
 
   &__field {
     display: flex;
     flex-direction: column;
-    gap: $space-md;
+    gap: 6px;
   }
 
   &__label {
-    font-size: $font-size-sm;
+    font-family: $font-primary;
+    font-size: 14px;
     font-weight: $font-weight-medium;
-    color: $color-text-secondary;
+    color: #414651;
     display: flex;
     align-items: center;
-    gap: $space-xs;
+    gap: 4px;
   }
 
   &__required {
-    color: $color-error;
+    color: #ef4444;
   }
 
   &__optional {
     font-weight: $font-weight-normal;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
+    color: #717680;
+    font-size: 12px;
   }
 
   &__input {
     @include input-reset;
     width: 100%;
-    padding: $space-lg;
-    background: $color-bg-secondary;
-    border: 1px solid $color-border;
-    border-radius: $radius-lg;
-    font-size: $font-size-base;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+    font-family: $font-primary;
+    font-size: 16px;
+    color: #2f3038;
     transition: border-color $transition-fast, box-shadow $transition-fast;
 
     &::placeholder {
-      color: $color-text-muted;
+      color: #717680;
     }
 
     &:focus {
-      border-color: $color-brand;
-      box-shadow: 0 0 0 3px rgba($color-brand, 0.1);
+      border-color: #db6800;
+      box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
     }
   }
 
@@ -178,15 +188,16 @@ const dateValue = computed({
     align-items: center;
 
     .panel-datos__input {
-      padding-right: $space-4xl;
+      padding-right: 48px;
     }
   }
 
   &__unit {
     position: absolute;
-    right: $space-lg;
-    color: $color-text-muted;
-    font-size: $font-size-sm;
+    right: 14px;
+    color: #717680;
+    font-family: $font-primary;
+    font-size: 16px;
     pointer-events: none;
   }
 }

@@ -28,7 +28,6 @@ const frameColors: Record<string, string> = {
 
 <template>
   <div class="panel-marco">
-    <h3 class="panel-marco__title">Marco</h3>
 
     <p class="panel-marco__info">
       Añade un marco de madera de alta calidad a tu poster
@@ -84,85 +83,96 @@ const frameColors: Record<string, string> = {
 .panel-marco {
   display: flex;
   flex-direction: column;
-  gap: $space-3xl;
+  gap: 20px;
+  padding-inline: 20px;
 
   &__title {
-    font-size: $font-size-lg;
+    font-family: $font-primary;
+    font-size: 16px;
     font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
   }
 
   &__info {
-    font-size: $font-size-sm;
-    color: $color-text-secondary;
+    font-family: $font-primary;
+    font-size: 14px;
+    color: #717680;
+    margin: 0;
   }
 
+  // Grid layout for frame options - 74x74px items
   &__frames {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: $space-lg;
+    grid-template-columns: repeat(4, 74px);
+    gap: 8px;
   }
 
   &__option {
     @include button-reset;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: $space-lg;
-    padding: $space-lg;
-    border: 2px solid $color-border;
-    border-radius: $radius-xl;
-    transition: border-color $transition-fast, background-color $transition-fast;
+    justify-content: center;
+    width: 74px;
+    height: 74px;
+    padding: 8px;
+    border: 1px solid #e9eaeb;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: border-color $transition-fast;
 
     @include hover {
-      border-color: $color-brand;
+      border-color: #db6800;
     }
 
     &--active {
-      border-color: $color-brand;
-      background: $color-brand-light;
+      border-color: #db6800;
+      border-width: 2px;
     }
   }
 
   &__preview {
-    width: 60px;
-    height: 75px;
-    border-radius: $radius-md;
+    width: 40px;
+    height: 50px;
+    border-radius: 4px;
     @include flex-center;
     flex-shrink: 0;
 
     &--none {
-      background: $color-bg-tertiary;
-      color: $color-text-muted;
+      background: #f3f4f6;
+      color: #717680;
     }
   }
 
   &__preview-inner {
-    width: 44px;
-    height: 59px;
-    background: $color-bg-primary;
+    width: 30px;
+    height: 40px;
+    background: #ffffff;
     border-radius: 2px;
   }
 
   &__option-info {
-    flex: 1;
-    text-align: left;
+    text-align: center;
+    margin-top: 4px;
   }
 
   &__option-name {
     display: block;
-    font-size: $font-size-sm;
+    font-family: $font-primary;
+    font-size: 11px;
     font-weight: $font-weight-semibold;
-    color: $color-text-primary;
+    color: #2f3038;
+    line-height: 1.2;
 
     .panel-marco__option--active & {
-      color: $color-brand;
+      color: #db6800;
     }
   }
 
   &__option-price {
-    display: block;
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-    margin-top: $space-xs;
+    display: none; // Price shown in cart section
   }
 }
 </style>

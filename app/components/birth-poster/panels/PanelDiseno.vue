@@ -22,7 +22,6 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
 
 <template>
   <div class="panel-diseno">
-    <h3 class="panel-diseno__title">Diseño</h3>
 
     <!-- Baby Tabs (if multiple babies) -->
     <BirthPosterBabyTabs v-if="store.babyCount > 1" class="panel-diseno__tabs" />
@@ -110,119 +109,130 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
 .panel-diseno {
   display: flex;
   flex-direction: column;
-  gap: $space-3xl;
+  gap: 20px;
 
   &__title {
-    font-size: $font-size-lg;
+    font-family: $font-primary;
+    font-size: 16px;
     font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
   }
 
   &__tabs {
-    margin-bottom: $space-lg;
+    margin-bottom: 8px;
   }
 
   &__section {
     display: flex;
     flex-direction: column;
-    gap: $space-lg;
+    gap: 12px;
+    padding-inline: 20px;
   }
 
   &__label {
-    font-size: $font-size-sm;
+    font-family: $font-primary;
+    font-size: 14px;
     font-weight: $font-weight-medium;
-    color: $color-text-secondary;
+    color: #717680;
   }
 
+  // Orientation - button group style (butted together)
   &__orientation {
     display: flex;
-    gap: $space-md;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   &__orient-btn {
     @include button-reset;
     flex: 1;
-    padding: $space-lg;
-    border: 2px solid $color-border;
-    border-radius: $radius-lg;
-    font-weight: $font-weight-medium;
-    transition: border-color $transition-fast, background-color $transition-fast, color $transition-fast;
+    min-height: 40px;
+    padding: 10px 16px;
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-bold;
+    background: #f5f5f5;
+    color: #414651;
+    border-right: 1px solid #e9eaeb;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:last-child {
+      border-right: none;
+    }
 
     @include hover {
-      border-color: $color-brand;
+      background: #ebebeb;
     }
 
     &--active {
-      border-color: $color-brand;
-      background: $color-brand-light;
-      color: $color-brand;
+      background: #fff0e5;
+      color: #db6800;
+      border-right-color: #eaddd3;
     }
   }
 
+  // Styles grid - 74x74px images
   &__styles {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: $space-md;
+    grid-template-columns: repeat(4, 74px);
+    gap: 8px;
   }
 
   &__style-btn {
     @include button-reset;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: $space-md;
-    padding: $space-lg;
-    border: 2px solid $color-border;
-    border-radius: $radius-lg;
-    transition: border-color $transition-fast, background-color $transition-fast;
+    width: 74px;
+    height: 74px;
+    border-radius: 12px;
+    border: 1px solid #e9eaeb;
+    overflow: hidden;
+    background: #ffffff;
+    transition: border-color $transition-fast;
 
     @include hover {
-      border-color: $color-brand;
+      border-color: #db6800;
     }
 
     &--active {
-      border-color: $color-brand;
-      background: $color-brand-light;
+      border-color: #db6800;
+      border-width: 2px;
     }
   }
 
   &__style-preview {
-    width: 48px;
-    height: 64px;
+    width: 100%;
+    height: 100%;
     @include flex-center;
-    color: $color-text-secondary;
+    color: #717680;
 
     svg {
-      width: 100%;
-      height: 100%;
+      width: 40px;
+      height: 54px;
     }
 
     .panel-diseno__style-btn--active & {
-      color: $color-brand;
+      color: #db6800;
     }
   }
 
   &__style-name {
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    color: $color-text-secondary;
-
-    .panel-diseno__style-btn--active & {
-      color: $color-brand;
-    }
+    display: none; // Hidden in this grid layout
   }
 
+  // Color picker
   &__colors {
     display: flex;
     flex-wrap: wrap;
-    gap: $space-md;
+    gap: 2px;
   }
 
   &__color-btn {
     @include button-reset;
     @include flex-center;
-    width: 40px;
-    height: 40px;
-    border-radius: $radius-full;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     border: 2px solid transparent;
     transition: transform $transition-fast, box-shadow $transition-fast;
 
@@ -231,11 +241,11 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
     }
 
     &--active {
-      box-shadow: 0 0 0 2px $color-bg-primary, 0 0 0 4px $color-text-primary;
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2f3038;
     }
 
     svg {
-      color: white;
+      color: #ffffff;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
   }
