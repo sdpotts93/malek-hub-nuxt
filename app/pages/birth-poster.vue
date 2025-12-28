@@ -207,11 +207,11 @@ async function handleAddToCart() {
   }
 
   &__canvas-area {
-    background: $color-bg-secondary;
+    background: $color-canvas;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: $space-3xl;
+    padding: $space-4xl $space-3xl $space-6xl;
     overflow: hidden;
 
     @include mobile {
@@ -221,8 +221,8 @@ async function handleAddToCart() {
   }
 
   &__canvas-container {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -231,7 +231,7 @@ async function handleAddToCart() {
   &__history {
     position: relative;
     width: 106px; // Fixed width: 82px panel + 24px margin
-    background: $color-bg-secondary;
+    background: $color-canvas;
     flex-shrink: 0;
   }
 }

@@ -1,26 +1,13 @@
 <script setup lang="ts">
-import { POSTER_SIZES } from '~/types'
+import { getStyleById } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Calculate canvas dimensions (maintain aspect ratio)
-const maxCanvasWidth = 500
-const maxCanvasHeight = 700
+// Determine if poster is vertical or horizontal based on baby count
+const isVertical = computed(() => store.babyCount <= 2)
 
-const canvasDimensions = computed(() => {
-  const size = POSTER_SIZES[store.posterSize]
-  const aspectRatio = size.width / size.height
-
-  let width = maxCanvasWidth
-  let height = width / aspectRatio
-
-  if (height > maxCanvasHeight) {
-    height = maxCanvasHeight
-    width = height * aspectRatio
-  }
-
-  return { width, height }
-})
+// Aspect ratio: 5:7 for vertical (1-2 babies), 7:5 for horizontal (3-4 babies)
+const aspectRatio = computed(() => isVertical.value ? '5 / 7' : '7 / 5')
 
 // Calculate baby illustration sizes based on baby count
 const babyLayout = computed(() => {
@@ -36,23 +23,13 @@ const babyLayout = computed(() => {
     return { cols: 2, size: 'small' }
   }
 })
-
-// Get CSS filter for illustration color
-function getColorFilter(color: string): string {
-  if (!color || color === '#000000') return 'none'
-
-  // For now, use a simple invert + hue-rotate approach
-  // In production, you'd use a more sophisticated color-to-filter conversion
-  return `brightness(0) saturate(100%) invert(100%)`
-}
 </script>
 
 <template>
   <div
-    class="baby-canvas"
+    :class="['baby-canvas', { 'baby-canvas--horizontal': !isVertical }]"
     :style="{
-      width: canvasDimensions.width + 'px',
-      height: canvasDimensions.height + 'px',
+      aspectRatio: aspectRatio,
       backgroundColor: store.backgroundColor,
     }"
   >
@@ -70,25 +47,15 @@ function getColorFilter(color: string): string {
           :key="index"
           class="baby-canvas__baby"
           :style="{
-            filter: getColorFilter(baby.illustrationColor),
+            transform: baby.orientation === 'derecha' ? 'scaleX(-1)' : 'none',
           }"
         >
-          <!-- Placeholder baby illustration -->
-          <svg
-            viewBox="0 0 100 140"
-            fill="currentColor"
-            :style="{
-              transform: baby.orientation === 'izquierda' ? 'scaleX(-1)' : 'none'
-            }"
-          >
-            <!-- Simple baby silhouette placeholder -->
-            <ellipse cx="50" cy="25" rx="20" ry="22" />
-            <ellipse cx="50" cy="75" rx="30" ry="45" />
-            <ellipse cx="20" cy="55" rx="10" ry="20" />
-            <ellipse cx="80" cy="55" rx="10" ry="20" />
-            <ellipse cx="35" cy="120" rx="12" ry="18" />
-            <ellipse cx="65" cy="120" rx="12" ry="18" />
-          </svg>
+          <NuxtImg
+            v-if="getStyleById(baby.styleId)"
+            :src="getStyleById(baby.styleId)!.image"
+            :alt="getStyleById(baby.styleId)!.name"
+            class="baby-canvas__illustration"
+          />
         </div>
       </div>
     </div>
@@ -137,7 +104,16 @@ function getColorFilter(color: string): string {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width $transition-base, height $transition-base;
+  height: 100%;
+  max-height: 100%;
+  width: auto;
+  transition: aspect-ratio $transition-base;
+
+  &--horizontal {
+    height: auto;
+    width: 100%;
+    max-width: 100%;
+  }
 
   &__illustration-area {
     flex: 1;
@@ -187,12 +163,13 @@ function getColorFilter(color: string): string {
 
   &__baby {
     width: 100%;
-    transition: filter $transition-base;
+    transition: transform $transition-base;
+  }
 
-    svg {
-      width: 100%;
-      height: auto;
-    }
+  &__illustration {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   &__text-area {

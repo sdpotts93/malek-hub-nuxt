@@ -1,23 +1,16 @@
 <script setup lang="ts">
-import { ILLUSTRATION_COLORS } from '~/types'
+import { ILLUSTRATION_COLORS, BABY_STYLES } from '~/types'
 import type { BabyOrientation } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Mock baby styles
-const babyStyles = [
-  { id: 'style-1', name: 'Clásico' },
-  { id: 'style-2', name: 'Moderno' },
-  { id: 'style-3', name: 'Minimalista' },
-  { id: 'style-4', name: 'Artístico' },
-  { id: 'style-5', name: 'Dulce' },
-  { id: 'style-6', name: 'Elegante' },
+const orientationOptions: { id: BabyOrientation; label: string }[] = [
+  { id: 'izquierda', label: 'Izquierda' },
+  { id: 'derecha', label: 'Derecha' },
 ]
 
-const orientationOptions: { id: BabyOrientation; label: string }[] = [
-  { id: 'derecha', label: 'Derecha' },
-  { id: 'izquierda', label: 'Izquierda' },
-]
+// Computed for reactivity
+const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
 </script>
 
 <template>
@@ -49,7 +42,7 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
       <label class="panel-diseno__label">Estilos</label>
       <div class="panel-diseno__styles">
         <button
-          v-for="style in babyStyles"
+          v-for="style in BABY_STYLES"
           :key="style.id"
           :class="[
             'panel-diseno__style-btn',
@@ -57,14 +50,15 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
           ]"
           @click="store.setBabyStyle(style.id)"
         >
-          <!-- Placeholder style preview -->
-          <div class="panel-diseno__style-preview">
-            <svg viewBox="0 0 60 80" fill="currentColor">
-              <ellipse cx="30" cy="18" rx="12" ry="14" />
-              <ellipse cx="30" cy="50" rx="18" ry="28" />
-            </svg>
-          </div>
-          <span class="panel-diseno__style-name">{{ style.name }}</span>
+          <NuxtImg
+            :src="style.thumbnail"
+            :alt="style.name"
+            class="panel-diseno__style-preview"
+            :style="{ transform: isFlipped ? 'scaleX(-1)' : 'none' }"
+            width="74"
+            height="74"
+            loading="lazy"
+          />
         </button>
       </div>
     </div>
@@ -203,21 +197,9 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
   &__style-preview {
     width: 100%;
     height: 100%;
-    @include flex-center;
-    color: #717680;
-
-    svg {
-      width: 40px;
-      height: 54px;
-    }
-
-    .panel-diseno__style-btn--active & {
-      color: #db6800;
-    }
-  }
-
-  &__style-name {
-    display: none; // Hidden in this grid layout
+    object-fit: cover;
+    border-radius: 11px;
+    transition: transform $transition-fast;
   }
 
   // Color picker

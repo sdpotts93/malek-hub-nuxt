@@ -130,7 +130,7 @@ const scrollColors = (direction: 'left' | 'right') => {
     gap: 8px;
     background: #fafafa;
     border-radius: 5px;
-    padding: 0 4px;
+    padding: 4px 5px;
   }
 
   &__nav-btn {
@@ -159,30 +159,40 @@ const scrollColors = (direction: 'left' | 'right') => {
   &__count-btn {
     @include button-reset;
     @include flex-center;
-    flex: 1;
     min-height: 40px;
-    padding: 10px 16px;
+    padding: 8px 22px;
     font-family: $font-primary;
     font-size: 16px;
     font-weight: $font-weight-bold;
+    line-height: 24px;
     background: #f5f5f5;
     color: #414651;
-    border-right: 1px solid #e9eaeb;
     transition: background-color $transition-fast, color $transition-fast;
+
+    &--active {
+      background: #fff0e5;
+      color: #db6800;
+      border-right: 1px solid #dedede;
+      border-left: 1px solid #dedede;
+      &:last-child {
+        border-right: none;
+      }
+      &:first-child {
+        border-left: none;
+      }
+    }
 
     &:last-child {
       border-right: none;
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+
     }
 
     @include hover {
       background: #ebebeb;
     }
 
-    &--active {
-      background: #fff0e5;
-      color: #db6800;
-      border-right-color: #eaddd3;
-    }
   }
 
   // Color picker - horizontal scroll container
