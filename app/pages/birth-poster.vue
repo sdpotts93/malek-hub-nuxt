@@ -171,6 +171,7 @@ async function handleAddToCart() {
     display: grid;
     grid-template-columns: $sidebar-width $panel-width 1fr 106px;
     overflow: hidden;
+    background-color: $color-canvas;
 
     @include desktop {
       grid-template-columns: $sidebar-width-collapsed $panel-width-md 1fr 106px;
@@ -184,8 +185,6 @@ async function handleAddToCart() {
   }
 
   &__sidebar {
-    background: $color-bg-primary;
-    border-right: 1px solid $color-border;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -193,10 +192,15 @@ async function handleAddToCart() {
 
   &__panel-wrapper {
     background: $color-bg-primary;
-    border-right: 1px solid $color-border;
+    
+    border: 1px solid $color-border;
+    border-radius: 12px;
+    box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: calc(100% - 12px);
+    margin-top: auto;
   }
 
   &__panel-content {

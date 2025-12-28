@@ -1,96 +1,148 @@
 <script setup lang="ts">
-import { getStyleById } from '~/types'
+import { getStyleById, ILLUSTRATION_COLORS } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Determine if poster is vertical or horizontal based on baby count
-const isVertical = computed(() => store.babyCount <= 2)
+// Get CSS filter for a baby's illustration color
+const getIllustrationFilter = (baby: typeof store.babies[0]) => {
+  const colorConfig = ILLUSTRATION_COLORS.find(c => c.hex === baby.illustrationColor)
+  return colorConfig?.filter || 'none'
+}
 
-// Aspect ratio: 5:7 for vertical (1-2 babies), 7:5 for horizontal (3-4 babies)
-const aspectRatio = computed(() => isVertical.value ? '5 / 7' : '7 / 5')
-
-// Calculate baby illustration sizes based on baby count
-const babyLayout = computed(() => {
-  const count = store.babyCount
-
-  if (count === 1) {
-    return { cols: 1, size: 'large' }
-  } else if (count === 2) {
-    return { cols: 2, size: 'medium' }
-  } else if (count === 3) {
-    return { cols: 3, size: 'small' }
-  } else {
-    return { cols: 2, size: 'small' }
+// Format baby names for title (1-2 babies share header with &)
+const combinedNames = computed(() => {
+  if (store.babyCount === 1) {
+    return store.babies[0]?.nombre || ''
   }
+  if (store.babyCount === 2) {
+    const name1 = store.babies[0]?.nombre || ''
+    const name2 = store.babies[1]?.nombre || ''
+    if (name1 && name2) return `${name1} & ${name2}`
+    return name1 || name2 || ''
+  }
+  return ''
 })
+
+// Format height display (cm to inches)
+const formatHeight = (altura: number) => {
+  const inches = (altura / 2.54).toFixed(2)
+  return `${inches} INCHES`
+}
+
+// Format weight display (grams to pounds/ounces)
+const formatWeight = (peso: number) => {
+  const totalOunces = peso / 28.3495
+  const pounds = Math.floor(totalOunces / 16)
+  const ounces = Math.round(totalOunces % 16)
+  return `${pounds} POUNDS ${ounces} OUNCES`
+}
+
+// Format date display
+const formatDate = (fecha: Date | string | null) => {
+  if (!fecha) return null
+  const date = new Date(fecha)
+  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+  const day = date.getDate()
+  const year = date.getFullYear()
+  const hours = date.getHours()
+  const mins = date.getMinutes()
+  return `${month} ${day}, ${year} ${hours}:${mins}`
+}
+
+// Build data line for a baby
+const buildDataLine = (baby: typeof store.babies[0]) => {
+  const parts: string[] = []
+
+  parts.push(formatHeight(baby.altura))
+
+  if (baby.peso) {
+    parts.push(formatWeight(baby.peso))
+  }
+
+  const formattedDate = formatDate(baby.fechaNacimiento)
+  if (formattedDate) {
+    parts.push(formattedDate)
+  }
+
+  if (baby.lugarNacimiento) {
+    parts.push(baby.lugarNacimiento.toUpperCase())
+  }
+
+  return parts.join(' / ')
+}
 </script>
 
 <template>
-  <div
-    :class="['baby-canvas', { 'baby-canvas--horizontal': !isVertical }]"
-    :style="{
-      aspectRatio: aspectRatio,
-      backgroundColor: store.backgroundColor,
-    }"
-  >
-    <!-- BABY EDIT Section -->
-    <div class="baby-canvas__illustration-area">
-      <div
-        :class="[
-          'baby-canvas__babies',
-          `baby-canvas__babies--cols-${babyLayout.cols}`,
-          `baby-canvas__babies--size-${babyLayout.size}`
-        ]"
-      >
+  <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`]">
+    <!-- Colored illustration area -->
+    <div
+      class="baby-canvas__illustration-area"
+      :style="{ backgroundColor: store.backgroundColor }"
+    >
+      <!-- Baby illustrations -->
+      <div class="baby-canvas__babies">
         <div
           v-for="(baby, index) in store.babies"
           :key="index"
           class="baby-canvas__baby"
-          :style="{
-            transform: baby.orientation === 'derecha' ? 'scaleX(-1)' : 'none',
-          }"
         >
           <NuxtImg
             v-if="getStyleById(baby.styleId)"
             :src="getStyleById(baby.styleId)!.image"
-            :alt="getStyleById(baby.styleId)!.name"
+            :alt="`Baby ${index + 1}`"
             class="baby-canvas__illustration"
+            :style="{
+              transform: baby.orientation === 'derecha' ? 'scaleX(-1)' : 'none',
+              filter: getIllustrationFilter(baby),
+            }"
           />
         </div>
       </div>
-    </div>
 
-    <!-- TEXT EDIT Section -->
-    <div class="baby-canvas__text-area">
-      <div
-        v-for="(baby, index) in store.babies"
-        :key="index"
-        class="baby-canvas__text-block"
-      >
-        <p class="baby-canvas__title">
-          SCALE 1:1 OF {{ baby.nombre || `Bebé ${index + 1}` }}
-        </p>
-        <p class="baby-canvas__data">
-          {{ baby.altura }} cm
-          <template v-if="baby.peso"> / {{ baby.peso }} gramos</template>
-          <template v-if="baby.fechaNacimiento">
-            / {{ new Date(baby.fechaNacimiento).toLocaleDateString('es-ES', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            }) }}
-          </template>
-          <template v-if="baby.lugarNacimiento"> / {{ baby.lugarNacimiento }}</template>
-        </p>
+      <!-- Watermark signature -->
+      <div class="baby-canvas__watermark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 4C12 4 8 8 8 14C8 22 14 28 16 28C18 28 24 22 24 14C24 8 20 4 16 4Z" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M12 16C12 12 14 10 16 10" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
       </div>
     </div>
 
-    <!-- Frame overlay (if selected) -->
-    <div
-      v-if="store.frameStyle"
-      class="baby-canvas__frame"
-    >
-      <!-- Frame visual would go here -->
+    <!-- Text area - different layouts based on baby count -->
+    <div class="baby-canvas__text-area">
+      <!-- 1-2 babies: Combined title, stacked data lines -->
+      <template v-if="store.babyCount <= 2">
+        <p class="baby-canvas__title">
+          SCALE 1:1 OF{{ combinedNames ? ' ' + combinedNames.toUpperCase() : '' }}
+        </p>
+        <div class="baby-canvas__data-lines">
+          <p
+            v-for="(baby, index) in store.babies"
+            :key="index"
+            class="baby-canvas__data"
+          >
+            {{ buildDataLine(baby) }}
+          </p>
+        </div>
+      </template>
+
+      <!-- 3-4 babies: Individual columns -->
+      <template v-else>
+        <div class="baby-canvas__columns">
+          <div
+            v-for="(baby, index) in store.babies"
+            :key="index"
+            class="baby-canvas__column"
+          >
+            <p class="baby-canvas__title">
+              SCALE 1:1 OF{{ baby.nombre ? ' ' + baby.nombre.toUpperCase() : '' }}
+            </p>
+            <p class="baby-canvas__data">
+              {{ buildDataLine(baby) }}
+            </p>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -98,111 +150,206 @@ const babyLayout = computed(() => {
 <style lang="scss" scoped>
 .baby-canvas {
   position: relative;
-  background: white;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   height: 100%;
-  max-height: 100%;
   width: auto;
-  transition: aspect-ratio $transition-base;
+  box-shadow: 0 0 20px -5px #adadad;
 
-  &--horizontal {
-    height: auto;
-    width: 100%;
-    max-width: 100%;
+  // Vertical poster (1-2 babies)
+  &--count-1,
+  &--count-2 {
+    aspect-ratio: 9 / 12;
   }
 
+  // Horizontal poster (3-4 babies)
+  &--count-3,
+  &--count-4 {
+    aspect-ratio: 12 / 9;
+    height: auto;
+    width: 100%;
+  }
+
+  // ==========================================================================
+  // Illustration Area
+  // ==========================================================================
   &__illustration-area {
+    position: relative;
     flex: 1;
+    margin: 8.4% 9% 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: $space-3xl;
   }
 
+  // ==========================================================================
+  // Baby Illustrations Container
+  // ==========================================================================
   &__babies {
-    display: grid;
-    gap: $space-xl;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 100%;
     width: 100%;
-    max-width: 80%;
-    justify-items: center;
-
-    &--cols-1 {
-      grid-template-columns: 1fr;
-    }
-
-    &--cols-2 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    &--cols-3 {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    &--size-large {
-      .baby-canvas__baby {
-        max-width: 200px;
-      }
-    }
-
-    &--size-medium {
-      .baby-canvas__baby {
-        max-width: 140px;
-      }
-    }
-
-    &--size-small {
-      .baby-canvas__baby {
-        max-width: 100px;
-      }
-    }
+    padding: 10%;    
+    gap: 16px;
   }
 
   &__baby {
-    width: 100%;
-    transition: transform $transition-base;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
   }
 
   &__illustration {
-    width: 100%;
-    height: auto;
-    display: block;
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply;
   }
 
-  &__text-area {
-    padding: $space-xl $space-3xl $space-3xl;
-    text-align: center;
-  }
-
-  &__text-block {
-    margin-bottom: $space-lg;
-
-    &:last-child {
-      margin-bottom: 0;
+  // 1 baby layout
+  &--count-1 {
+    .baby-canvas__baby {
+      max-width: 65%;
     }
   }
 
+  // 2 babies layout
+  &--count-2 {
+    .baby-canvas__babies {
+      gap: 24px;
+      justify-content: space-between;
+    }
+    .baby-canvas__baby {
+      max-width: 45%;
+    }
+  }
+
+  // 3 babies layout
+  &--count-3 {
+    .baby-canvas__babies {
+      gap: 20px;
+      justify-content: space-evenly;
+      padding: 10% 0;
+    }
+    .baby-canvas__baby {
+      max-width: 30%;
+    }
+  }
+
+  // 4 babies layout
+  &--count-4 {
+    .baby-canvas__babies {
+      gap: 16px;
+      justify-content: space-evenly;
+      padding: 10% 0;
+
+    }
+    .baby-canvas__baby {
+      max-width: 23%;
+    }
+  }
+
+  // ==========================================================================
+  // Watermark
+  // ==========================================================================
+  &__watermark {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+
+    svg {
+      width: 28px;
+      height: 28px;
+      color: rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  // ==========================================================================
+  // Text Area
+  // ==========================================================================
+  &__text-area {
+    height: 11%;
+    text-align: center;
+    padding: 4% 0;
+  }
+
   &__title {
-    font-size: $font-size-sm;
-    font-weight: $font-weight-bold;
-    letter-spacing: 0.05em;
-    margin-bottom: $space-xs;
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #1a1a1a;
+    margin: 0 0 8px;
+    line-height: 1.2;
+  }
+
+  &__data-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
   }
 
   &__data {
-    font-size: $font-size-xs;
-    color: $color-text-secondary;
+    font-family: $font-secondary;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: #666666;
+    margin: 0;
+    line-height: 1.3;
   }
 
-  &__frame {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border: 16px solid #8b5a2b; // Default wood color
-    border-radius: $radius-lg;
+  // ==========================================================================
+  // Columns (3-4 babies)
+  // ==========================================================================
+  &__columns {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  &__column {
+    text-align: center;
+
+    .baby-canvas__title {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .baby-canvas__data {
+      font-size: 8px;
+    }
+  }
+
+  // ==========================================================================
+  // Horizontal adjustments
+  // ==========================================================================
+  &--count-3,
+  &--count-4 {
+    max-width: 45vw;
+
+    .baby-canvas__illustration-area {
+      margin: 2.5% 2.5% 0;
+    }
+
+    .baby-canvas__text-area {
+      padding: 14px 20px 20px;
+    }
+
+    .baby-canvas__watermark {
+      bottom: 10px;
+      right: 10px;
+
+      svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
   }
 }
 </style>
