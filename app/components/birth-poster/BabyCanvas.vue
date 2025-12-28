@@ -161,13 +161,13 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // Vertical poster (1-2 babies)
   &--count-1,
   &--count-2 {
-    aspect-ratio: 9 / 12;
+    aspect-ratio: 5 / 7;
   }
 
   // Horizontal poster (3-4 babies)
   &--count-3,
   &--count-4 {
-    aspect-ratio: 12 / 9;
+    aspect-ratio: 7 / 5;
     height: auto;
     width: 100%;
   }
