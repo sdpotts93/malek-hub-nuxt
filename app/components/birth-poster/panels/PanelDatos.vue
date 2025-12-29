@@ -396,7 +396,7 @@ function formatMinute(minute: number): string {
 
   &__tabs {
     margin-inline: -20px;
-    margin-top: -16px;
+    margin-top: -20px;
     margin-bottom: 8px;
   }
 

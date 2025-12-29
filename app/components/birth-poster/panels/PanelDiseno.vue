@@ -134,6 +134,7 @@ const scrollColors = (direction: 'left' | 'right') => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-top: 20px;
 
   &__title {
     font-family: $font-primary;
@@ -143,7 +144,6 @@ const scrollColors = (direction: 'left' | 'right') => {
     color: #2f3038;
     margin: 0;
     padding-inline: 20px;
-    padding-top: 20px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -156,6 +156,7 @@ const scrollColors = (direction: 'left' | 'right') => {
 
   &__tabs {
     margin-bottom: 8px;
+    margin-top: -20px;
   }
 
   &__section {
