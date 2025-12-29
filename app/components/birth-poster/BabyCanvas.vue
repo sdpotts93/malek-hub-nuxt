@@ -46,6 +46,16 @@ const combinedNames = computed(() => {
   return ''
 })
 
+// Maximum height in the illustration area (in cm)
+// The illustration area is 58.75cm on a 70cm poster (1:1 scale)
+const MAX_ILLUSTRATION_HEIGHT = 58.75
+
+// Calculate height scale as a percentage based on baby's altura
+const getHeightScale = (altura: number): string => {
+  const scale = (altura / MAX_ILLUSTRATION_HEIGHT) * 100
+  return `${Math.min(scale, 100)}%`
+}
+
 // Format height display (in cm)
 const formatHeight = (altura: number) => {
   return `${altura} CM`
@@ -119,6 +129,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
           v-for="(baby, index) in store.babies"
           :key="index"
           class="baby-canvas__baby"
+          :style="{ height: getHeightScale(baby.altura) }"
         >
           <NuxtImg
             v-if="getStyleById(baby.styleId)"
@@ -146,8 +157,11 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     <div class="baby-canvas__text-area">
       <!-- 1-2 babies: Combined title, stacked data lines -->
       <template v-if="store.babyCount <= 2">
-        <p class="baby-canvas__title">
+        <p v-if="store.showScale" class="baby-canvas__title">
           ESCALA 1:1 DE{{ combinedNames ? ' ' + combinedNames.toUpperCase() : '' }}
+        </p>
+        <p v-else-if="combinedNames" class="baby-canvas__title">
+          {{ combinedNames.toUpperCase() }}
         </p>
         <div class="baby-canvas__data-lines">
           <p
@@ -168,8 +182,11 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
             :key="index"
             class="baby-canvas__column"
           >
-            <p class="baby-canvas__title">
+            <p v-if="store.showScale" class="baby-canvas__title">
               ESCALA 1:1 DE{{ baby.nombre ? ' ' + baby.nombre.toUpperCase() : '' }}
+            </p>
+            <p v-else-if="baby.nombre" class="baby-canvas__title">
+              {{ baby.nombre.toUpperCase() }}
             </p>
             <p class="baby-canvas__data">
               {{ buildDataLine(baby) }}
@@ -224,7 +241,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     position: relative;
     flex: 1 1 0;
     min-height: 0;
-    margin: 8.4% 9% 0;
+    margin: 8.5% 8.5% 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -235,16 +252,16 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &__babies {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
     height: 100%;
     width: 100%;
-    padding: 10%;    
     gap: 16px;
   }
 
   &__baby {
-    height: 100%;
+    // Height is set dynamically based on baby's altura (1:1 scale)
+    // Default height: 100% is overridden by inline style
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -267,7 +284,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-2 {
     .baby-canvas__babies {
       gap: 24px;
-      justify-content: space-between;
+      justify-content: space-evenly;
     }
     .baby-canvas__baby {
       max-width: 45%;
@@ -278,8 +295,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-3 {
     .baby-canvas__babies {
       gap: 20px;
-      justify-content: space-between;
-      padding: 6% 9%
+      justify-content: space-evenly;
     }
     .baby-canvas__baby {
       max-width: 30%;
@@ -290,8 +306,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-4 {
     .baby-canvas__babies {
       gap: 25px;
-      justify-content: space-between;
-      padding: 3% 9%
+      justify-content: space-evenly;
     }
     .baby-canvas__baby {
       max-width: 20%;
@@ -317,7 +332,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // Text Area (11% of poster height)
   // ==========================================================================
   &__text-area {
-    flex: 0 0 11%;
+    flex: 0 0 10%;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -332,7 +347,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     letter-spacing: 0.25em;
     color: #1a1a1a;
     line-height: 2;
-    font-size: 2.6cqi;
+    font-size: 2.4cqi;
   }
 
   &__data-lines {
@@ -347,7 +362,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     color: #666666;
     margin: 0;
     line-height: 1.7;
-    font-size: 2cqi;
+    font-size: 1.8cqi;
   }
 
   // ==========================================================================
@@ -366,10 +381,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
   &--count-2 {
     .baby-canvas__title {
-      font-size: 2.2cqi;
+      font-size: 2cqi;
     }
     .baby-canvas__data {
-      font-size: 1.6cqi;
+      font-size: 1.5cqi;
     }
   }
 

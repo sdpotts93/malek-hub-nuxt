@@ -13,7 +13,11 @@ const store = useBirthPosterStore()
       ]"
       @click="store.setActiveBabyTab(i - 1)"
     >
-      Bebé {{ i }}
+      <span class="baby-tabs__label">Bebé {{ i }}</span>
+      <span
+        v-if="store.activePanel === 'datos' && store.babyHasMissingData(i - 1)"
+        class="baby-tabs__badge"
+      >!</span>
     </button>
   </div>
 </template>
@@ -36,6 +40,10 @@ const store = useBirthPosterStore()
     color: #414651;
     border-right: 1px solid #e9eaeb;
     transition: background-color $transition-fast, color $transition-fast;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 
     &:last-child {
       border-right: none;
@@ -50,6 +58,26 @@ const store = useBirthPosterStore()
       color: #db6800;
       border-right-color: #eaddd3;
     }
+  }
+
+  &__label {
+    // Inherits font styles from parent
+  }
+
+  &__badge {
+    width: 16px;
+    height: 16px;
+    background: #ff2020;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: $font-primary;
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    color: #ffffff;
+    line-height: 1;
   }
 }
 </style>

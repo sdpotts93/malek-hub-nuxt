@@ -61,6 +61,7 @@ export interface BirthPosterState {
   // Poster settings
   posterSize: PosterSize
   frameStyle: FrameStyle | null
+  showScale: boolean // Whether to show "ESCALA 1:1 DE..." text
 
   // UI state
   activePanel: PanelType
@@ -239,10 +240,11 @@ export const createDefaultBabyConfig = (): BabyConfig => ({
 // Default birth poster state
 export const createDefaultBirthPosterState = (): BirthPosterState => ({
   babyCount: 1,
-  backgroundColor: '#ffffff',
+  backgroundColor: '#fafafa', // First color in BACKGROUND_COLORS (Blanco)
   babies: [createDefaultBabyConfig()],
   posterSize: '30x40',
   frameStyle: null,
+  showScale: true, // Show "ESCALA 1:1 DE..." by default
   activePanel: 'general',
   activeBabyTab: 0,
 })

@@ -90,6 +90,23 @@ export const useBirthPosterStore = defineStore('birthPoster', {
       const defaultState = createDefaultBirthPosterState()
       return JSON.stringify(state) !== JSON.stringify(defaultState)
     },
+
+    // Check if a specific baby has missing mandatory data (nombre is required)
+    babyHasMissingData: (state) => (index: number): boolean => {
+      const baby = state.babies[index]
+      if (!baby) return false
+      return !baby.nombre || baby.nombre.trim() === ''
+    },
+
+    // Get count of babies with missing mandatory data
+    babiesWithMissingDataCount(state): number {
+      return state.babies.filter(baby => !baby.nombre || baby.nombre.trim() === '').length
+    },
+
+    // Check if any baby has missing mandatory data
+    hasMissingDatosData(state): boolean {
+      return state.babies.some(baby => !baby.nombre || baby.nombre.trim() === '')
+    },
   },
 
   actions: {
@@ -197,6 +214,11 @@ export const useBirthPosterStore = defineStore('birthPoster', {
     // Set frame style
     setFrameStyle(frame: FrameStyle | null) {
       this.frameStyle = frame
+    },
+
+    // Set show scale text
+    setShowScale(show: boolean) {
+      this.showScale = show
     },
 
     // Load state from saved design

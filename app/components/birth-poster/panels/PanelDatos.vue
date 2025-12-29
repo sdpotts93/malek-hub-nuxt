@@ -3,8 +3,9 @@ import type { HoraNacimiento } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Generate altura options (15-60cm)
-const alturaOptions = Array.from({ length: 46 }, (_, i) => i + 15)
+// Generate altura options (15-58cm)
+// Max 58cm because the illustration area is 58.75cm on a 70cm print (1:1 scale)
+const alturaOptions = Array.from({ length: 44 }, (_, i) => i + 15)
 
 // Generate day options (1-31)
 const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -225,6 +226,16 @@ function formatMinute(minute: number): string {
         </div>
       </div>
     </div>
+
+    <!-- Show Scale Checkbox -->
+    <label class="panel-datos__checkbox">
+      <input
+        type="checkbox"
+        :checked="store.showScale"
+        @change="store.setShowScale(($event.target as HTMLInputElement).checked)"
+      >
+      <span class="panel-datos__checkbox-label">Mostrar texto: "Escala 1:1"</span>
+    </label>
 
     <!-- Separator -->
     <div class="panel-datos__separator" />
@@ -526,6 +537,27 @@ function formatMinute(minute: number): string {
     font-family: $font-primary;
     font-size: 18px;
     font-weight: $font-weight-medium;
+    color: #414651;
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #db6800;
+      cursor: pointer;
+    }
+  }
+
+  &__checkbox-label {
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-normal;
     color: #414651;
   }
 }

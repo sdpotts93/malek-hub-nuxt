@@ -16,6 +16,8 @@ defineProps<Props>()
 const emit = defineEmits<{
   select: [panel: PanelType]
 }>()
+
+const store = useBirthPosterStore()
 </script>
 
 <template>
@@ -30,6 +32,11 @@ const emit = defineEmits<{
       :aria-current="activePanel === item.id ? 'true' : undefined"
       @click="emit('select', item.id)"
     >
+      <!-- Warning badge for datos when missing data -->
+      <span
+        v-if="item.id === 'datos' && store.hasMissingDatosData"
+        class="sidebar-nav__badge"
+      >!</span>
       <span class="sidebar-nav__icon">
         <!-- General (settings) icon -->
         <svg v-if="item.id === 'general'" class="sidebar-nav__svg" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16">
@@ -106,6 +113,29 @@ const emit = defineEmits<{
         }
       }
     }
+  }
+
+  &__item {
+    position: relative;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    background: #ff2020;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-family: $font-primary;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    color: #ffffff;
+    line-height: 1;
   }
 
   &__icon {
