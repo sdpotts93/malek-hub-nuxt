@@ -22,7 +22,7 @@ defineProps<Props>()
 
 <style lang="scss" scoped>
 .design-panel-wrapper {
-  padding: 16px 0px;
+  padding: 16px 0px 32px;
 
   @include mobile {
     padding: 16px 0px;

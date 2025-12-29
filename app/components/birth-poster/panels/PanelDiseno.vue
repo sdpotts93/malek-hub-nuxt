@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { ILLUSTRATION_COLORS, BABY_STYLES } from '~/types'
 import type { BabyOrientation } from '~/types'
 
@@ -11,6 +12,21 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
 
 // Computed for reactivity
 const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
+
+// Get the current illustration color for the preview
+const currentIllustrationColor = computed(() => store.currentBaby.illustrationColor)
+
+// Color scroll container ref
+const colorScrollRef = ref<HTMLElement | null>(null)
+
+const scrollColors = (direction: 'left' | 'right') => {
+  if (!colorScrollRef.value) return
+  const scrollAmount = 100
+  colorScrollRef.value.scrollBy({
+    left: direction === 'left' ? -scrollAmount : scrollAmount,
+    behavior: 'smooth'
+  })
+}
 </script>
 
 <template>
@@ -38,8 +54,8 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
     </div>
 
     <!-- Styles -->
-    <div class="panel-diseno__section">
-      <label class="panel-diseno__label">Estilos</label>
+    <div class="panel-diseno__section panel-diseno__section--pr0">
+      <label class="panel-diseno__label panel-diseno__label--small">Estilos</label>
       <div class="panel-diseno__styles">
         <button
           v-for="style in BABY_STYLES"
@@ -50,50 +66,62 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
           ]"
           @click="store.setBabyStyle(style.id)"
         >
-          <NuxtImg
-            :src="style.thumbnail"
-            :alt="style.name"
-            class="panel-diseno__style-preview"
-            :style="{ transform: isFlipped ? 'scaleX(-1)' : 'none' }"
-            width="74"
-            height="74"
-            loading="lazy"
+          <span
+            class="panel-diseno__style-mask"
+            :style="{
+              backgroundColor: currentIllustrationColor,
+              maskImage: `url(${style.thumbnail})`,
+              WebkitMaskImage: `url(${style.thumbnail})`,
+              transform: isFlipped ? 'scaleX(-1)' : 'none'
+            }"
           />
         </button>
       </div>
     </div>
 
+    <!-- Separator -->
+    <div class="panel-diseno__separator" />
+
     <!-- Illustration Color -->
-    <div class="panel-diseno__section">
-      <label class="panel-diseno__label">Color de la ilustración</label>
-      <div class="panel-diseno__colors">
-        <button
-          v-for="color in ILLUSTRATION_COLORS"
-          :key="color.id"
-          :class="[
-            'panel-diseno__color-btn',
-            { 'panel-diseno__color-btn--active': store.currentBaby.illustrationColor === color.hex }
-          ]"
-          :style="{ backgroundColor: color.hex }"
-          :aria-label="color.name"
-          :title="color.name"
-          @click="store.setBabyColor(color.hex)"
-        >
-          <svg
-            v-if="store.currentBaby.illustrationColor === color.hex"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+    <div class="panel-diseno__section panel-diseno__section--pr0">
+      <div class="panel-diseno__color-header">
+        <label class="panel-diseno__label">Color de la ilustración</label>
+        <div class="panel-diseno__color-nav">
+          <button
+            class="panel-diseno__nav-btn"
+            aria-label="Scroll left"
+            @click="scrollColors('left')"
           >
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </button>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button
+            class="panel-diseno__nav-btn"
+            aria-label="Scroll right"
+            @click="scrollColors('right')"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div ref="colorScrollRef" class="panel-diseno__colors-scroll">
+        <div class="panel-diseno__colors">
+          <button
+            v-for="color in ILLUSTRATION_COLORS"
+            :key="color.id"
+            :class="[
+              'panel-diseno__color-btn',
+              { 'panel-diseno__color-btn--active': store.currentBaby.illustrationColor === color.hex }
+            ]"
+            :style="{ backgroundColor: color.hex }"
+            :aria-label="color.name"
+            :title="color.name"
+            @click="store.setBabyColor(color.hex)"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -103,16 +131,7 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
 .panel-diseno {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-
-  &__title {
-    font-family: $font-primary;
-    font-size: 16px;
-    font-weight: $font-weight-semibold;
-    line-height: 24px;
-    color: #2f3038;
-    margin: 0;
-  }
+  gap: 16px;
 
   &__tabs {
     margin-bottom: 8px;
@@ -121,15 +140,32 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
   &__section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     padding-inline: 20px;
+
+    &--pr0 {
+      padding-right: 0;
+    }
+  }
+
+  &__separator {
+    height: 1px;
+    background-color: $color-border;
+    width: calc(100% - 40px);
+    margin: 0 auto;
   }
 
   &__label {
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-medium;
-    color: #717680;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+
+    &--small {
+      font-size: 14px;
+      color: #2f3039;
+    }
   }
 
   // Orientation - button group style (butted together)
@@ -167,22 +203,24 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
     }
   }
 
-  // Styles grid - 74x74px images
+  // Styles grid - responsive: 4 items per row, full width
   &__styles {
     display: grid;
-    grid-template-columns: repeat(4, 74px);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
+    padding-right: 20px;
   }
 
   &__style-btn {
     @include button-reset;
-    width: 74px;
-    height: 74px;
+    aspect-ratio: 1;
+    width: 100%;
     border-radius: 12px;
     border: 1px solid #e9eaeb;
     overflow: hidden;
     background: #ffffff;
     transition: border-color $transition-fast;
+    position: relative;
 
     @include hover {
       border-color: #db6800;
@@ -194,36 +232,96 @@ const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
     }
   }
 
-  &__style-preview {
+  &__style-mask {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 11px;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
     transition: transform $transition-fast;
   }
 
-  // Color picker
+  // Color header with title and arrows - matches panel-general
+  &__color-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 20px;
+  }
+
+  &__color-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fafafa;
+    border-radius: 5px;
+    padding: 4px 5px;
+  }
+
+  &__nav-btn {
+    @include button-reset;
+    @include flex-center;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+
+    svg {
+      display: block;
+    }
+
+    @include hover {
+      opacity: 0.7;
+    }
+  }
+
+  // Color picker - horizontal scroll container
+  &__colors-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 8px 0;
+    margin: -8px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
   &__colors {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
+    gap: 14px;
+    padding-left: 6px;
+
+    &::after {
+      content: '';
+      min-width: 20px;
+      flex-shrink: 0;
+    }
   }
 
   &__color-btn {
     @include button-reset;
     @include flex-center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    transition: transform $transition-fast, box-shadow $transition-fast;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 100px;
+    border: 1px solid $color-border;
+    transition: box-shadow $transition-fast;
+    position: relative;
+    flex-shrink: 0;
 
     @include hover {
-      transform: scale(1.1);
+      opacity: 0.9;
     }
 
     &--active {
-      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2f3038;
+      box-shadow: 0 0 0 3px #ffffff, 0 0 0 5.5px #000000;
     }
 
     svg {
