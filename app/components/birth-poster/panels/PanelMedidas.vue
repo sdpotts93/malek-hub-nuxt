@@ -47,9 +47,9 @@ function selectSize(size: PosterSize) {
     <h3 class="panel-medidas__title">Medidas del poster</h3>
 
     <!-- Scale size label -->
-    <p class="panel-medidas__description">
+    <!-- <p class="panel-medidas__description">
       Puedes seleccionar los siguientes tamaños para tu impresión {{ isVertical ? 'vertical' : 'horizontal' }}.
-    </p>
+    </p> -->
 
     <!-- 1:1 Scale size option -->
     <div class="panel-medidas__scale-sizes">
