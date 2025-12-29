@@ -234,7 +234,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     inset: -21%;
     z-index: 10;
     pointer-events: none;
-    transform: translate(3px, 4px);
+    transform: translate(3px, 5px);
   }
 
   &__frame-image {
