@@ -100,7 +100,16 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 </script>
 
 <template>
-  <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`]">
+  <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`, { 'baby-canvas--has-frame': store.frameStyle }]">
+    <!-- Frame overlay when selected -->
+    <div v-if="store.frameStyle" class="baby-canvas__frame">
+      <NuxtImg
+        :src="store.frameStyle.frameImage"
+        :alt="`Marco ${store.frameStyle.name}`"
+        class="baby-canvas__frame-image"
+      />
+    </div>
+
     <!-- SVG Filters for colorizing -->
     <svg class="baby-canvas__svg-defs" aria-hidden="true">
       <defs>
@@ -207,6 +216,20 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   overflow: hidden;
   box-shadow: 0 0 20px -5px #adadad;
   container-type: inline-size; // Make this element the container for cqi units
+
+  // Frame overlay
+  &__frame {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  &__frame-image {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
 
   // Hidden SVG for filter definitions
   &__svg-defs {

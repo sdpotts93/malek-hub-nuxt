@@ -18,7 +18,8 @@ export type PosterSize = PosterSizeVertical | PosterSizeHorizontal
 export interface FrameStyle {
   id: string
   name: string
-  image: string
+  image: string // Thumbnail for selection panel
+  frameImage: string // Actual frame image for canvas overlay
   price: number
 }
 
