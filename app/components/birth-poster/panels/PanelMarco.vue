@@ -3,26 +3,16 @@ import type { FrameStyle } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Mock frame styles
+// Frame styles with actual thumbnail images
 const frameStyles: FrameStyle[] = [
-  { id: 'frame-natural', name: 'Natural', image: '', price: 850 },
-  { id: 'frame-black', name: 'Negro', image: '', price: 850 },
-  { id: 'frame-white', name: 'Blanco', image: '', price: 850 },
-  { id: 'frame-oak', name: 'Roble', image: '', price: 950 },
+  { id: 'frame-negro', name: 'Negro', image: '/frames/negro-thumbnail.webp', price: 850 },
+  { id: 'frame-blanco', name: 'Blanco', image: '/frames/blanco-thumbnail.webp', price: 850 },
+  { id: 'frame-roble', name: 'Roble', image: '/frames/roble-thumbnail.webp', price: 950 },
+  { id: 'frame-nogal', name: 'Nogal', image: '/frames/nogal-thumbnail.webp', price: 950 },
 ]
-
-const { formatPrice } = useShopifyCart()
 
 function selectFrame(frame: FrameStyle | null) {
   store.setFrameStyle(frame)
-}
-
-// Frame colors for preview
-const frameColors: Record<string, string> = {
-  'frame-natural': '#c4a882',
-  'frame-black': '#2d2d2d',
-  'frame-white': '#f5f5f5',
-  'frame-oak': '#8b5a2b',
 }
 </script>
 
@@ -32,26 +22,6 @@ const frameColors: Record<string, string> = {
     <p class="panel-marco__info">
       Añade un marco de madera de alta calidad a tu poster
     </p>
-
-    <!-- No frame option -->
-    <button
-      :class="[
-        'panel-marco__option',
-        { 'panel-marco__option--active': !store.frameStyle }
-      ]"
-      @click="selectFrame(null)"
-    >
-      <div class="panel-marco__preview panel-marco__preview--none">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 6 6 18"/>
-          <path d="m6 6 12 12"/>
-        </svg>
-      </div>
-      <div class="panel-marco__option-info">
-        <span class="panel-marco__option-name">Sin marco</span>
-        <span class="panel-marco__option-price">Incluido</span>
-      </div>
-    </button>
 
     <!-- Frame options -->
     <div class="panel-marco__frames">
@@ -64,16 +34,36 @@ const frameColors: Record<string, string> = {
         ]"
         @click="selectFrame(frame)"
       >
-        <div
-          class="panel-marco__preview"
-          :style="{ backgroundColor: frameColors[frame.id] }"
-        >
-          <div class="panel-marco__preview-inner" />
+        <div class="panel-marco__thumbnail-wrapper">
+          <NuxtImg
+            :src="frame.image"
+            :alt="`Marco ${frame.name}`"
+            class="panel-marco__thumbnail"
+            width="56"
+            height="56"
+          />
         </div>
-        <div class="panel-marco__option-info">
-          <span class="panel-marco__option-name">{{ frame.name }}</span>
-          <span class="panel-marco__option-price">+{{ formatPrice(frame.price) }}</span>
+        <span class="panel-marco__option-name">{{ frame.name }}</span>
+      </button>
+
+      <!-- No frame option -->
+      <button
+        :class="[
+          'panel-marco__option',
+          { 'panel-marco__option--active': !store.frameStyle }
+        ]"
+        @click="selectFrame(null)"
+      >
+        <div class="panel-marco__thumbnail-wrapper">
+          <NuxtImg
+            src="/frames/sin-marco-thumbnail.webp"
+            alt="Sin marco"
+            class="panel-marco__thumbnail"
+            width="56"
+            height="56"
+          />
         </div>
+        <span class="panel-marco__option-name">Sin Marco</span>
       </button>
     </div>
   </div>
@@ -102,10 +92,10 @@ const frameColors: Record<string, string> = {
     margin: 0;
   }
 
-  // Grid layout for frame options - 74x74px items
+  // Grid layout for frame options
   &__frames {
     display: grid;
-    grid-template-columns: repeat(4, 74px);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
   }
 
@@ -114,65 +104,58 @@ const frameColors: Record<string, string> = {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    width: 74px;
-    height: 74px;
+    gap: 8px;
     padding: 8px;
-    border: 1px solid #e9eaeb;
-    border-radius: 12px;
-    background: #ffffff;
-    transition: border-color $transition-fast;
+    background: transparent;
 
     @include hover {
-      border-color: #db6800;
+      .panel-marco__thumbnail-wrapper::after {
+        box-shadow: inset 0 0 0 1px #db6800;
+      }
     }
 
     &--active {
-      border-color: #db6800;
-      border-width: 2px;
+      .panel-marco__thumbnail-wrapper::after {
+        box-shadow: inset 0 0 0 2px #db6800;
+      }
     }
   }
 
-  &__preview {
-    width: 40px;
-    height: 50px;
-    border-radius: 4px;
-    @include flex-center;
-    flex-shrink: 0;
+  &__thumbnail-wrapper {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
 
-    &--none {
-      background: #f3f4f6;
-      color: #717680;
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px #e9eaeb;
+      transition: box-shadow $transition-fast;
+      pointer-events: none;
     }
   }
 
-  &__preview-inner {
-    width: 30px;
-    height: 40px;
-    background: #ffffff;
-    border-radius: 2px;
-  }
-
-  &__option-info {
-    text-align: center;
-    margin-top: 4px;
+  &__thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   &__option-name {
-    display: block;
     font-family: $font-primary;
     font-size: 11px;
     font-weight: $font-weight-semibold;
     color: #2f3038;
     line-height: 1.2;
+    text-align: center;
 
     .panel-marco__option--active & {
       color: #db6800;
     }
-  }
-
-  &__option-price {
-    display: none; // Price shown in cart section
   }
 }
 </style>
