@@ -49,6 +49,9 @@ export interface BabyConfig {
   fechaNacimiento: Date | null // optional
   horaNacimiento: HoraNacimiento | null // optional
   lugarNacimiento: string | null // optional
+
+  // Display settings
+  showScale: boolean // Whether to show "ESCALA 1:1 DE..." text for this baby
 }
 
 export interface BirthPosterState {
@@ -62,7 +65,6 @@ export interface BirthPosterState {
   // Poster settings
   posterSize: PosterSize
   frameStyle: FrameStyle | null
-  showScale: boolean // Whether to show "ESCALA 1:1 DE..." text
 
   // UI state
   activePanel: PanelType
@@ -236,6 +238,7 @@ export const createDefaultBabyConfig = (): BabyConfig => ({
   fechaNacimiento: new Date(new Date().getFullYear(), 0, 1),
   horaNacimiento: null,
   lugarNacimiento: null,
+  showScale: true,
 })
 
 // Default birth poster state
@@ -245,7 +248,6 @@ export const createDefaultBirthPosterState = (): BirthPosterState => ({
   babies: [createDefaultBabyConfig()],
   posterSize: '50x70', // Default to 1:1 scale size
   frameStyle: null,
-  showScale: true, // Show "ESCALA 1:1 DE..." by default
   activePanel: 'general',
   activeBabyTab: 0,
 })

@@ -21,9 +21,19 @@ const scrollColors = (direction: 'left' | 'right') => {
 
 <template>
   <div class="panel-general">
+    <h3 class="panel-general__title">
+      <svg class="panel-general__title-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+          <circle cx="8" cy="8" r="1.75"/>
+          <path d="m6.75 1.75-.5 1.5-1.5 1-2-.5-1 2 1.5 1.5v1.5l-1.5 1.5 1 2 2-.5 1.5 1 .5 1.5h2.5l.5-1.5 1.5-1 2 .5 1-2-1.5-1.5v-1.5l1.5-1.5-1-2-2 .5-1.5-1-.5-1.5z"/>
+        </g>
+      </svg>
+      Diseño general del poster
+    </h3>
+
     <!-- Baby Count -->
     <div class="panel-general__section">
-      <label class="panel-general__label">Numero de bebes</label>
+      <label class="panel-general__label">Número de bebés</label>
       <div class="panel-general__baby-count">
         <button
           v-for="count in babyCountOptions"
@@ -92,6 +102,25 @@ const scrollColors = (direction: 'left' | 'right') => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-top: 20px;
+
+  &__title {
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
+    padding-inline: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__title-icon {
+    color: $color-brand;
+    flex-shrink: 0;
+  }
 
   &__section {
     display: flex;
@@ -113,7 +142,7 @@ const scrollColors = (direction: 'left' | 'right') => {
   &__label {
     font-family: $font-primary;
     font-size: 16px;
-    font-weight: $font-weight-semibold;
+    // font-weight: $font-weight-semibold;
     line-height: 24px;
     color: #2f3038;
   }

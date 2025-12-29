@@ -32,6 +32,13 @@ const scrollColors = (direction: 'left' | 'right') => {
     <!-- Baby Tabs (if multiple babies) -->
     <BirthPosterBabyTabs v-if="store.babyCount > 1" class="panel-diseno__tabs" />
 
+    <h3 class="panel-diseno__title">
+      <svg class="panel-diseno__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8.62506 10.7546L12.2454 14.375M7.64264 20.1009C6.33276 21.4108 3.83341 21.0833 1.91675 21.0833C2.89914 19.1667 1.58925 16.6673 2.89914 15.3574C4.20902 14.0475 6.33276 14.0475 7.64264 15.3574C8.95253 16.6673 8.95253 18.791 7.64264 20.1009ZM11.4249 15.2611L20.1813 5.80419C20.9526 4.97124 20.9277 3.67769 20.125 2.875C19.3223 2.07231 18.0288 2.04744 17.1958 2.81869L7.73894 11.5751C7.25026 12.0276 7.00591 12.2538 6.8634 12.4951C6.52168 13.0737 6.50793 13.789 6.82716 14.3803C6.96029 14.6269 7.19576 14.8624 7.6667 15.3333C8.13763 15.8043 8.3731 16.0397 8.61969 16.1729C9.21101 16.4921 9.92632 16.4784 10.5049 16.1366C10.7462 15.9941 10.9725 15.7498 11.4249 15.2611Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Diseño del bebé
+    </h3>
+
     <!-- Orientation -->
     <div class="panel-diseno__section">
       <label class="panel-diseno__label">Orientación</label>
@@ -128,6 +135,25 @@ const scrollColors = (direction: 'left' | 'right') => {
   flex-direction: column;
   gap: 16px;
 
+  &__title {
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
+    padding-inline: 20px;
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__title-icon {
+    color: $color-brand;
+    flex-shrink: 0;
+  }
+
   &__tabs {
     margin-bottom: 8px;
   }
@@ -153,7 +179,7 @@ const scrollColors = (direction: 'left' | 'right') => {
   &__label {
     font-family: $font-primary;
     font-size: 16px;
-    font-weight: $font-weight-semibold;
+    // font-weight: $font-weight-semibold;
     line-height: 24px;
     color: #2f3038;
 

@@ -167,7 +167,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     <div class="baby-canvas__text-area">
       <!-- 1-2 babies: Combined title, stacked data lines -->
       <template v-if="store.babyCount <= 2">
-        <p v-if="store.showScale" class="baby-canvas__title">
+        <p v-if="store.babies[0]?.showScale" class="baby-canvas__title">
           ESCALA 1:1 DE{{ combinedNames ? ' ' + combinedNames.toUpperCase() : '' }}
         </p>
         <p v-else-if="combinedNames" class="baby-canvas__title">
@@ -192,7 +192,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
             :key="index"
             class="baby-canvas__column"
           >
-            <p v-if="store.showScale" class="baby-canvas__title">
+            <p v-if="baby.showScale" class="baby-canvas__title">
               ESCALA 1:1 DE{{ baby.nombre ? ' ' + baby.nombre.toUpperCase() : '' }}
             </p>
             <p v-else-if="baby.nombre" class="baby-canvas__title">
@@ -318,33 +318,24 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // 2 babies layout
   &--count-2 {
     .baby-canvas__babies {
-      gap: 24px;
       justify-content: space-evenly;
-    }
-    .baby-canvas__baby {
-      max-width: 45%;
+      padding-inline: 5%
     }
   }
 
   // 3 babies layout
   &--count-3 {
     .baby-canvas__babies {
-      gap: 20px;
       justify-content: space-evenly;
-    }
-    .baby-canvas__baby {
-      max-width: 30%;
+      padding-inline: 5%
     }
   }
 
   // 4 babies layout
   &--count-4 {
     .baby-canvas__babies {
-      gap: 25px;
       justify-content: space-evenly;
-    }
-    .baby-canvas__baby {
-      max-width: 20%;
+      padding-inline: 5%
     }
   }
 
@@ -430,7 +421,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
 
     .baby-canvas__illustration-area {
-      margin: 4% 4% 0;
+      margin: 4.25% 4.25% 0;
     }
 
     .baby-canvas__watermark {
@@ -438,9 +429,6 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
       right: 10px;
     }
 
-    .baby-canvas__watermark-img {
-      width: 24px;
-    }
   }
 
   &--count-3 {

@@ -25,14 +25,14 @@ const store = useBirthPosterStore()
 <style lang="scss" scoped>
 .baby-tabs {
   display: flex;
-  border-radius: 8px;
+  border-radius: 0px;
   overflow: hidden;
 
   &__tab {
     @include button-reset;
     flex: 1;
     min-height: 40px;
-    padding: 10px 16px;
+    padding: 18px 16px;
     font-family: $font-primary;
     font-size: 16px;
     font-weight: $font-weight-bold;
@@ -43,7 +43,8 @@ const store = useBirthPosterStore()
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    position: relative;
+    border-bottom: 1px solid #e9eaeb;
 
     &:last-child {
       border-right: none;
@@ -54,9 +55,13 @@ const store = useBirthPosterStore()
     }
 
     &--active {
-      background: #fff0e5;
+      background: transparent;
       color: #db6800;
       border-right-color: #eaddd3;
+      border-bottom: none;
+      @include hover {
+        background: transparent;
+      }
     }
   }
 
@@ -65,9 +70,12 @@ const store = useBirthPosterStore()
   }
 
   &__badge {
-    width: 16px;
-    height: 16px;
-    background: #ff2020;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 13px;
+    height: 13px;
+    background: $color-error;
     border-radius: 50%;
     display: flex;
     align-items: center;

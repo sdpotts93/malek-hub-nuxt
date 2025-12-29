@@ -158,10 +158,15 @@ function formatMinute(minute: number): string {
 
 <template>
   <div class="panel-datos">
-    <h3 class="panel-datos__title">Datos del bebé</h3>
-
     <!-- Baby Tabs (if multiple babies) -->
     <BirthPosterBabyTabs v-if="store.babyCount > 1" class="panel-datos__tabs" />
+
+    <h3 class="panel-datos__title">
+      <svg class="panel-datos__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15.3334 7.66665L1.91675 21.0833M17.2501 14.375H8.62508M6.32508 18.2083H12.7816C13.016 18.2083 13.1332 18.2083 13.2435 18.1818C13.3413 18.1584 13.4348 18.1196 13.5205 18.0671C13.6172 18.0078 13.7001 17.925 13.8658 17.7592L18.6876 12.9375C18.9166 12.7085 19.0311 12.594 19.1232 12.4926C21.1167 10.2995 21.1167 6.95047 19.1232 4.75737C19.0311 4.65599 18.9166 4.54149 18.6876 4.31249C18.4586 4.08348 18.3441 3.96898 18.2427 3.87683C16.0496 1.88334 12.7006 1.88334 10.5075 3.87683C10.4061 3.96898 10.2916 4.08348 10.0626 4.31248L5.24085 9.13422C5.07511 9.29996 4.99223 9.38283 4.93297 9.47955C4.88042 9.56529 4.8417 9.65877 4.81823 9.75655C4.79175 9.86685 4.79175 9.98405 4.79175 10.2184V16.675C4.79175 17.2117 4.79175 17.4801 4.8962 17.6851C4.98808 17.8654 5.13469 18.012 5.31501 18.1039C5.52001 18.2083 5.78836 18.2083 6.32508 18.2083Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Datos del bebé
+    </h3>
 
     <!-- Nombre -->
     <div class="panel-datos__field">
@@ -236,9 +241,9 @@ function formatMinute(minute: number): string {
     >
       <input
         type="checkbox"
-        :checked="store.showScale"
+        :checked="store.currentBaby.showScale"
         :disabled="!store.isScaleSize"
-        @change="store.setShowScale(($event.target as HTMLInputElement).checked)"
+        @change="store.setBabyShowScale(($event.target as HTMLInputElement).checked)"
       >
       <span class="panel-datos__checkbox-label">Mostrar texto: "Escala 1:1"</span>
     </label>
@@ -370,6 +375,7 @@ function formatMinute(minute: number): string {
   flex-direction: column;
   gap: 16px;
   padding-inline: 20px;
+  padding-top: 20px;
 
   &__title {
     font-family: $font-primary;
@@ -378,9 +384,19 @@ function formatMinute(minute: number): string {
     line-height: 24px;
     color: #2f3038;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__title-icon {
+    color: $color-brand;
+    flex-shrink: 0;
   }
 
   &__tabs {
+    margin-inline: -20px;
+    margin-top: -16px;
     margin-bottom: 8px;
   }
 

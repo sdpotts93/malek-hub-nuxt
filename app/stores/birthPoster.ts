@@ -10,6 +10,32 @@ import type {
 } from '~/types'
 import { createDefaultBabyConfig, createDefaultBirthPosterState } from '~/types'
 
+// Default configurations for each baby position (0-indexed)
+// Baby 1: aq1, derecha (but izquierda if only 1 baby)
+// Baby 2: aq2, izquierda
+// Baby 3: aq3, derecha
+// Baby 4: aq5, izquierda (aq4 doesn't exist)
+const BABY_POSITION_DEFAULTS: Array<{ styleId: string; orientation: BabyOrientation }> = [
+  { styleId: 'aq1', orientation: 'derecha' },
+  { styleId: 'aq2', orientation: 'izquierda' },
+  { styleId: 'aq3', orientation: 'derecha' },
+  { styleId: 'aq5', orientation: 'izquierda' },
+]
+
+// Create a baby config with position-specific defaults
+const createBabyConfigForPosition = (index: number, totalCount: number): BabyConfig => {
+  const base = createDefaultBabyConfig()
+  const positionDefaults = BABY_POSITION_DEFAULTS[index]
+
+  if (positionDefaults) {
+    base.styleId = positionDefaults.styleId
+    // If only 1 baby, keep default orientation (izquierda), otherwise use position default
+    base.orientation = totalCount === 1 ? 'izquierda' : positionDefaults.orientation
+  }
+
+  return base
+}
+
 export const useBirthPosterStore = defineStore('birthPoster', {
   state: (): BirthPosterState => createDefaultBirthPosterState(),
 
@@ -123,15 +149,27 @@ export const useBirthPosterStore = defineStore('birthPoster', {
   actions: {
     // Set baby count and adjust babies array
     setBabyCount(count: 1 | 2 | 3 | 4) {
+      const previousCount = this.babyCount
       this.babyCount = count
 
-      // Adjust babies array
-      while (this.babies.length < count) {
-        this.babies.push(createDefaultBabyConfig())
+      // Rebuild babies array with position-specific defaults
+      const newBabies: BabyConfig[] = []
+      for (let i = 0; i < count; i++) {
+        const existingBaby = this.babies[i]
+        if (existingBaby) {
+          // Keep existing baby data but update orientation if count changed
+          const positionDefaults = BABY_POSITION_DEFAULTS[i]
+          if (positionDefaults && previousCount !== count) {
+            // Update orientation based on new count
+            existingBaby.orientation = count === 1 ? 'izquierda' : positionDefaults.orientation
+          }
+          newBabies.push(existingBaby)
+        } else {
+          // Create new baby with position-specific defaults
+          newBabies.push(createBabyConfigForPosition(i, count))
+        }
       }
-      while (this.babies.length > count) {
-        this.babies.pop()
-      }
+      this.babies = newBabies
 
       // Reset active tab if out of bounds
       if (this.activeBabyTab >= count) {
@@ -217,12 +255,14 @@ export const useBirthPosterStore = defineStore('birthPoster', {
 
       if (this.babyCount <= 2 && verticalSizes.includes(size)) {
         this.posterSize = size
-        // Toggle showScale based on whether it's the 1:1 scale size
-        this.showScale = size === '50x70'
+        // Toggle showScale for all babies based on whether it's the 1:1 scale size
+        const showScale = size === '50x70'
+        this.babies.forEach(baby => baby.showScale = showScale)
       } else if (this.babyCount >= 3 && horizontalSizes.includes(size)) {
         this.posterSize = size
-        // Toggle showScale based on whether it's the 1:1 scale size
-        this.showScale = size === '100x70'
+        // Toggle showScale for all babies based on whether it's the 1:1 scale size
+        const showScale = size === '100x70'
+        this.babies.forEach(baby => baby.showScale = showScale)
       }
     },
 
@@ -231,9 +271,9 @@ export const useBirthPosterStore = defineStore('birthPoster', {
       this.frameStyle = frame
     },
 
-    // Set show scale text
-    setShowScale(show: boolean) {
-      this.showScale = show
+    // Set show scale text for current baby
+    setBabyShowScale(show: boolean) {
+      this.updateCurrentBaby({ showScale: show })
     },
 
     // Load state from saved design

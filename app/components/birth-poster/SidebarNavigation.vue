@@ -125,7 +125,7 @@ const store = useBirthPosterStore()
     right: 8px;
     width: 18px;
     height: 18px;
-    background: #ff2020;
+    background: $color-error;
     border-radius: 50%;
     display: flex;
     align-items: center;

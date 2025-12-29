@@ -44,7 +44,12 @@ function selectSize(size: PosterSize) {
 
 <template>
   <div class="panel-medidas">
-    <h3 class="panel-medidas__title">Medidas del poster</h3>
+    <h3 class="panel-medidas__title">
+      <svg class="panel-medidas__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.8957 5.27089L15.3332 6.70839M11.0207 8.14589L12.4582 9.58339M8.14572 11.0209L9.58322 12.4584M5.27072 13.8959L6.70822 15.3334M2.45863 16.8339L6.16606 20.5413C6.35582 20.7311 6.4507 20.8259 6.56011 20.8615C6.65635 20.8928 6.76001 20.8928 6.85625 20.8615C6.96566 20.8259 7.06054 20.7311 7.25029 20.5413L20.5411 7.25054C20.7308 7.06078 20.8257 6.9659 20.8613 6.85649C20.8925 6.76026 20.8925 6.65659 20.8613 6.56035C20.8257 6.45095 20.7308 6.35607 20.5411 6.16631L16.8336 2.45887C16.6439 2.26911 16.549 2.17424 16.4396 2.13869C16.3433 2.10742 16.2397 2.10742 16.1434 2.13869C16.034 2.17424 15.9392 2.26911 15.7494 2.45887L2.45863 15.7496C2.26887 15.9394 2.17399 16.0343 2.13844 16.1437C2.10717 16.2399 2.10717 16.3436 2.13844 16.4398C2.17399 16.5492 2.26887 16.6441 2.45863 16.8339Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Medidas del poster
+    </h3>
 
     <!-- Scale size label -->
     <!-- <p class="panel-medidas__description">
@@ -110,6 +115,7 @@ function selectSize(size: PosterSize) {
   flex-direction: column;
   gap: 16px;
   padding-inline: 20px;
+  padding-top: 20px;
 
   &__title {
     font-family: $font-primary;
@@ -118,6 +124,14 @@ function selectSize(size: PosterSize) {
     line-height: 24px;
     color: #2f3038;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__title-icon {
+    color: $color-brand;
+    flex-shrink: 0;
   }
 
   &__description {
