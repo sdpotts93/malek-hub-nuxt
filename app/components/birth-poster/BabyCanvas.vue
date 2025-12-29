@@ -154,30 +154,33 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 100%;
-  width: auto;
   box-shadow: 0 0 20px -5px #adadad;
 
-  // Vertical poster (1-2 babies)
+  // Vertical poster (1-2 babies) - fit within container maintaining 5:7 ratio
   &--count-1,
   &--count-2 {
     aspect-ratio: 5 / 7;
+    // Use the smaller of: full container height OR width-based height (to fit width)
+    height: min(100cqh, calc(100cqw * 7 / 5));
+    width: auto;
   }
 
-  // Horizontal poster (3-4 babies)
+  // Horizontal poster (3-4 babies) - fit within container maintaining 7:5 ratio
   &--count-3,
   &--count-4 {
     aspect-ratio: 7 / 5;
+    // Use the smaller of: full container width OR height-based width (to fit height)
+    width: min(100cqw, calc(100cqh * 7 / 5));
     height: auto;
-    width: 100%;
   }
 
   // ==========================================================================
-  // Illustration Area
+  // Illustration Area (takes remaining space after text area)
   // ==========================================================================
   &__illustration-area {
     position: relative;
-    flex: 1;
+    flex: 1 1 0;
+    min-height: 0;
     margin: 8.4% 9% 0;
     display: flex;
     align-items: center;
@@ -270,12 +273,15 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   }
 
   // ==========================================================================
-  // Text Area
+  // Text Area (11% of poster height)
   // ==========================================================================
   &__text-area {
-    height: 11%;
+    flex: 0 0 11%;
     text-align: center;
-    padding: 4% 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 5%;
   }
 
   &__title {
@@ -284,8 +290,8 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     font-weight: 700;
     letter-spacing: 0.25em;
     color: #1a1a1a;
-    margin: 0 0 8px;
-    line-height: 1.2;
+    line-height: 1.7;
+    font-size: 1.3cqi;
   }
 
   &__data-lines {
@@ -296,12 +302,12 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
   &__data {
     font-family: $font-secondary;
-    font-size: 10px;
     font-weight: 400;
     letter-spacing: 0.12em;
     color: #666666;
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.7;
+    font-size: 1cqi;
   }
 
   // ==========================================================================
@@ -331,8 +337,6 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &--count-3,
   &--count-4 {
-    max-width: 45vw;
-
     .baby-canvas__illustration-area {
       margin: 2.5% 2.5% 0;
     }

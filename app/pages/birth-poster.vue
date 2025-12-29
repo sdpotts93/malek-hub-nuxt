@@ -230,6 +230,7 @@ async function handleAddToCart() {
     display: flex;
     align-items: center;
     justify-content: center;
+    container-type: size;
   }
 
   &__history {
