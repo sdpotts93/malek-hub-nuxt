@@ -222,7 +222,7 @@ export const createDefaultBabyConfig = (): BabyConfig => ({
   nombre: '',
   altura: 50,
   peso: null,
-  fechaNacimiento: null,
+  fechaNacimiento: new Date(2026, 0, 1),
   lugarNacimiento: null,
 })
 

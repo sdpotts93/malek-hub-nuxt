@@ -285,7 +285,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     letter-spacing: 0.25em;
     color: #1a1a1a;
     line-height: 2;
-    font-size: 2.8cqi;
+    font-size: 2.6cqi;
   }
 
   &__data-lines {
