@@ -106,6 +106,8 @@ const scrollColors = (direction: 'left' | 'right') => {
   &__separator {
     height: 1px;
     background-color: $color-border;
+    width: calc(100% - 40px);
+    margin: 0 auto;
   }
 
   &__label {
@@ -211,8 +213,14 @@ const scrollColors = (direction: 'left' | 'right') => {
 
   &__colors {
     display: flex;
-    gap: 12px;
-    padding: 0 2px;
+    gap: 14px;
+    padding-left: 6px;
+
+    &::after {
+      content: '';
+      min-width: 20px;
+      flex-shrink: 0;
+    }
   }
 
   &__color-btn {
