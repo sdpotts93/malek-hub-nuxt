@@ -1,12 +1,35 @@
 <script setup lang="ts">
-import { getStyleById, ILLUSTRATION_COLORS } from '~/types'
+import { getStyleById } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Get CSS filter for a baby's illustration color
-const getIllustrationFilter = (baby: typeof store.babies[0]) => {
-  const colorConfig = ILLUSTRATION_COLORS.find(c => c.hex === baby.illustrationColor)
-  return colorConfig?.filter || 'none'
+// Convert hex to RGB values (0-1 range)
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!result) return { r: 0, g: 0, b: 0 }
+  return {
+    r: parseInt(result[1] || '0', 16) / 255,
+    g: parseInt(result[2] || '0', 16) / 255,
+    b: parseInt(result[3] || '0', 16) / 255,
+  }
+}
+
+// Generate unique filter ID for each baby
+const getFilterId = (index: number) => `colorize-baby-${index}`
+
+// Get color matrix values for SVG filter
+// For grayscale images with WHITE background (not transparent)
+// Black (0) → target color, White (1) → stays white, Gray → tinted
+const getColorMatrix = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex)
+  // Formula: newColor = gray * (1 - targetColor) + targetColor
+  // This is essentially a "screen" blend that colorizes dark areas
+  return `
+    ${1 - r} 0 0 0 ${r}
+    0 ${1 - g} 0 0 ${g}
+    0 0 ${1 - b} 0 ${b}
+    0 0 0 1 0
+  `
 }
 
 // Format baby names for title (1-2 babies share header with &)
@@ -68,6 +91,23 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
 <template>
   <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`]">
+    <!-- SVG Filters for colorizing -->
+    <svg class="baby-canvas__svg-defs" aria-hidden="true">
+      <defs>
+        <filter
+          v-for="(baby, index) in store.babies"
+          :id="getFilterId(index)"
+          :key="`filter-${index}`"
+          color-interpolation-filters="sRGB"
+        >
+          <feColorMatrix
+            type="matrix"
+            :values="getColorMatrix(baby.illustrationColor)"
+          />
+        </filter>
+      </defs>
+    </svg>
+
     <!-- Colored illustration area -->
     <div
       class="baby-canvas__illustration-area"
@@ -87,7 +127,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
             class="baby-canvas__illustration"
             :style="{
               transform: baby.orientation === 'derecha' ? 'scaleX(-1)' : 'none',
-              filter: getIllustrationFilter(baby),
+              filter: `url(#${getFilterId(index)})`,
             }"
           />
         </div>
@@ -151,6 +191,14 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   box-shadow: 0 0 20px -5px #adadad;
   container-type: inline-size; // Make this element the container for cqi units
 
+  // Hidden SVG for filter definitions
+  &__svg-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
   // Vertical poster (1-2 babies) - fit within container maintaining 5:7 ratio
   &--count-1,
   &--count-2 {
@@ -206,7 +254,6 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     height: 100%;
     width: auto;
     object-fit: contain;
-    mix-blend-mode: multiply;
   }
 
   // 1 baby layout

@@ -6,6 +6,7 @@ import type {
   PosterSize,
   FrameStyle,
   BabyOrientation,
+  HoraNacimiento,
 } from '~/types'
 import { createDefaultBabyConfig, createDefaultBirthPosterState } from '~/types'
 
@@ -174,6 +175,10 @@ export const useBirthPosterStore = defineStore('birthPoster', {
 
     setBabyLugarNacimiento(lugar: string | null) {
       this.updateCurrentBaby({ lugarNacimiento: lugar })
+    },
+
+    setBabyHoraNacimiento(hora: HoraNacimiento | null) {
+      this.updateCurrentBaby({ horaNacimiento: hora })
     },
 
     // Set poster size

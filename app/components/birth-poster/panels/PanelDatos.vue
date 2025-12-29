@@ -1,17 +1,158 @@
 <script setup lang="ts">
+import type { HoraNacimiento } from '~/types'
+
 const store = useBirthPosterStore()
 
-// Format date for input
-const dateValue = computed({
+// Generate altura options (15-60cm)
+const alturaOptions = Array.from({ length: 46 }, (_, i) => i + 15)
+
+// Generate day options (1-31)
+const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1)
+
+// Month options in Spanish
+const monthOptions = [
+  { value: 0, label: 'Enero' },
+  { value: 1, label: 'Febrero' },
+  { value: 2, label: 'Marzo' },
+  { value: 3, label: 'Abril' },
+  { value: 4, label: 'Mayo' },
+  { value: 5, label: 'Junio' },
+  { value: 6, label: 'Julio' },
+  { value: 7, label: 'Agosto' },
+  { value: 8, label: 'Septiembre' },
+  { value: 9, label: 'Octubre' },
+  { value: 10, label: 'Noviembre' },
+  { value: 11, label: 'Diciembre' },
+]
+
+// Generate year options (1970 to current year)
+const currentYear = new Date().getFullYear()
+const yearOptions = Array.from({ length: currentYear - 1970 + 1 }, (_, i) => currentYear - i)
+
+// Generate hour options (1-12)
+const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1)
+
+// Generate minute options (0-59)
+const minuteOptions = Array.from({ length: 60 }, (_, i) => i)
+
+// Computed values for fecha de nacimiento
+const fechaDay = computed({
   get() {
     const date = store.currentBaby.fechaNacimiento
-    if (!date) return ''
-    return new Date(date).toISOString().split('T')[0]
+    return date ? new Date(date).getDate() : 1
   },
-  set(value: string) {
-    store.setBabyFechaNacimiento(value ? new Date(value) : null)
+  set(value: number) {
+    updateFecha({ day: value })
   },
 })
+
+const fechaMonth = computed({
+  get() {
+    const date = store.currentBaby.fechaNacimiento
+    return date ? new Date(date).getMonth() : 0
+  },
+  set(value: number) {
+    updateFecha({ month: value })
+  },
+})
+
+const fechaYear = computed({
+  get() {
+    const date = store.currentBaby.fechaNacimiento
+    return date ? new Date(date).getFullYear() : currentYear
+  },
+  set(value: number) {
+    updateFecha({ year: value })
+  },
+})
+
+function updateFecha(updates: { day?: number; month?: number; year?: number }) {
+  const currentDate = store.currentBaby.fechaNacimiento
+    ? new Date(store.currentBaby.fechaNacimiento)
+    : new Date(currentYear, 0, 1)
+
+  const day = updates.day ?? currentDate.getDate()
+  const month = updates.month ?? currentDate.getMonth()
+  const year = updates.year ?? currentDate.getFullYear()
+
+  store.setBabyFechaNacimiento(new Date(year, month, day))
+}
+
+// Computed values for hora de nacimiento
+const horaHour = computed({
+  get() {
+    return store.currentBaby.horaNacimiento?.hour ?? 12
+  },
+  set(value: number) {
+    updateHora({ hour: value })
+  },
+})
+
+const horaMinute = computed({
+  get() {
+    return store.currentBaby.horaNacimiento?.minute ?? 0
+  },
+  set(value: number) {
+    updateHora({ minute: value })
+  },
+})
+
+const horaPeriod = computed({
+  get() {
+    return store.currentBaby.horaNacimiento?.period ?? 'AM'
+  },
+  set(value: 'AM' | 'PM') {
+    updateHora({ period: value })
+  },
+})
+
+function updateHora(updates: Partial<HoraNacimiento>) {
+  const currentHora = store.currentBaby.horaNacimiento ?? { hour: 12, minute: 0, period: 'AM' as const }
+  store.setBabyHoraNacimiento({
+    hour: updates.hour ?? currentHora.hour,
+    minute: updates.minute ?? currentHora.minute,
+    period: updates.period ?? currentHora.period,
+  })
+}
+
+// Handle peso input - only allow digits, max 4
+function handlePesoInput(event: Event) {
+  const input = event.target as HTMLInputElement
+  // Remove any non-digit characters
+  let value = input.value.replace(/\D/g, '')
+  // Limit to 4 digits
+  if (value.length > 4) {
+    value = value.slice(0, 4)
+  }
+  input.value = value
+  store.setBabyPeso(value ? Number(value) : null)
+}
+
+// Prevent non-numeric keys for peso
+function handlePesoKeydown(event: KeyboardEvent) {
+  // Allow: backspace, delete, tab, escape, enter, arrow keys
+  const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']
+  if (allowedKeys.includes(event.key)) return
+
+  // Allow Ctrl/Cmd + A, C, V, X
+  if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) return
+
+  // Block 'e', 'E', '+', '-', '.'
+  if (['e', 'E', '+', '-', '.'].includes(event.key)) {
+    event.preventDefault()
+    return
+  }
+
+  // Block if not a digit
+  if (!/^\d$/.test(event.key)) {
+    event.preventDefault()
+  }
+}
+
+// Format minute for display (with leading zero)
+function formatMinute(minute: number): string {
+  return minute.toString().padStart(2, '0')
+}
 </script>
 
 <template>
@@ -37,64 +178,158 @@ const dateValue = computed({
       >
     </div>
 
-    <!-- Altura -->
-    <div class="panel-datos__field">
-      <label class="panel-datos__label" for="altura">
-        Altura (cm)
-        <span class="panel-datos__required">*</span>
-      </label>
-      <div class="panel-datos__input-group">
-        <input
-          id="altura"
-          type="number"
-          class="panel-datos__input"
-          :value="store.currentBaby.altura"
-          min="30"
-          max="70"
-          step="0.5"
-          @input="store.setBabyAltura(Number(($event.target as HTMLInputElement).value))"
-        >
-        <span class="panel-datos__unit">cm</span>
+    <!-- Separator -->
+    <div class="panel-datos__separator" />
+
+    <!-- Altura y Peso (same row) -->
+    <div class="panel-datos__row">
+      <!-- Altura -->
+      <div class="panel-datos__field panel-datos__field--half">
+        <label class="panel-datos__label" for="altura">
+          Altura
+          <span class="panel-datos__required">*</span>
+        </label>
+        <div class="panel-datos__select-wrapper">
+          <select
+            id="altura"
+            class="panel-datos__select"
+            :value="store.currentBaby.altura"
+            @change="store.setBabyAltura(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option v-for="cm in alturaOptions" :key="cm" :value="cm">
+              {{ cm }} cm
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Peso -->
+      <div class="panel-datos__field panel-datos__field--half">
+        <label class="panel-datos__label" for="peso">
+          Peso
+          <span class="panel-datos__optional">(opcional)</span>
+        </label>
+        <div class="panel-datos__input-group">
+          <input
+            id="peso"
+            type="text"
+            inputmode="numeric"
+            class="panel-datos__input"
+            :value="store.currentBaby.peso ?? ''"
+            maxlength="4"
+            placeholder="ej. 3400"
+            @input="handlePesoInput"
+            @keydown="handlePesoKeydown"
+          >
+          <span class="panel-datos__unit">g</span>
+        </div>
       </div>
     </div>
 
-    <!-- Peso (optional) -->
-    <div class="panel-datos__field">
-      <label class="panel-datos__label" for="peso">
-        Peso (gramos)
-        <span class="panel-datos__optional">(opcional)</span>
-      </label>
-      <div class="panel-datos__input-group">
-        <input
-          id="peso"
-          type="number"
-          class="panel-datos__input"
-          :value="store.currentBaby.peso ?? ''"
-          min="500"
-          max="6000"
-          step="10"
-          placeholder="ej. 3400"
-          @input="store.setBabyPeso(($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
-        >
-        <span class="panel-datos__unit">g</span>
-      </div>
-    </div>
+    <!-- Separator -->
+    <div class="panel-datos__separator" />
 
-    <!-- Fecha de nacimiento (optional) -->
+    <!-- Fecha de nacimiento -->
     <div class="panel-datos__field">
-      <label class="panel-datos__label" for="fecha">
+      <label class="panel-datos__label">
         Fecha de nacimiento
         <span class="panel-datos__optional">(opcional)</span>
       </label>
-      <input
-        id="fecha"
-        type="date"
-        class="panel-datos__input"
-        v-model="dateValue"
-      >
+      <div class="panel-datos__date-row">
+        <!-- Day -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--day">
+          <select
+            class="panel-datos__select"
+            :value="fechaDay"
+            @change="fechaDay = Number(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="day in dayOptions" :key="day" :value="day">
+              {{ day }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Month -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--month">
+          <select
+            class="panel-datos__select"
+            :value="fechaMonth"
+            @change="fechaMonth = Number(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="month in monthOptions" :key="month.value" :value="month.value">
+              {{ month.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Year -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--year">
+          <select
+            class="panel-datos__select"
+            :value="fechaYear"
+            @change="fechaYear = Number(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="year in yearOptions" :key="year" :value="year">
+              {{ year }}
+            </option>
+          </select>
+        </div>
+      </div>
     </div>
 
-    <!-- Lugar de nacimiento (optional) -->
+    <!-- Hora de nacimiento -->
+    <div class="panel-datos__field">
+      <label class="panel-datos__label">
+        Hora de nacimiento
+        <span class="panel-datos__optional">(opcional)</span>
+      </label>
+      <div class="panel-datos__time-row">
+        <!-- Hour -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--hour">
+          <select
+            class="panel-datos__select"
+            :value="horaHour"
+            @change="horaHour = Number(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="hour in hourOptions" :key="hour" :value="hour">
+              {{ hour }}
+            </option>
+          </select>
+        </div>
+
+        <span class="panel-datos__time-separator">:</span>
+
+        <!-- Minute -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--minute">
+          <select
+            class="panel-datos__select"
+            :value="horaMinute"
+            @change="horaMinute = Number(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="minute in minuteOptions" :key="minute" :value="minute">
+              {{ formatMinute(minute) }}
+            </option>
+          </select>
+        </div>
+
+        <!-- AM/PM -->
+        <div class="panel-datos__select-wrapper panel-datos__select-wrapper--period">
+          <select
+            class="panel-datos__select"
+            :value="horaPeriod"
+            @change="horaPeriod = ($event.target as HTMLSelectElement).value as 'AM' | 'PM'"
+          >
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="panel-datos__separator" />
+
+    <!-- Lugar de nacimiento -->
     <div class="panel-datos__field">
       <label class="panel-datos__label" for="lugar">
         Lugar de nacimiento
@@ -116,9 +351,8 @@ const dateValue = computed({
 .panel-datos {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding-inline: 20px;
-
 
   &__title {
     font-family: $font-primary;
@@ -133,10 +367,26 @@ const dateValue = computed({
     margin-bottom: 8px;
   }
 
+  &__separator {
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 4px 0;
+  }
+
+  &__row {
+    display: flex;
+    gap: 12px;
+  }
+
   &__field {
     display: flex;
     flex-direction: column;
     gap: 6px;
+
+    &--half {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   &__label {
@@ -188,7 +438,7 @@ const dateValue = computed({
     align-items: center;
 
     .panel-datos__input {
-      padding-right: 48px;
+      padding-right: 32px;
     }
   }
 
@@ -199,6 +449,84 @@ const dateValue = computed({
     font-family: $font-primary;
     font-size: 16px;
     pointer-events: none;
+  }
+
+  &__select-wrapper {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #717680;
+      pointer-events: none;
+    }
+
+    &--day {
+      flex: 0 0 70px;
+    }
+
+    &--month {
+      flex: 1;
+    }
+
+    &--year {
+      flex: 0 0 90px;
+    }
+
+    &--hour,
+    &--minute {
+      flex: 0 0 75px;
+    }
+
+    &--period {
+      flex: 0 0 75px;
+    }
+  }
+
+  &__select {
+    @include input-reset;
+    width: 100%;
+    padding: 10px 32px 10px 14px;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+    font-family: $font-primary;
+    font-size: 16px;
+    color: #2f3038;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &:focus {
+      border-color: #db6800;
+      box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
+    }
+  }
+
+  &__date-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__time-separator {
+    font-family: $font-primary;
+    font-size: 18px;
+    font-weight: $font-weight-medium;
+    color: #414651;
   }
 }
 </style>

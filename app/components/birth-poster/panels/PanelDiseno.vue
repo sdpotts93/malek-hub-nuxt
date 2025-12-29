@@ -13,9 +13,6 @@ const orientationOptions: { id: BabyOrientation; label: string }[] = [
 // Computed for reactivity
 const isFlipped = computed(() => store.currentBaby.orientation === 'derecha')
 
-// Get the current illustration color for the preview
-const currentIllustrationColor = computed(() => store.currentBaby.illustrationColor)
-
 // Color scroll container ref
 const colorScrollRef = ref<HTMLElement | null>(null)
 
@@ -66,14 +63,12 @@ const scrollColors = (direction: 'left' | 'right') => {
           ]"
           @click="store.setBabyStyle(style.id)"
         >
-          <span
-            class="panel-diseno__style-mask"
-            :style="{
-              backgroundColor: currentIllustrationColor,
-              maskImage: `url(${style.thumbnail})`,
-              WebkitMaskImage: `url(${style.thumbnail})`,
-              transform: isFlipped ? 'scaleX(-1)' : 'none'
-            }"
+          <NuxtImg
+            :src="style.thumbnail"
+            :alt="style.name"
+            class="panel-diseno__style-preview"
+            :style="{ transform: isFlipped ? 'scaleX(-1)' : 'none' }"
+            loading="lazy"
           />
         </button>
       </div>
@@ -150,9 +145,9 @@ const scrollColors = (direction: 'left' | 'right') => {
 
   &__separator {
     height: 1px;
-    background-color: $color-border;
+    background-color: #e5e7eb;
     width: calc(100% - 40px);
-    margin: 0 auto;
+    margin: 4px auto;
   }
 
   &__label {
@@ -232,16 +227,10 @@ const scrollColors = (direction: 'left' | 'right') => {
     }
   }
 
-  &__style-mask {
-    display: block;
+  &__style-preview {
     width: 100%;
     height: 100%;
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
+    object-fit: contain;
     transition: transform $transition-fast;
   }
 

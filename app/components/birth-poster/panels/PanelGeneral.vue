@@ -105,9 +105,9 @@ const scrollColors = (direction: 'left' | 'right') => {
 
   &__separator {
     height: 1px;
-    background-color: $color-border;
+    background-color: #e5e7eb;
     width: calc(100% - 40px);
-    margin: 0 auto;
+    margin: 4px auto;
   }
 
   &__label {
