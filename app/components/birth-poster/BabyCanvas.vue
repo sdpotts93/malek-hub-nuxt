@@ -155,10 +155,11 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
       <!-- Watermark signature -->
       <div class="baby-canvas__watermark">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 4C12 4 8 8 8 14C8 22 14 28 16 28C18 28 24 22 24 14C24 8 20 4 16 4Z" stroke="currentColor" stroke-width="1.2"/>
-          <path d="M12 16C12 12 14 10 16 10" stroke="currentColor" stroke-width="1.2"/>
-        </svg>
+        <NuxtImg
+          src="/watermark-dark.png"
+          alt="Studio Malek"
+          class="baby-canvas__watermark-img"
+        />
       </div>
     </div>
 
@@ -217,18 +218,29 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   box-shadow: 0 0 20px -5px #adadad;
   container-type: inline-size; // Make this element the container for cqi units
 
-  // Frame overlay
+  // When frame is active, allow overflow and remove shadow (frame has its own shadow)
+  &--has-frame {
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  // Frame wraps AROUND the canvas (extends outside)
+  // The frame image has ~6% padding/shadow on each side before the wooden frame
+  // and the wooden frame itself is ~3% thick
+  // So the inner "window" of the frame is roughly 82% of the total frame image
+  // To make the canvas fill that inner window, the frame needs to extend ~11% beyond canvas on each side
   &__frame {
     position: absolute;
-    inset: 0;
+    inset: -21%;
     z-index: 10;
     pointer-events: none;
+    transform: translate(3px, 4px);
   }
 
   &__frame-image {
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: contain;
   }
 
   // Hidden SVG for filter definitions
@@ -343,12 +355,11 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     position: absolute;
     bottom: 12px;
     right: 12px;
+  }
 
-    svg {
-      width: 28px;
-      height: 28px;
-      color: rgba(0, 0, 0, 0.25);
-    }
+  &__watermark-img {
+    width: 14px;
+    height: auto;
   }
 
   // ==========================================================================
@@ -425,11 +436,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     .baby-canvas__watermark {
       bottom: 10px;
       right: 10px;
+    }
 
-      svg {
-        width: 24px;
-        height: 24px;
-      }
+    .baby-canvas__watermark-img {
+      width: 24px;
     }
   }
 
