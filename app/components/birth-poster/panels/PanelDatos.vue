@@ -228,10 +228,16 @@ function formatMinute(minute: number): string {
     </div>
 
     <!-- Show Scale Checkbox -->
-    <label class="panel-datos__checkbox">
+    <label
+      :class="[
+        'panel-datos__checkbox',
+        { 'panel-datos__checkbox--disabled': !store.isScaleSize }
+      ]"
+    >
       <input
         type="checkbox"
         :checked="store.showScale"
+        :disabled="!store.isScaleSize"
         @change="store.setShowScale(($event.target as HTMLInputElement).checked)"
       >
       <span class="panel-datos__checkbox-label">Mostrar texto: "Escala 1:1"</span>
@@ -551,6 +557,15 @@ function formatMinute(minute: number): string {
       height: 18px;
       accent-color: #db6800;
       cursor: pointer;
+    }
+
+    &--disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+
+      input[type="checkbox"] {
+        cursor: not-allowed;
+      }
     }
   }
 

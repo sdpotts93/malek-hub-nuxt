@@ -242,7 +242,7 @@ export const createDefaultBirthPosterState = (): BirthPosterState => ({
   babyCount: 1,
   backgroundColor: '#fafafa', // First color in BACKGROUND_COLORS (Blanco)
   babies: [createDefaultBabyConfig()],
-  posterSize: '30x40',
+  posterSize: '50x70', // Default to 1:1 scale size
   frameStyle: null,
   showScale: true, // Show "ESCALA 1:1 DE..." by default
   activePanel: 'general',

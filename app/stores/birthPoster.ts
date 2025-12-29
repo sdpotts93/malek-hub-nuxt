@@ -43,6 +43,17 @@ export const useBirthPosterStore = defineStore('birthPoster', {
       return horizontalSizes.includes(state.posterSize)
     },
 
+    // Get the 1:1 scale size based on baby count
+    scaleSize(state): PosterSize {
+      return state.babyCount <= 2 ? '50x70' : '100x70'
+    },
+
+    // Check if current poster size is the 1:1 scale size
+    isScaleSize(state): boolean {
+      const scaleSize = state.babyCount <= 2 ? '50x70' : '100x70'
+      return state.posterSize === scaleSize
+    },
+
     // Generate TEXT EDIT content for canvas
     generateTextContent(state): string[] {
       const lines: string[] = []
@@ -127,9 +138,9 @@ export const useBirthPosterStore = defineStore('birthPoster', {
         this.activeBabyTab = 0
       }
 
-      // Fix poster size if needed
+      // Fix poster size if needed - use 1:1 scale sizes as default
       if (!this.isSizeValid) {
-        this.posterSize = count <= 2 ? '30x40' : '40x30'
+        this.posterSize = count <= 2 ? '50x70' : '100x70'
       }
     },
 
@@ -206,8 +217,12 @@ export const useBirthPosterStore = defineStore('birthPoster', {
 
       if (this.babyCount <= 2 && verticalSizes.includes(size)) {
         this.posterSize = size
+        // Toggle showScale based on whether it's the 1:1 scale size
+        this.showScale = size === '50x70'
       } else if (this.babyCount >= 3 && horizontalSizes.includes(size)) {
         this.posterSize = size
+        // Toggle showScale based on whether it's the 1:1 scale size
+        this.showScale = size === '100x70'
       }
     },
 

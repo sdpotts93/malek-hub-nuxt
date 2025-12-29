@@ -4,13 +4,38 @@ import type { PosterSize } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Get available sizes based on baby count
-const availableSizes = computed(() => {
-  return store.availableSizes.map((size) => ({
+// Get the 1:1 scale size
+const scaleSize = computed(() => {
+  const size = store.scaleSize
+  return {
     id: size,
     ...POSTER_SIZES[size],
-  }))
+  }
 })
+
+// Get other sizes (non-scale)
+const otherSizes = computed(() => {
+  return store.availableSizes
+    .filter((size) => size !== store.scaleSize)
+    .map((size) => ({
+      id: size,
+      ...POSTER_SIZES[size],
+    }))
+})
+
+// Check if vertical orientation (1-2 babies)
+const isVertical = computed(() => store.babyCount <= 2)
+
+// Format size label (e.g., "50x70")
+function formatSizeLabel(size: PosterSize): string {
+  const sizeData = POSTER_SIZES[size]
+  return `${sizeData.width}x${sizeData.height}`
+}
+
+// Get size dimensions for explanation
+function getSizeDimensions(size: PosterSize): { width: number; height: number } {
+  return POSTER_SIZES[size]
+}
 
 function selectSize(size: PosterSize) {
   store.setPosterSize(size)
@@ -19,44 +44,62 @@ function selectSize(size: PosterSize) {
 
 <template>
   <div class="panel-medidas">
+    <h3 class="panel-medidas__title">Medidas del poster</h3>
 
-    <!-- Info about orientation -->
-    <p class="panel-medidas__info">
-      <template v-if="store.babyCount <= 2">
-        Formatos verticales disponibles para 1-2 bebés
-      </template>
-      <template v-else>
-        Formatos horizontales disponibles para 3-4 bebés
-      </template>
+    <!-- Scale size label -->
+    <p class="panel-medidas__description">
+      Puedes seleccionar los siguientes tamaños para tu impresión {{ isVertical ? 'vertical' : 'horizontal' }}.
     </p>
 
-    <!-- Size options -->
-    <div class="panel-medidas__sizes">
-      <button
-        v-for="size in availableSizes"
-        :key="size.id"
-        :class="[
-          'panel-medidas__size',
-          { 'panel-medidas__size--active': store.posterSize === size.id }
-        ]"
-        @click="selectSize(size.id)"
-      >
-        <!-- Size preview -->
-        <div
-          class="panel-medidas__preview"
-          :style="{
-            aspectRatio: size.width / size.height,
-          }"
-        />
-
-        <!-- Size label -->
-        <div class="panel-medidas__size-info">
-          <span class="panel-medidas__size-label">{{ size.label }}</span>
-          <span class="panel-medidas__size-dimensions">
-            {{ size.width }} x {{ size.height }} cm
-          </span>
+    <!-- 1:1 Scale size option -->
+    <div class="panel-medidas__scale-sizes">
+      <div class="panel-medidas__size-wrapper">
+        <button
+          :class="[
+            'panel-medidas__size',
+            'panel-medidas__size--' + (isVertical ? 'vertical' : 'horizontal'),
+            { 'panel-medidas__size--active': store.posterSize === scaleSize.id }
+          ]"
+          @click="selectSize(scaleSize.id)"
+        >
+          <span class="panel-medidas__size-label">{{ formatSizeLabel(scaleSize.id) }}</span>
+        </button>
+        <div class="panel-medidas__size-details">
+          <span class="panel-medidas__size-detail">{{ getSizeDimensions(scaleSize.id).width }}cm ancho</span>
+          <span class="panel-medidas__size-detail">{{ getSizeDimensions(scaleSize.id).height }}cm alto</span>
         </div>
-      </button>
+      </div>
+    </div>
+
+    <!-- Warning highlight for other sizes -->
+    <div class="panel-medidas__highlight">
+      <span class="panel-medidas__highlight-text">
+        Puedes seleccionar otros tamaños, pero ya no serán escala 1:1 de tu bebé
+      </span>
+    </div>
+
+    <!-- Other sizes -->
+    <div class="panel-medidas__sizes">
+      <div
+        v-for="size in otherSizes"
+        :key="size.id"
+        class="panel-medidas__size-wrapper"
+      >
+        <button
+          :class="[
+            'panel-medidas__size',
+            'panel-medidas__size--' + (isVertical ? 'vertical' : 'horizontal'),
+            { 'panel-medidas__size--active': store.posterSize === size.id }
+          ]"
+          @click="selectSize(size.id)"
+        >
+          <span class="panel-medidas__size-label">{{ formatSizeLabel(size.id) }}</span>
+        </button>
+        <div class="panel-medidas__size-details">
+          <span class="panel-medidas__size-detail">{{ getSizeDimensions(size.id).width }}cm ancho</span>
+          <span class="panel-medidas__size-detail">{{ getSizeDimensions(size.id).height }}cm alto</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -65,7 +108,7 @@ function selectSize(size: PosterSize) {
 .panel-medidas {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding-inline: 20px;
 
   &__title {
@@ -77,35 +120,60 @@ function selectSize(size: PosterSize) {
     margin: 0;
   }
 
-  &__info {
+  &__description {
     font-family: $font-primary;
     font-size: 14px;
+    font-weight: $font-weight-normal;
     color: #717680;
-    padding: 12px 14px;
-    background: #f9fafb;
-    border-radius: 8px;
     margin: 0;
+    line-height: 1.4;
+  }
+
+  &__scale-sizes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  &__highlight {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  &__highlight-text {
+    font-family: $font-primary;
+    font-size: 13px;
+    font-weight: $font-weight-normal;
+    color: #92400e;
+    line-height: 1.4;
   }
 
   &__sizes {
     display: grid;
-    grid-template-columns: repeat(4, 74px);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
   }
 
   &__size {
     @include button-reset;
+    width: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 74px;
-    height: 74px;
-    padding: 8px;
     border: 1px solid #e9eaeb;
     border-radius: 12px;
     background: #ffffff;
     transition: border-color $transition-fast;
+
+    &--vertical {
+      aspect-ratio: 5 / 7;
+    }
+
+    &--horizontal {
+      aspect-ratio: 10 / 7;
+    }
 
     @include hover {
       border-color: #db6800;
@@ -117,43 +185,38 @@ function selectSize(size: PosterSize) {
     }
   }
 
-  &__preview {
-    width: 28px;
-    max-height: 36px;
-    background: #f3f4f6;
-    border: 1px solid #e9eaeb;
-    border-radius: 4px;
-
-    .panel-medidas__size--active & {
-      background: #fff0e5;
-      border-color: #db6800;
-    }
-  }
-
-  &__size-info {
-    text-align: center;
-    margin-top: 4px;
+  &__size-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
 
   &__size-label {
-    display: block;
     font-family: $font-primary;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: $font-weight-semibold;
     color: #2f3038;
-    line-height: 1.2;
+    text-align: center;
 
     .panel-medidas__size--active & {
       color: #db6800;
     }
   }
 
-  &__size-dimensions {
-    display: block;
+  &__size-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__size-detail {
     font-family: $font-primary;
     font-size: 10px;
+    font-weight: $font-weight-normal;
     color: #717680;
-    margin-top: 2px;
+    text-align: center;
   }
 }
 </style>
