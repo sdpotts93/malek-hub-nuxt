@@ -3,9 +3,9 @@ import type { HoraNacimiento } from '~/types'
 
 const store = useBirthPosterStore()
 
-// Generate altura options (15-58cm)
+// Generate altura options (15-58cm in 0.5cm increments)
 // Max 58cm because the illustration area is 58.75cm on a 70cm print (1:1 scale)
-const alturaOptions = Array.from({ length: 44 }, (_, i) => i + 15)
+const alturaOptions = Array.from({ length: 87 }, (_, i) => 15 + i * 0.5)
 
 // Generate day options (1-31)
 const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1)
