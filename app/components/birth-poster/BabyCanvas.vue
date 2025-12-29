@@ -23,30 +23,24 @@ const combinedNames = computed(() => {
   return ''
 })
 
-// Format height display (cm to inches)
+// Format height display (in cm)
 const formatHeight = (altura: number) => {
-  const inches = (altura / 2.54).toFixed(2)
-  return `${inches} INCHES`
+  return `${altura} CM`
 }
 
-// Format weight display (grams to pounds/ounces)
+// Format weight display (in grams)
 const formatWeight = (peso: number) => {
-  const totalOunces = peso / 28.3495
-  const pounds = Math.floor(totalOunces / 16)
-  const ounces = Math.round(totalOunces % 16)
-  return `${pounds} POUNDS ${ounces} OUNCES`
+  return `${peso} GRAMOS`
 }
 
-// Format date display
+// Format date display (Spanish)
 const formatDate = (fecha: Date | string | null) => {
   if (!fecha) return null
   const date = new Date(fecha)
-  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
   const day = date.getDate()
+  const month = date.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase()
   const year = date.getFullYear()
-  const hours = date.getHours()
-  const mins = date.getMinutes()
-  return `${month} ${day}, ${year} ${hours}:${mins}`
+  return `${day} DE ${month} DE ${year}`
 }
 
 // Build data line for a baby
@@ -113,7 +107,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
       <!-- 1-2 babies: Combined title, stacked data lines -->
       <template v-if="store.babyCount <= 2">
         <p class="baby-canvas__title">
-          SCALE 1:1 OF{{ combinedNames ? ' ' + combinedNames.toUpperCase() : '' }}
+          ESCALA 1:1 DE{{ combinedNames ? ' ' + combinedNames.toUpperCase() : '' }}
         </p>
         <div class="baby-canvas__data-lines">
           <p
@@ -135,7 +129,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
             class="baby-canvas__column"
           >
             <p class="baby-canvas__title">
-              SCALE 1:1 OF{{ baby.nombre ? ' ' + baby.nombre.toUpperCase() : '' }}
+              ESCALA 1:1 DE{{ baby.nombre ? ' ' + baby.nombre.toUpperCase() : '' }}
             </p>
             <p class="baby-canvas__data">
               {{ buildDataLine(baby) }}
@@ -155,6 +149,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 0 20px -5px #adadad;
+  container-type: inline-size; // Make this element the container for cqi units
 
   // Vertical poster (1-2 babies) - fit within container maintaining 5:7 ratio
   &--count-1,
@@ -236,8 +231,8 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-3 {
     .baby-canvas__babies {
       gap: 20px;
-      justify-content: space-evenly;
-      padding: 10% 0;
+      justify-content: space-between;
+      padding: 6% 9%
     }
     .baby-canvas__baby {
       max-width: 30%;
@@ -247,13 +242,12 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // 4 babies layout
   &--count-4 {
     .baby-canvas__babies {
-      gap: 16px;
-      justify-content: space-evenly;
-      padding: 10% 0;
-
+      gap: 25px;
+      justify-content: space-between;
+      padding: 3% 9%
     }
     .baby-canvas__baby {
-      max-width: 23%;
+      max-width: 20%;
     }
   }
 
@@ -290,14 +284,13 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     font-weight: 700;
     letter-spacing: 0.25em;
     color: #1a1a1a;
-    line-height: 1.7;
-    font-size: 1.3cqi;
+    line-height: 2;
+    font-size: 2.8cqi;
   }
 
   &__data-lines {
     display: flex;
     flex-direction: column;
-    gap: 3px;
   }
 
   &__data {
@@ -307,7 +300,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     color: #666666;
     margin: 0;
     line-height: 1.7;
-    font-size: 1cqi;
+    font-size: 2cqi;
   }
 
   // ==========================================================================
@@ -315,20 +308,21 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &__columns {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     gap: 32px;
+    padding-inline: 7cqi;
   }
 
   &__column {
     text-align: center;
+  }
 
+  &--count-2 {
     .baby-canvas__title {
-      font-size: 13px;
-      margin-bottom: 6px;
+      font-size: 2.2cqi;
     }
-
     .baby-canvas__data {
-      font-size: 8px;
+      font-size: 1.6cqi;
     }
   }
 
@@ -337,12 +331,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &--count-3,
   &--count-4 {
-    .baby-canvas__illustration-area {
-      margin: 2.5% 2.5% 0;
-    }
 
-    .baby-canvas__text-area {
-      padding: 14px 20px 20px;
+
+    .baby-canvas__illustration-area {
+      margin: 4% 4% 0;
     }
 
     .baby-canvas__watermark {
@@ -355,5 +347,24 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
       }
     }
   }
+
+  &--count-3 {
+    .baby-canvas__title {
+      font-size: 1.4cqi;
+    }
+    .baby-canvas__data {
+      font-size: 1cqi;
+    }
+  }
+
+  &--count-4 {
+    .baby-canvas__title {
+      font-size: 1.2cqi;
+    }
+    .baby-canvas__data {
+      font-size: 0.8cqi;
+    }
+  }
+
 }
 </style>
