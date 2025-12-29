@@ -5,10 +5,10 @@ const store = useBirthPosterStore()
 
 // Frame styles with thumbnail and actual frame images
 const frameStyles: FrameStyle[] = [
-  { id: 'frame-negro', name: 'Negro', image: '/frames/negro-thumbnail.webp', frameImage: '/frame-images/frame-black.webp', price: 850 },
-  { id: 'frame-blanco', name: 'Blanco', image: '/frames/blanco-thumbnail.webp', frameImage: '/frame-images/frame-white.webp', price: 850 },
-  { id: 'frame-roble', name: 'Roble', image: '/frames/roble-thumbnail.webp', frameImage: '/frame-images/frame-roble.webp', price: 950 },
-  { id: 'frame-nogal', name: 'Nogal', image: '/frames/nogal-thumbnail.webp', frameImage: '/frame-images/fame-nogal.webp', price: 950 },
+  { id: 'frame-negro', name: 'Negro', image: '/frames/negro-thumbnail.webp', frameImage: '/frame-images/frame-black.webp', frameImageHorizontal: '/frame-images/frame-black-horizontal.webp', price: 850 },
+  { id: 'frame-blanco', name: 'Blanco', image: '/frames/blanco-thumbnail.webp', frameImage: '/frame-images/frame-white.webp', frameImageHorizontal: '/frame-images/frame-white-horizontal.webp', price: 850 },
+  { id: 'frame-roble', name: 'Roble', image: '/frames/roble-thumbnail.webp', frameImage: '/frame-images/frame-roble.webp', frameImageHorizontal: '/frame-images/frame-roble-horizontal.webp', price: 950 },
+  { id: 'frame-nogal', name: 'Nogal', image: '/frames/nogal-thumbnail.webp', frameImage: '/frame-images/fame-nogal.webp', frameImageHorizontal: '/frame-images/frame-nogal-horizontal.webp', price: 950 },
 ]
 
 function selectFrame(frame: FrameStyle) {

@@ -19,7 +19,8 @@ export interface FrameStyle {
   id: string
   name: string
   image: string // Thumbnail for selection panel
-  frameImage: string // Actual frame image for canvas overlay
+  frameImage: string // Actual frame image for canvas overlay (vertical)
+  frameImageHorizontal: string // Horizontal frame image for 3-4 babies
   price: number
 }
 

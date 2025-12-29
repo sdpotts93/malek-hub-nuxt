@@ -76,6 +76,15 @@ const formatDate = (fecha: Date | string | null) => {
   return `${day} DE ${month} DE ${year}`
 }
 
+// Get the correct frame image based on baby count (vertical vs horizontal)
+const currentFrameImage = computed(() => {
+  if (!store.frameStyle) return null
+  // Use horizontal frame for 3-4 babies, vertical for 1-2
+  return store.babyCount >= 3
+    ? store.frameStyle.frameImageHorizontal
+    : store.frameStyle.frameImage
+})
+
 // Build data line for a baby
 const buildDataLine = (baby: typeof store.babies[0]) => {
   const parts: string[] = []
@@ -102,9 +111,9 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 <template>
   <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`, { 'baby-canvas--has-frame': store.frameStyle }]">
     <!-- Frame overlay when selected -->
-    <div v-if="store.frameStyle" class="baby-canvas__frame">
+    <div v-if="store.frameStyle && currentFrameImage" class="baby-canvas__frame">
       <NuxtImg
-        :src="store.frameStyle.frameImage"
+        :src="currentFrameImage"
         :alt="`Marco ${store.frameStyle.name}`"
         class="baby-canvas__frame-image"
       />
@@ -319,7 +328,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-2 {
     .baby-canvas__babies {
       justify-content: space-evenly;
-      padding-inline: 5%
+      padding-inline: 5cqi;
     }
   }
 
@@ -327,7 +336,6 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-3 {
     .baby-canvas__babies {
       justify-content: space-evenly;
-      padding-inline: 5%
     }
   }
 
@@ -335,7 +343,6 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   &--count-4 {
     .baby-canvas__babies {
       justify-content: space-evenly;
-      padding-inline: 5%
     }
   }
 
@@ -349,7 +356,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   }
 
   &__watermark-img {
-    width: 14px;
+    width: 2cqi;
     height: auto;
   }
 
@@ -362,14 +369,14 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0 5%;
+    padding: 0 4.25%;
   }
 
   &__title {
     font-family: $font-secondary;
     font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.1em;
     color: #1a1a1a;
     line-height: 2;
     font-size: 2.4cqi;
@@ -395,9 +402,8 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &__columns {
     display: flex;
-    justify-content: space-between;
-    gap: 32px;
-    padding-inline: 7cqi;
+    justify-content: space-evenly;
+    gap: 5%;
   }
 
   &__column {
@@ -418,7 +424,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   // ==========================================================================
   &--count-3,
   &--count-4 {
-
+    .baby-canvas__frame {
+      inset: -40.5%;
+      transform: translate(0.3%, 0.8%);
+    }
 
     .baby-canvas__illustration-area {
       margin: 4.25% 4.25% 0;
@@ -428,15 +437,14 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
       bottom: 10px;
       right: 10px;
     }
-
   }
 
   &--count-3 {
     .baby-canvas__title {
-      font-size: 1.4cqi;
+      font-size: 1.2cqi;
     }
     .baby-canvas__data {
-      font-size: 1cqi;
+      font-size: 0.8cqi;
     }
   }
 
