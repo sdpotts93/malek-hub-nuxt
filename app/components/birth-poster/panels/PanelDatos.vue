@@ -414,6 +414,7 @@ function formatMinute(minute: number): string {
       border-top: 1px solid #e9eaeb;
       margin-left: -20px;
       margin-right: -20px;
+      margin-top: 0;
     }
   }
 

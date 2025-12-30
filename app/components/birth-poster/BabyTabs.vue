@@ -45,6 +45,10 @@ const store = useBirthPosterStore()
     justify-content: center;
     position: relative;
     border-bottom: 1px solid #e9eaeb;
+    @include mobile {
+      min-height: unset;
+      padding: 12px 0;
+    }
 
     &:last-child {
       border-right: none;
