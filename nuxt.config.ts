@@ -14,13 +14,7 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: [
-    '@pinia/nuxt',
-    '@nuxt/content',
-    '@nuxt/fonts',
-    '@nuxt/image',
-    '@nuxt/test-utils'
-  ],
+  modules: ['@pinia/nuxt', '@nuxt/content', '@nuxt/fonts', '@nuxt/image', '@nuxt/test-utils', '@nuxtjs/sitemap'],
 
   // Global CSS
   css: ['~/assets/scss/main.scss'],

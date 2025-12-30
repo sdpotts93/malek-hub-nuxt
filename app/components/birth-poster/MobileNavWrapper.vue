@@ -584,6 +584,10 @@ function handleDelete(e: Event, id: string) {
       border-color: $color-brand-light;
       color: #fff8f2;
 
+      .mobile-nav-wrapper__nav-card-header svg {
+        color: #ffcba3; // Cream arrow for active state
+      }
+
       .mobile-nav-wrapper__nav-card-desc {
         color: #fff8f2;
       }
@@ -615,7 +619,7 @@ function handleDelete(e: Event, id: string) {
     svg {
       width: 20px;
       height: 20px;
-      color: inherit;
+      color: #414651; // Gray arrow by default
     }
   }
 
