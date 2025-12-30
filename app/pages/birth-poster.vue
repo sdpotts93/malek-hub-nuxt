@@ -174,6 +174,12 @@ async function handleAddToCart() {
         birthPosterStore.setActiveBabyTab(validation.missingBabyIndex)
         birthPosterStore.setNombreError(validation.missingBabyIndex)
       }
+
+      // On mobile, open the bottom sheet to show the datos panel
+      if (isMobile.value) {
+        await nextTick()
+        isMobileSheetOpen.value = true
+      }
       return
     }
 
