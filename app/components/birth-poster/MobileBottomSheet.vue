@@ -9,7 +9,6 @@ const emit = defineEmits<{
 }>()
 
 // Touch handling for drag to close
-const sheetRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const dragStartY = ref(0)
 const currentTranslateY = ref(0)
@@ -57,41 +56,38 @@ function handleOverlayClick() {
 <template>
   <Teleport to="body">
     <!-- Overlay -->
-    <Transition name="fade">
-      <div
-        v-if="isOpen"
-        class="mobile-bottom-sheet-overlay"
-        @click="handleOverlayClick"
-      />
-    </Transition>
+    <div
+      class="mobile-bottom-sheet-overlay"
+      :class="{ 'mobile-bottom-sheet-overlay--visible': isOpen }"
+      @click="handleOverlayClick"
+    />
 
-    <!-- Sheet -->
-    <Transition name="slide-up">
+    <!-- Sheet - always in DOM, controlled by CSS transform -->
+    <div
+      class="mobile-bottom-sheet"
+      :class="{
+        'mobile-bottom-sheet--open': isOpen,
+        'mobile-bottom-sheet--dragging': isDragging
+      }"
+      :style="{
+        transform: isDragging ? `translateY(${currentTranslateY}px)` : undefined
+      }"
+    >
+      <!-- Drag handle area -->
       <div
-        v-if="isOpen"
-        ref="sheetRef"
-        class="mobile-bottom-sheet"
-        :class="{ 'mobile-bottom-sheet--dragging': isDragging }"
-        :style="{
-          transform: isDragging ? `translateY(${currentTranslateY}px)` : undefined
-        }"
+        class="mobile-bottom-sheet__handle"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
       >
-        <!-- Drag handle area -->
-        <div
-          class="mobile-bottom-sheet__handle"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="handleTouchEnd"
-        >
-          <div class="mobile-bottom-sheet__handle-bar" />
-        </div>
-
-        <!-- Content -->
-        <div class="mobile-bottom-sheet__content">
-          <slot />
-        </div>
+        <div class="mobile-bottom-sheet__handle-bar" />
       </div>
-    </Transition>
+
+      <!-- Content -->
+      <div class="mobile-bottom-sheet__content">
+        <slot />
+      </div>
+    </div>
   </Teleport>
 </template>
 
@@ -103,6 +99,17 @@ function handleOverlayClick() {
   z-index: $z-fixed;
   // Account for bottom navbar + cart bar
   bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
+  // Start invisible
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+
+  &--visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
 }
 
 .mobile-bottom-sheet {
@@ -121,13 +128,18 @@ function handleOverlayClick() {
   flex-direction: column;
   touch-action: pan-y;
   will-change: transform;
+  // Start off-screen (slid down)
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
 
-  &--dragging {
-    transition: none;
+  &--open {
+    transform: translateY(0);
+    visibility: visible;
   }
 
-  &:not(&--dragging) {
-    transition: transform 0.2s ease-out;
+  &--dragging {
+    transition: none !important;
   }
 
   &__handle {
@@ -156,35 +168,14 @@ function handleOverlayClick() {
     overflow-x: hidden;
     @include custom-scrollbar;
     padding: $space-xl;
+    // Hide content when sheet is closed to prevent showing old panel on reopen
+    opacity: 0;
+    transition: opacity 0.15s ease;
   }
-}
 
-// Overlay fade animation
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-// Slide up animation
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-}
-
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.slide-up-enter-to,
-.slide-up-leave-from {
-  transform: translateY(0);
-  opacity: 1;
+  &--open &__content {
+    opacity: 1;
+    transition: opacity 0.2s ease 0.1s; // Slight delay so sheet slides up first
+  }
 }
 </style>
