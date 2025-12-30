@@ -9,6 +9,7 @@ export const useUIStore = defineStore('ui', {
     isMobileNavWrapperOpen: false,
     mobileNavWrapperContent: null,
     isLoading: false,
+    toasts: [],
   }),
 
   getters: {

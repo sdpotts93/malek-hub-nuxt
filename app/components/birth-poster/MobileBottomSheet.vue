@@ -17,15 +17,20 @@ const currentTranslateY = ref(0)
 const CLOSE_THRESHOLD = 100 // pixels to drag before closing
 
 function handleTouchStart(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch) return
   isDragging.value = true
-  dragStartY.value = e.touches[0].clientY
+  dragStartY.value = touch.clientY
   currentTranslateY.value = 0
 }
 
 function handleTouchMove(e: TouchEvent) {
   if (!isDragging.value) return
 
-  const deltaY = e.touches[0].clientY - dragStartY.value
+  const touch = e.touches[0]
+  if (!touch) return
+
+  const deltaY = touch.clientY - dragStartY.value
   // Only allow dragging down (positive deltaY)
   if (deltaY > 0) {
     currentTranslateY.value = deltaY

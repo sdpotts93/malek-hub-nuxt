@@ -24,7 +24,7 @@ const { formatPrice } = useShopifyCart()
     <div class="add-to-cart__price-row">
       <span class="add-to-cart__label">Total</span>
       <div class="add-to-cart__prices">
-        <span v-if="compareAtPrice > price" class="add-to-cart__compare-price">
+        <span v-if="compareAtPrice && compareAtPrice > price" class="add-to-cart__compare-price">
           {{ formatPrice(compareAtPrice) }}
         </span>
         <span class="add-to-cart__price">

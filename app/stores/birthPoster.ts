@@ -54,7 +54,7 @@ export const useBirthPosterStore = defineStore('birthPoster', {
     },
     // Get current baby config based on active tab
     currentBaby(state): BabyConfig {
-      return state.babies[state.activeBabyTab] || state.babies[0]
+      return state.babies[state.activeBabyTab] ?? state.babies[0] ?? createDefaultBabyConfig()
     },
 
     // Check if poster should be horizontal (3-4 babies)

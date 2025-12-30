@@ -1,7 +1,7 @@
 <script setup lang="ts">
 interface Props {
   price: number
-  compareAtPrice: number
+  compareAtPrice: number | null
   isLoading?: boolean
 }
 
@@ -15,9 +15,19 @@ const emit = defineEmits<{
 
 const { formatPrice } = useShopifyCart()
 
+// Check if compare price should be shown
+const showComparePrice = computed(() => {
+  return props.compareAtPrice !== null && props.compareAtPrice > props.price
+})
+
+// Formatted compare price (only used when showComparePrice is true)
+const formattedComparePrice = computed(() => {
+  return props.compareAtPrice !== null ? formatPrice(props.compareAtPrice) : ''
+})
+
 // Calculate discount percentage
 const discountPercent = computed(() => {
-  if (props.compareAtPrice <= props.price) return 0
+  if (props.compareAtPrice === null || props.compareAtPrice <= props.price) return 0
   return Math.round((1 - props.price / props.compareAtPrice) * 100)
 })
 </script>
@@ -30,8 +40,8 @@ const discountPercent = computed(() => {
         <span class="mobile-add-to-cart-bar__price">
           {{ formatPrice(price) }}
         </span>
-        <span v-if="compareAtPrice > price" class="mobile-add-to-cart-bar__compare-price">
-          {{ formatPrice(compareAtPrice) }}
+        <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
+          {{ formattedComparePrice }}
         </span>
       </div>
       <span v-if="discountPercent > 0" class="mobile-add-to-cart-bar__discount">

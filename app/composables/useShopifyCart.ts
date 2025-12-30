@@ -145,7 +145,7 @@ export function useShopifyCart() {
     // Check each baby for missing name
     for (let i = 0; i < state.babies.length; i++) {
       const baby = state.babies[i]
-      if (!baby.nombre || baby.nombre.trim() === '') {
+      if (!baby || !baby.nombre || baby.nombre.trim() === '') {
         return {
           isValid: false,
           message: 'Por favor completa el nombre de tu bebé',

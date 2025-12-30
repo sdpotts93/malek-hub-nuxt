@@ -129,6 +129,8 @@ export function useDesignHistory(tool: ToolType) {
     if (index < 0) return null
 
     const design = designs.value[index]
+    if (!design) return null
+
     design.state = JSON.parse(JSON.stringify(state))
     design.thumbnail = thumbnail
     design.updatedAt = new Date()
