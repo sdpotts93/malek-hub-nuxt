@@ -72,7 +72,12 @@ export const useUIStore = defineStore('ui', {
 
     closeMobileNavWrapper() {
       this.isMobileNavWrapperOpen = false
-      this.mobileNavWrapperContent = null
+      // Delay clearing content until after animation completes (300ms)
+      setTimeout(() => {
+        if (!this.isMobileNavWrapperOpen) {
+          this.mobileNavWrapperContent = null
+        }
+      }, 300)
     },
 
     // Close all overlays
@@ -80,7 +85,12 @@ export const useUIStore = defineStore('ui', {
       this.isCartOpen = false
       this.isMobileMenuOpen = false
       this.isMobileNavWrapperOpen = false
-      this.mobileNavWrapperContent = null
+      // Delay clearing content until after animation completes (300ms)
+      setTimeout(() => {
+        if (!this.isMobileNavWrapperOpen) {
+          this.mobileNavWrapperContent = null
+        }
+      }, 300)
     },
 
     // Loading state

@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useBirthPosterStore()
-const { designs, deleteDesign } = useDesignHistory('birth-poster')
+const { designs } = useDesignHistory('birth-poster')
 
 // Navigation items for home
 const navItems = [
@@ -56,13 +56,6 @@ function handleTouchEnd() {
 function handleLoadDesign(design: SavedDesign) {
   store.loadState(design.state)
   emit('close')
-}
-
-function handleDeleteDesign(e: Event, id: string) {
-  e.stopPropagation()
-  if (confirm('¿Eliminar este diseño?')) {
-    deleteDesign(id)
-  }
 }
 
 function formatDate(date: Date): string {
