@@ -273,7 +273,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     width: auto;
     @include mobile {
       height: auto;
-      width: 80%;
+      width: 75%;
     }
   }
 

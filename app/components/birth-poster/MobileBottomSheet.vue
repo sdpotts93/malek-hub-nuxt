@@ -18,6 +18,8 @@ const CLOSE_THRESHOLD = 100 // pixels to drag before closing
 function handleTouchStart(e: TouchEvent) {
   const touch = e.touches[0]
   if (!touch) return
+  // Prevent pull-to-refresh
+  e.preventDefault()
   isDragging.value = true
   dragStartY.value = touch.clientY
   currentTranslateY.value = 0
@@ -25,6 +27,8 @@ function handleTouchStart(e: TouchEvent) {
 
 function handleTouchMove(e: TouchEvent) {
   if (!isDragging.value) return
+  // Prevent pull-to-refresh
+  e.preventDefault()
 
   const touch = e.touches[0]
   if (!touch) return
@@ -150,6 +154,8 @@ function handleOverlayClick() {
     padding: $space-lg 0;
     flex-shrink: 0;
     cursor: grab;
+    // Prevent browser gestures (pull-to-refresh) on drag handle
+    touch-action: none;
 
     &:active {
       cursor: grabbing;
