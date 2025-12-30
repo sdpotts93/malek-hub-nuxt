@@ -129,12 +129,13 @@ export function useShopifyCart() {
    * Format price for display (Mexican Pesos)
    */
   function formatPrice(price: number): string {
-    return new Intl.NumberFormat('es-MX', {
+    const formatted = new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price)
+    return `${formatted} MXN`
   }
 
   /**
