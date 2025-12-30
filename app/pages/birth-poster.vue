@@ -192,6 +192,9 @@ async function handleAddToCart() {
         await nextTick()
         isMobileSheetOpen.value = true
       }
+
+      // Trigger focus on nombre input after panel is ready
+      birthPosterStore.triggerNombreFocus()
       return
     }
 

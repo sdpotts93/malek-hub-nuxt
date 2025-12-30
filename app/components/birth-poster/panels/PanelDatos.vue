@@ -3,6 +3,39 @@ import type { HoraNacimiento } from '~/types'
 
 const store = useBirthPosterStore()
 
+// Ref for nombre input to focus when error is shown
+const nombreInput = ref<HTMLInputElement | null>(null)
+
+// Track the last known trigger value to detect new triggers
+const lastTriggerValue = ref(0)
+
+// Focus nombre input helper
+function focusNombreInput() {
+  // Wait for panel/sheet animation to complete before focusing
+  requestAnimationFrame(() => {
+    if (nombreInput.value) {
+      nombreInput.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      nombreInput.value.focus()
+    }
+  })
+}
+
+// Check on mount if a focus was triggered before we mounted
+onMounted(() => {
+  if (store.nombreFocusTrigger > lastTriggerValue.value) {
+    lastTriggerValue.value = store.nombreFocusTrigger
+    focusNombreInput()
+  }
+})
+
+// Watch focus trigger from store (only triggered by add-to-cart validation)
+watch(() => store.nombreFocusTrigger, (newVal) => {
+  if (newVal > lastTriggerValue.value) {
+    lastTriggerValue.value = newVal
+    focusNombreInput()
+  }
+})
+
 // Generate altura options (15-58cm in 0.5cm increments)
 // Max 58cm because the illustration area is 58.75cm on a 70cm print (1:1 scale)
 const alturaOptions = Array.from({ length: 87 }, (_, i) => 15 + i * 0.5)
@@ -176,6 +209,7 @@ function formatMinute(minute: number): string {
       </label>
       <input
         id="nombre"
+        ref="nombreInput"
         type="text"
         :class="['panel-datos__input', { 'panel-datos__input--error': store.currentBabyHasNombreError }]"
         :value="store.currentBaby.nombre"

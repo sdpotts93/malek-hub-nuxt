@@ -337,7 +337,7 @@ function handleDelete(e: Event, id: string) {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 16px 0 48px;
+    padding: 16px 0 32px;
     flex-shrink: 0;
     cursor: grab;
     // Prevent browser gestures (pull-to-refresh) on drag handle

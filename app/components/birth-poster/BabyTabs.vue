@@ -90,6 +90,9 @@ const store = useBirthPosterStore()
     font-weight: $font-weight-bold;
     color: #ffffff;
     line-height: 1;
+    @include mobile {
+      right: 12px;
+    }
   }
 }
 </style>

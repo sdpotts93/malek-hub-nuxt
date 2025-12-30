@@ -42,9 +42,10 @@ const createBabyConfigForPosition = (index: number, totalCount: number): BabyCon
 }
 
 export const useBirthPosterStore = defineStore('birthPoster', {
-  state: (): BirthPosterState & { validationErrors: ValidationErrors } => ({
+  state: (): BirthPosterState & { validationErrors: ValidationErrors; nombreFocusTrigger: number } => ({
     ...createDefaultBirthPosterState(),
     validationErrors: { babies: {} },
+    nombreFocusTrigger: 0,
   }),
 
   getters: {
@@ -313,6 +314,11 @@ export const useBirthPosterStore = defineStore('birthPoster', {
         this.validationErrors.babies[babyIndex] = { nombre: false }
       }
       this.validationErrors.babies[babyIndex].nombre = true
+    },
+
+    // Trigger focus on nombre input (increments counter to trigger watcher)
+    triggerNombreFocus() {
+      this.nombreFocusTrigger++
     },
 
     // Clear validation error for baby nombre
