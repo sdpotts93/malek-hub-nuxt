@@ -157,6 +157,13 @@ const scrollColors = (direction: 'left' | 'right') => {
   &__tabs {
     margin-bottom: 8px;
     margin-top: -20px;
+    @include mobile {
+      border-top-right-radius: 8px;
+      border-top-left-radius: 8px;
+      border-top: 1px solid #e9eaeb;
+      margin-left: -16px;
+      margin-right: -16px;
+    }
   }
 
   &__section {

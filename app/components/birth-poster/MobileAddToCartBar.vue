@@ -33,7 +33,8 @@ const discountPercent = computed(() => {
 </script>
 
 <template>
-  <div class="mobile-add-to-cart-bar">
+  <Teleport to="body">
+    <div class="mobile-add-to-cart-bar">
     <!-- Price Info -->
     <div class="mobile-add-to-cart-bar__info">
       <div class="mobile-add-to-cart-bar__prices">
@@ -58,7 +59,8 @@ const discountPercent = computed(() => {
       <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
       <span v-else>Agregar al carrito</span>
     </button>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -75,7 +77,7 @@ const discountPercent = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: $space-lg;
-  z-index: $z-fixed;
+  z-index: $z-fixed + 2;
 
   &__info {
     display: flex;

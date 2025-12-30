@@ -19,7 +19,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <nav class="bottom-navbar">
+  <Teleport to="body">
+    <nav class="bottom-navbar">
     <!-- Panel navigation items -->
     <button
       v-for="item in items"
@@ -57,7 +58,8 @@ const emit = defineEmits<{
       </span>
       <span class="bottom-navbar__label">{{ item.label }}</span>
     </button>
-  </nav>
+    </nav>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -74,7 +76,7 @@ const emit = defineEmits<{
   justify-content: space-around;
   padding: 0 $space-lg;
   padding-bottom: env(safe-area-inset-bottom, 0);
-  z-index: $z-fixed;
+  z-index: $z-fixed + 2;
 
   &__item {
     @include button-reset;
