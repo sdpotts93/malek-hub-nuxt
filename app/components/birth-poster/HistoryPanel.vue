@@ -13,9 +13,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   toggle: []
   load: [state: BirthPosterState]
+  delete: [id: string]
 }>()
-
-const { deleteDesign } = useDesignHistory('birth-poster')
 
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString('es-ES', {
@@ -31,7 +30,7 @@ function handleLoad(design: SavedDesign) {
 function handleDelete(e: Event, id: string) {
   e.stopPropagation()
   if (confirm('¿Eliminar este diseño?')) {
-    deleteDesign(id)
+    emit('delete', id)
   }
 }
 </script>
@@ -110,7 +109,7 @@ function handleDelete(e: Event, id: string) {
     <!-- Collapsed thumbnails -->
     <div v-else class="history-panel__collapsed-list">
       <button
-        v-for="design in designs.slice(0, 4)"
+        v-for="design in designs.slice(0, 8)"
         :key="design.id"
         class="history-panel__mini-thumb"
         @click="handleLoad(design)"
@@ -262,9 +261,8 @@ function handleDelete(e: Event, id: string) {
 
     img {
       width: 200%;
-      height: 200%;
       object-fit: none;
-      object-position: 50% 75%;
+      object-position: 50% 20%;
     }
   }
 
@@ -332,17 +330,18 @@ function handleDelete(e: Event, id: string) {
     overflow: hidden;
     background: $color-bg-primary;
     flex-shrink: 0;
-    transition: transform $transition-fast;
-
-    @include hover {
-      transform: scale(1.05);
-    }
 
     img {
       width: 200%;
-      height: 200%;
       object-fit: none;
-      object-position: 50% 75%;
+      object-position: 50% 20%;
+      transition: transform $transition-fast;
+    }
+
+    @include hover {
+      img {
+        transform: scale(1.1);
+      }
     }
   }
 }

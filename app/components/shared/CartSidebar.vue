@@ -87,20 +87,24 @@ onMounted(() => {
             >
               <!-- Thumbnail - prefer thumbnail > design image > Shopify image -->
               <div class="cart-item__image">
-                <img
+                <NuxtImg
                   v-if="item.thumbnailImage"
                   :src="item.thumbnailImage"
                   :alt="item.productTitle"
                   class="cart-item__img"
+                  width="80"
+                  height="100"
                   loading="lazy"
-                >
-                <img
+                />
+                <NuxtImg
                   v-else-if="item.designImage"
                   :src="item.designImage"
                   :alt="item.productTitle"
                   class="cart-item__img"
+                  width="80"
+                  height="100"
                   loading="lazy"
-                >
+                />
                 <NuxtImg
                   v-else-if="item.shopifyImage"
                   :src="item.shopifyImage"
@@ -342,7 +346,7 @@ onMounted(() => {
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
   }
 

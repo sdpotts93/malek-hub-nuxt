@@ -16,7 +16,7 @@ const uiStore = useUIStore()
 
 // Composables
 const { isRendering, generateThumbnail } = useCanvasRenderer()
-const { saveDesign, designs } = useDesignHistory('birth-poster')
+const { saveDesign, deleteDesign, designs } = useDesignHistory('birth-poster')
 const cart = useShopifyCart()
 
 // Canvas ref for rendering
@@ -33,6 +33,14 @@ const isDirty = computed(() => {
   return lastSavedState.value !== currentState
 })
 
+// Generate design name from baby names
+function getDesignName(): string {
+  const names = birthPosterStore.babies
+    .map(b => b.nombre?.trim())
+    .filter(Boolean)
+  return names.length > 0 ? names.join(' & ') : 'Birth Poster'
+}
+
 // Save design to history (auto-save helper)
 async function saveCurrentDesign() {
   const canvasElement = canvasRef.value?.$el
@@ -40,9 +48,7 @@ async function saveCurrentDesign() {
 
   try {
     const thumbnail = await generateThumbnail(canvasElement)
-    const babyName = birthPosterStore.babies[0]?.nombre
-    const designName = babyName ? `Diseño de ${babyName}` : undefined
-    saveDesign(birthPosterStore.$state, thumbnail, designName)
+    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(birthPosterStore.$state)
     console.log('[BirthPoster] Auto-saved design')
   } catch (error) {
@@ -50,13 +56,52 @@ async function saveCurrentDesign() {
   }
 }
 
+// Auto-save settings
+const AUTOSAVE_KEY = 'studiomalek_autosave_birthposter'
+const pendingHistorySave = ref(false)
+
 // Check mobile on mount and initialize cart
 onMounted(() => {
   // Initialize Shopify cart and fetch product variants
   cart.init()
 
+  // Restore from autosave if exists (from browser refresh/crash)
+  try {
+    const autosaved = localStorage.getItem(AUTOSAVE_KEY)
+    if (autosaved) {
+      const savedState = JSON.parse(autosaved)
+      birthPosterStore.loadState(savedState)
+      localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
+      pendingHistorySave.value = true // Mark for saving to history once canvas is ready
+      console.log('[BirthPoster] Restored from autosave:', savedState.babies?.[0]?.nombre || 'unnamed')
+    }
+  } catch (e) {
+    console.error('[BirthPoster] Failed to restore autosave:', e)
+    localStorage.removeItem(AUTOSAVE_KEY)
+  }
+
   // Store initial state to track changes
   lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+
+  // If we restored from autosave, save to history once canvas is ready
+  if (pendingHistorySave.value) {
+    nextTick(async () => {
+      // Wait a bit for images to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+      const canvasElement = canvasRef.value?.$el
+      if (canvasElement) {
+        try {
+          const thumbnail = await generateThumbnail(canvasElement)
+          saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
+          lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+          console.log('[BirthPoster] Saved restored design to history')
+        } catch (error) {
+          console.error('[BirthPoster] Failed to save restored design:', error)
+        }
+      }
+      pendingHistorySave.value = false
+    })
+  }
 
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768
@@ -65,12 +110,12 @@ onMounted(() => {
   window.addEventListener('resize', checkMobile)
 
   // Auto-save on page unload (browser close/refresh)
+  // Always save state - cheaper to save unnecessarily than to lose user work
   const handleBeforeUnload = () => {
-    if (isDirty.value) {
-      // Synchronous save attempt (may not complete for thumbnails)
-      // But state will be preserved
-      const currentState = JSON.stringify(birthPosterStore.$state)
-      localStorage.setItem('studiomalek_autosave_birthposter', currentState)
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(birthPosterStore.$state))
+    } catch (e) {
+      console.error('[BirthPoster] Failed to save on unload:', e)
     }
   }
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -124,9 +169,7 @@ async function handleAddToCart() {
 
     // Success - save to history and open cart
     const thumbnail = await generateThumbnail(canvasElement)
-    const babyName = birthPosterStore.babies[0]?.nombre
-    const designName = babyName ? `Diseño de ${babyName}` : undefined
-    saveDesign(birthPosterStore.$state, thumbnail, designName)
+    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(birthPosterStore.$state) // Mark as saved
 
     uiStore.openCart()
@@ -184,6 +227,7 @@ async function handleAddToCart() {
           :is-open="uiStore.isHistoryOpen"
           @toggle="uiStore.toggleHistory"
           @load="birthPosterStore.loadState"
+          @delete="deleteDesign"
         />
       </aside>
     </main>

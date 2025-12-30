@@ -40,8 +40,10 @@ const { formatPrice } = useShopifyCart()
         :disabled="isLoading"
         @click="emit('add-to-cart')"
       >
+        <span class="add-to-cart__button-text" :class="{ 'add-to-cart__button-text--hidden': isLoading }">
+          Agregar al carrito
+        </span>
         <span v-if="isLoading" class="add-to-cart__spinner" />
-        <span v-else>Agregar al carrito</span>
       </button>
 
       <!-- Info Row: Shipping + Reviews -->
@@ -165,7 +167,7 @@ const { formatPrice } = useShopifyCart()
       pointer-events: none;
       border-radius: 10px;
       box-shadow:
-        inset 0px 0px 0px 1px rgb(255 255 255 / 33%), 
+        inset 0px 0px 0px 1px rgb(255 255 255 / 33%),
         inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
     }
 
@@ -185,9 +187,16 @@ const { formatPrice } = useShopifyCart()
     }
   }
 
+  &__button-text {
+    &--hidden {
+      visibility: hidden;
+    }
+  }
+
   &__spinner {
-    width: 20px;
-    height: 20px;
+    position: absolute;
+    width: 24px;
+    height: 24px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;

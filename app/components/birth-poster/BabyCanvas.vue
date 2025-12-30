@@ -110,8 +110,8 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
 <template>
   <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`, { 'baby-canvas--has-frame': store.frameStyle }]">
-    <!-- Frame overlay when selected -->
-    <div v-if="store.frameStyle && currentFrameImage" class="baby-canvas__frame">
+    <!-- Frame overlay when selected (ignored in image export) -->
+    <div v-if="store.frameStyle && currentFrameImage" class="baby-canvas__frame" data-html2canvas-ignore>
       <img
         :src="currentFrameImage"
         :alt="`Marco ${store.frameStyle.name}`"
@@ -360,7 +360,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   }
 
   &__watermark-img {
-    width: 2cqi;
+    width: 3cqi;
     height: auto;
   }
 
@@ -438,6 +438,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     }
 
     .baby-canvas__watermark {
+      width: 1.5cqi;
       bottom: 10px;
       right: 10px;
     }
@@ -454,7 +455,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
 
   &--count-4 {
     .baby-canvas__title {
-      font-size: 1.2cqi;
+      font-size: 0.9cqi;
     }
     .baby-canvas__data {
       font-size: 0.8cqi;
