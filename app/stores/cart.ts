@@ -33,6 +33,7 @@ export interface CartLine {
   price: number
   shopifyImage: string | null // Original Shopify product image
   designImage: string | null // Custom design image from S3 (_imagen attribute)
+  thumbnailImage: string | null // Low-res thumbnail from S3 (_thumbnail attribute)
   attributes: Array<{ key: string; value: string }>
 }
 
@@ -70,8 +71,9 @@ export const useCartStore = defineStore('cart', {
     // Transform Shopify response to internal cart lines
     _transformLines(shopifyLines: ShopifyCartLine[]): CartLine[] {
       return shopifyLines.map(line => {
-        // Extract design image from _imagen attribute
+        // Extract design images from attributes
         const imagenAttr = line.attributes.find(a => a.key === '_imagen')
+        const thumbnailAttr = line.attributes.find(a => a.key === '_thumbnail')
         return {
           id: line.id,
           quantity: line.quantity,
@@ -81,6 +83,7 @@ export const useCartStore = defineStore('cart', {
           price: line.price,
           shopifyImage: line.image,
           designImage: imagenAttr?.value || null,
+          thumbnailImage: thumbnailAttr?.value || null,
           attributes: line.attributes,
         }
       })
@@ -120,7 +123,11 @@ export const useCartStore = defineStore('cart', {
 
       try {
         const response = await $fetch<ShopifyCartResponse>(
-          `/api/shopify/cart/${encodeURIComponent(this.cartId)}`
+          '/api/shopify/cart/get',
+          {
+            method: 'POST',
+            body: { cartId: this.cartId },
+          }
         )
         this._updateFromResponse(response)
       } catch (err) {

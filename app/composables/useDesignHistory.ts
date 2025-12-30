@@ -8,7 +8,7 @@
 import type { SavedDesign, ToolType, BirthPosterState } from '~/types'
 
 const HISTORY_STORAGE_KEY = 'studiomalek_design_history'
-const MAX_SAVED_DESIGNS = 20
+const MAX_SAVED_DESIGNS = 10
 
 export function useDesignHistory(tool: ToolType) {
   const designs = ref<SavedDesign[]>([])

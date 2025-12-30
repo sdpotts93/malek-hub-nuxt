@@ -203,24 +203,35 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate high-res image
+      // 2. Generate images from the canvas element
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      const posterSizeCm = getPosterDimensions(state.posterSize)
-      const renderResult = await renderer.generatePosterImage(canvasElement, posterSizeCm)
+      // Generate high-res image for production and low-res thumbnail for display
+      const [renderResult, thumbnailDataUrl] = await Promise.all([
+        renderer.generatePosterImage(canvasElement),
+        renderer.generateThumbnail(canvasElement, 200), // 200px max dimension
+      ])
 
-      // 3. Upload to S3
+      // Convert thumbnail data URL to blob
+      const thumbnailResponse = await fetch(thumbnailDataUrl)
+      const thumbnailBlob = await thumbnailResponse.blob()
+
+      // 3. Upload both to S3
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
-      const uploadResult = await uploader.uploadDesignImage(renderResult.blob, 'birth-poster')
+      const [uploadResult, thumbnailUpload] = await Promise.all([
+        uploader.uploadDesignImage(renderResult.blob, 'birth-poster'),
+        uploader.uploadDesignImage(thumbnailBlob, 'birth-poster-thumb'),
+      ])
 
       // 4. Add to Shopify cart with attributes
       const babyNames = state.babies.map(b => b.nombre || 'Sin nombre').join(', ')
 
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
+        { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'BirthPoster' },
         { key: 'Tamaño', value: state.posterSize },
         { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
@@ -241,14 +252,6 @@ export function useShopifyCart() {
     } finally {
       isAddingToCart.value = false
     }
-  }
-
-  /**
-   * Get poster dimensions in cm from size string
-   */
-  function getPosterDimensions(size: PosterSize): { width: number; height: number } {
-    const [w, h] = size.split('x').map(Number)
-    return { width: w, height: h }
   }
 
   /**

@@ -112,11 +112,12 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
   <div :class="['baby-canvas', `baby-canvas--count-${store.babyCount}`, { 'baby-canvas--has-frame': store.frameStyle }]">
     <!-- Frame overlay when selected -->
     <div v-if="store.frameStyle && currentFrameImage" class="baby-canvas__frame">
-      <NuxtImg
+      <img
         :src="currentFrameImage"
         :alt="`Marco ${store.frameStyle.name}`"
         class="baby-canvas__frame-image"
-      />
+        crossorigin="anonymous"
+      >
     </div>
 
     <!-- SVG Filters for colorizing -->
@@ -149,26 +150,29 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
           class="baby-canvas__baby"
           :style="{ height: getHeightScale(baby.altura) }"
         >
-          <NuxtImg
+          <!-- Use regular img tag for html-to-image compatibility -->
+          <img
             v-if="getStyleById(baby.styleId)"
             :src="getStyleById(baby.styleId)!.image"
             :alt="`Baby ${index + 1}`"
             class="baby-canvas__illustration"
+            crossorigin="anonymous"
             :style="{
               transform: baby.orientation === 'derecha' ? 'scaleX(-1)' : 'none',
               filter: `url(#${getFilterId(index)})`,
             }"
-          />
+          >
         </div>
       </div>
 
       <!-- Watermark signature -->
       <div class="baby-canvas__watermark">
-        <NuxtImg
+        <img
           src="/watermark-dark.png"
           alt="Studio Malek"
           class="baby-canvas__watermark-img"
-        />
+          crossorigin="anonymous"
+        >
       </div>
     </div>
 

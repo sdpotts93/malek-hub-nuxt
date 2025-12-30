@@ -261,9 +261,10 @@ function handleDelete(e: Event, id: string) {
     background: $color-bg-primary;
 
     img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      width: 200%;
+      height: 200%;
+      object-fit: none;
+      object-position: 50% 75%;
     }
   }
 
@@ -338,9 +339,10 @@ function handleDelete(e: Event, id: string) {
     }
 
     img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      width: 200%;
+      height: 200%;
+      object-fit: none;
+      object-position: 50% 75%;
     }
   }
 }

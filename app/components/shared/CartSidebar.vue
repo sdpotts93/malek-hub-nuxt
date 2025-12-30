@@ -2,6 +2,11 @@
 const uiStore = useUIStore()
 const { lines, subtotal, isEmpty, isLoading, formatPrice, removeItem, updateQuantity, checkout } = useShopifyCart()
 
+// Get visible attributes (not prefixed with _)
+function getVisibleAttributes(attributes: Array<{ key: string; value: string }>) {
+  return attributes.filter(attr => !attr.key.startsWith('_'))
+}
+
 // Close on escape
 onMounted(() => {
   const handleEscape = (e: KeyboardEvent) => {
@@ -80,12 +85,26 @@ onMounted(() => {
               :key="item.id"
               class="cart-item"
             >
-              <!-- Thumbnail -->
+              <!-- Thumbnail - prefer thumbnail > design image > Shopify image -->
               <div class="cart-item__image">
+                <img
+                  v-if="item.thumbnailImage"
+                  :src="item.thumbnailImage"
+                  :alt="item.productTitle"
+                  class="cart-item__img"
+                  loading="lazy"
+                >
+                <img
+                  v-else-if="item.designImage"
+                  :src="item.designImage"
+                  :alt="item.productTitle"
+                  class="cart-item__img"
+                  loading="lazy"
+                >
                 <NuxtImg
-                  v-if="item.image"
-                  :src="item.image"
-                  :alt="item.title"
+                  v-else-if="item.shopifyImage"
+                  :src="item.shopifyImage"
+                  :alt="item.productTitle"
                   width="80"
                   height="100"
                 />
@@ -94,15 +113,15 @@ onMounted(() => {
 
               <!-- Details -->
               <div class="cart-item__details">
-                <h3 class="cart-item__title">{{ item.title }}</h3>
+                <h3 class="cart-item__title">{{ item.productTitle }}</h3>
 
-                <!-- Custom attributes -->
-                <div v-if="item.customAttributes" class="cart-item__attrs">
-                  <span v-if="item.customAttributes.posterSize">
-                    {{ item.customAttributes.posterSize }}
-                  </span>
-                  <span v-if="item.customAttributes.babyNames">
-                    {{ item.customAttributes.babyNames }}
+                <!-- Custom attributes (visible ones only, not _prefixed) -->
+                <div v-if="getVisibleAttributes(item.attributes).length" class="cart-item__attrs">
+                  <span
+                    v-for="attr in getVisibleAttributes(item.attributes)"
+                    :key="attr.key"
+                  >
+                    <strong>{{ attr.key }}:</strong> {{ attr.value }}
                   </span>
                 </div>
 
@@ -352,13 +371,15 @@ onMounted(() => {
     color: $color-text-secondary;
     display: flex;
     flex-wrap: wrap;
-    gap: $space-xs;
+    gap: $space-xxs;
+    flex-direction: column;
+    margin-top: $space-md;
 
     span {
-      &::after {
-        content: '•';
-        margin-left: $space-xs;
-      }
+      // &::after {
+      //   content: '•';
+      //   margin-left: $space-xs;
+      // }
 
       &:last-child::after {
         display: none;

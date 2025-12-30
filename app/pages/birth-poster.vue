@@ -15,28 +15,78 @@ const birthPosterStore = useBirthPosterStore()
 const uiStore = useUIStore()
 
 // Composables
-const { isRendering } = useCanvasRenderer()
+const { isRendering, generateThumbnail } = useCanvasRenderer()
 const { saveDesign, designs } = useDesignHistory('birth-poster')
 const cart = useShopifyCart()
 
-// Canvas ref for rendering (component instance, not DOM element)
+// Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
 const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
 const isMobile = ref(false)
 
+// Track if design has been modified since last save
+const lastSavedState = ref<string | null>(null)
+const isDirty = computed(() => {
+  const currentState = JSON.stringify(birthPosterStore.$state)
+  return lastSavedState.value !== currentState
+})
+
+// Save design to history (auto-save helper)
+async function saveCurrentDesign() {
+  const canvasElement = canvasRef.value?.$el
+  if (!canvasElement || !isDirty.value) return
+
+  try {
+    const thumbnail = await generateThumbnail(canvasElement)
+    const babyName = birthPosterStore.babies[0]?.nombre
+    const designName = babyName ? `Diseño de ${babyName}` : undefined
+    saveDesign(birthPosterStore.$state, thumbnail, designName)
+    lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+    console.log('[BirthPoster] Auto-saved design')
+  } catch (error) {
+    console.error('[BirthPoster] Auto-save failed:', error)
+  }
+}
+
 // Check mobile on mount and initialize cart
 onMounted(() => {
   // Initialize Shopify cart and fetch product variants
   cart.init()
+
+  // Store initial state to track changes
+  lastSavedState.value = JSON.stringify(birthPosterStore.$state)
 
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768
   }
   checkMobile()
   window.addEventListener('resize', checkMobile)
-  onUnmounted(() => window.removeEventListener('resize', checkMobile))
+
+  // Auto-save on page unload (browser close/refresh)
+  const handleBeforeUnload = () => {
+    if (isDirty.value) {
+      // Synchronous save attempt (may not complete for thumbnails)
+      // But state will be preserved
+      const currentState = JSON.stringify(birthPosterStore.$state)
+      localStorage.setItem('studiomalek_autosave_birthposter', currentState)
+    }
+  }
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkMobile)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+    // Save when navigating away within the app
+    saveCurrentDesign()
+  })
+})
+
+// Also save when navigating via Vue Router
+onBeforeRouteLeave(async () => {
+  await saveCurrentDesign()
+  return true
 })
 
 // Panel navigation items
@@ -73,9 +123,11 @@ async function handleAddToCart() {
     }
 
     // Success - save to history and open cart
-    const { generateThumbnail } = useCanvasRenderer()
     const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(birthPosterStore.$state, thumbnail)
+    const babyName = birthPosterStore.babies[0]?.nombre
+    const designName = babyName ? `Diseño de ${babyName}` : undefined
+    saveDesign(birthPosterStore.$state, thumbnail, designName)
+    lastSavedState.value = JSON.stringify(birthPosterStore.$state) // Mark as saved
 
     uiStore.openCart()
   } catch (error) {

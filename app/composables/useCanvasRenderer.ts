@@ -1,11 +1,11 @@
 /**
  * Canvas Renderer Composable
  *
- * Uses html2canvas to generate poster images from the canvas preview element.
- * This creates actual PNG images that can be saved or added to cart.
+ * Uses html-to-image to generate poster images from the canvas preview element.
+ * This library handles modern CSS features better than html2canvas.
  */
 
-import html2canvas from 'html2canvas'
+import { toPng, toBlob } from 'html-to-image'
 
 interface RenderOptions {
   scale?: number // Scale factor for resolution (default: 2 for retina)
@@ -25,13 +25,28 @@ export function useCanvasRenderer() {
   const error = ref<string | null>(null)
 
   /**
-   * Render an element to a canvas and return image data
+   * Wait for all images in an element to load
+   */
+  async function waitForImages(element: HTMLElement): Promise<void> {
+    const images = element.querySelectorAll('img')
+    const imagePromises = Array.from(images).map((img) => {
+      if (img.complete) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        img.onload = () => resolve()
+        img.onerror = () => resolve() // Don't fail on image error
+      })
+    })
+    await Promise.all(imagePromises)
+  }
+
+  /**
+   * Render an element to an image using html-to-image
    */
   async function renderElement(
     element: HTMLElement,
     options: RenderOptions = {}
   ): Promise<RenderResult> {
-    const { scale = 2, backgroundColor = '#ffffff', quality = 0.92 } = options
+    const { scale = 2, backgroundColor = '#ffffff' } = options
 
     isRendering.value = true
     error.value = null
@@ -40,57 +55,44 @@ export function useCanvasRenderer() {
       // Wait for images to load
       await waitForImages(element)
 
-      // Get computed dimensions before rendering (container queries don't work well with html2canvas)
+      // Get actual dimensions
       const rect = element.getBoundingClientRect()
+      const width = Math.round(rect.width)
+      const height = Math.round(rect.height)
 
-      // Temporarily disable container-type to avoid container query issues
-      const originalContainerType = element.style.containerType
-      element.style.containerType = 'normal'
-
-      // Force explicit dimensions
-      const originalWidth = element.style.width
-      const originalHeight = element.style.height
-      element.style.width = `${rect.width}px`
-      element.style.height = `${rect.height}px`
-
-      // Render with html2canvas
-      const canvas = await html2canvas(element, {
-        scale,
+      // html-to-image options
+      const renderOptions = {
+        width: width * scale,
+        height: height * scale,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${width}px`,
+          height: `${height}px`,
+        },
         backgroundColor,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        width: rect.width,
-        height: rect.height,
-        // Ignore elements with data-html2canvas-ignore
-        ignoreElements: (el) => el.hasAttribute('data-html2canvas-ignore'),
-      })
+        pixelRatio: 1, // We handle scaling manually
+        cacheBust: true,
+        skipFonts: true, // Skip font loading issues
+        // Skip elements with this attribute
+        filter: (node: HTMLElement) => {
+          if (node.hasAttribute?.('data-html2canvas-ignore')) return false
+          return true
+        },
+      }
 
-      // Restore original styles
-      element.style.containerType = originalContainerType
-      element.style.width = originalWidth
-      element.style.height = originalHeight
+      // Generate PNG data URL
+      const dataUrl = await toPng(element, renderOptions)
 
-      // Get data URL
-      const dataUrl = canvas.toDataURL('image/png', quality)
-
-      // Convert to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (b) => {
-            if (b) resolve(b)
-            else reject(new Error('Failed to create blob'))
-          },
-          'image/png',
-          quality
-        )
-      })
+      // Generate blob
+      const blob = await toBlob(element, renderOptions)
+      if (!blob) throw new Error('Failed to create blob')
 
       return {
         dataUrl,
         blob,
-        width: canvas.width,
-        height: canvas.height,
+        width: width * scale,
+        height: height * scale,
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al generar imagen'
@@ -149,30 +151,14 @@ export function useCanvasRenderer() {
    * Print-ready files should be generated server-side with proper dimensions.
    */
   async function generatePosterImage(
-    element: HTMLElement,
-    _posterSizeCm: { width: number; height: number }
+    element: HTMLElement
   ): Promise<RenderResult> {
-    // Use 2x scale for good quality preview without memory issues
+    // Use 4x scale for high quality image
     // The actual print file will be generated server-side based on the stored configuration
     return renderElement(element, {
-      scale: 2,
+      scale: 4,
       backgroundColor: '#ffffff',
     })
-  }
-
-  /**
-   * Wait for all images in an element to load
-   */
-  async function waitForImages(element: HTMLElement): Promise<void> {
-    const images = element.querySelectorAll('img')
-    const imagePromises = Array.from(images).map((img) => {
-      if (img.complete) return Promise.resolve()
-      return new Promise<void>((resolve) => {
-        img.onload = () => resolve()
-        img.onerror = () => resolve() // Don't fail on image error
-      })
-    })
-    await Promise.all(imagePromises)
   }
 
   /**
