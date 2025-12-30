@@ -409,8 +409,8 @@ function formatMinute(minute: number): string {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
       border-top: 1px solid #e9eaeb;
-      margin-left: -36px;
-      margin-right: -36px;
+      margin-left: -20px;
+      margin-right: -20px;
     }
   }
 

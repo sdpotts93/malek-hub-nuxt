@@ -118,7 +118,8 @@ function handleOverlayClick() {
   bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
   left: 0;
   right: 0;
-  max-height: 55vh;
+  // Fixed height to prevent resizing when switching tabs
+  height: 55vh;
   background: $color-bg-primary;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
@@ -168,6 +169,7 @@ function handleOverlayClick() {
     overflow-x: hidden;
     @include custom-scrollbar;
     padding: $space-xl;
+    padding-inline: 0;
     // Hide content when sheet is closed to prevent showing old panel on reopen
     opacity: 0;
     transition: opacity 0.15s ease;

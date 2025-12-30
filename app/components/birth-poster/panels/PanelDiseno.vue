@@ -161,8 +161,6 @@ const scrollColors = (direction: 'left' | 'right') => {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
       border-top: 1px solid #e9eaeb;
-      margin-left: -16px;
-      margin-right: -16px;
     }
   }
 

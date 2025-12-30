@@ -28,8 +28,10 @@ const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 
 // Handle mobile panel selection
-function handleMobilePanelSelect(panel: PanelType) {
+async function handleMobilePanelSelect(panel: PanelType) {
   birthPosterStore.setActivePanel(panel)
+  // Wait for Vue to render the new panel before opening the sheet
+  await nextTick()
   isMobileSheetOpen.value = true
 }
 
