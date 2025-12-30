@@ -241,22 +241,24 @@ function handleDelete(e: Event, id: string) {
                 </div>
                 <!-- Icon -->
                 <div class="mobile-nav-wrapper__nav-card-icon">
-                  <!-- Image icon -->
-                  <svg v-if="item.icon === 'image'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                    <circle cx="9" cy="9" r="2"/>
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  <!-- Image/Personaliza icon -->
+                  <svg v-if="item.icon === 'image'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M20 3a1 1 0 0 1 1 1v1.757l-2 2V5H5v8.1l4-4l4.328 4.329l-1.415 1.413L9 11.93l-4 3.999V19h10.533l.708.001l1.329-1.33L18.9 19h.1v-2.758l2-2V20a1 1 0 0 1-1 1H4c-.55 0-1-.45-1-1V4a1 1 0 0 1 1-1zm1.778 4.808l1.414 1.414L15.414 17l-1.416-.002l.002-1.412zM15.5 7a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3"/>
                   </svg>
-                  <!-- Baby icon -->
-                  <svg v-else-if="item.icon === 'baby'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-9c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm4 0c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm-2 5.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                  <!-- Baby/Birth Poster icon -->
+                  <svg v-else-if="item.icon === 'baby'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 12h.01"/>
+                    <path d="M15 12h.01"/>
+                    <path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/>
+                    <path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/>
                   </svg>
-                  <!-- Grid icon -->
-                  <svg v-else-if="item.icon === 'grid'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="7" height="7" x="3" y="3" rx="1"/>
-                    <rect width="7" height="7" x="14" y="3" rx="1"/>
-                    <rect width="7" height="7" x="14" y="14" rx="1"/>
-                    <rect width="7" height="7" x="3" y="14" rx="1"/>
+                  <!-- Grid/Momentos icon -->
+                  <svg v-else-if="item.icon === 'grid'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24">
+                    <g fill="none">
+                      <path d="M3 3v18h6l2-9l2-9z"/>
+                      <path d="M21 3h-8L9 21h12z"/>
+                      <path stroke="currentColor" stroke-width="2" d="M13 3H3v18h6m4-18h8v13M13 3l-2 9m-2 9h12v-5M9 21l2-9m10 4l-10-4"/>
+                    </g>
                   </svg>
                 </div>
               </NuxtLink>
