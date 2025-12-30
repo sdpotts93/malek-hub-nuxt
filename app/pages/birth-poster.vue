@@ -59,8 +59,11 @@ async function saveCurrentDesign() {
 const AUTOSAVE_KEY = 'studiomalek_autosave_birthposter'
 const pendingHistorySave = ref(false)
 
-// Check mobile on mount
+// Check mobile on mount and initialize cart
 onMounted(() => {
+  // Initialize Shopify cart and fetch product variants
+  cart.init()
+
   // Restore from autosave if exists (from browser refresh/crash)
   try {
     const autosaved = localStorage.getItem(AUTOSAVE_KEY)
