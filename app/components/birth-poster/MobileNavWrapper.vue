@@ -15,11 +15,29 @@ const store = useBirthPosterStore()
 const { designs, deleteDesign } = useDesignHistory('birth-poster')
 
 // Navigation items for home
+const route = useRoute()
 const navItems = [
-  { name: 'Personaliza', href: '/personaliza', icon: 'palette' },
-  { name: 'Birth Poster', href: '/birth-poster', icon: 'baby', active: true },
-  { name: 'Momentos', href: '/moments', icon: 'image' },
+  {
+    name: 'Personaliza',
+    href: '/personaliza',
+    description: 'Diseña una pieza única a partir de tus propias fotos.',
+    icon: 'image',
+  },
+  {
+    name: 'Birth Poster',
+    href: '/birth-poster',
+    description: 'El nacimiento de tu bebé convertido en una obra de arte a escala real.',
+    icon: 'baby',
+  },
+  {
+    name: 'Momentos',
+    href: '/moments',
+    description: 'Crea collages con tus recuerdos usando distintos layouts.',
+    icon: 'grid',
+  },
 ]
+
+const isActiveRoute = (href: string) => route.path === href
 
 // Touch handling for drag to close
 const isDragging = ref(false)
@@ -103,14 +121,10 @@ function handleDelete(e: Event, id: string) {
         <div class="mobile-nav-wrapper__handle-bar" />
       </div>
 
-      <!-- Header -->
-      <div class="mobile-nav-wrapper__header">
-        <h2 class="mobile-nav-wrapper__title">
-          {{ content === 'history' ? 'Historial' : 'Herramientas' }}
-        </h2>
-        <!-- Clock icon for history -->
+      <!-- Header (only for history) -->
+      <div v-if="content === 'history'" class="mobile-nav-wrapper__header">
+        <h2 class="mobile-nav-wrapper__title">Historial</h2>
         <button
-          v-if="content === 'history'"
           class="mobile-nav-wrapper__icon-btn"
           aria-label="Historial"
         >
@@ -118,17 +132,6 @@ function handleDelete(e: Event, id: string) {
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
             <path d="M12 7v5l4 2"/>
-          </svg>
-        </button>
-        <!-- Close button for home -->
-        <button
-          v-else
-          class="mobile-nav-wrapper__close"
-          @click="emit('close')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6 6 18"/>
-            <path d="m6 6 12 12"/>
           </svg>
         </button>
       </div>
@@ -212,19 +215,63 @@ function handleDelete(e: Event, id: string) {
 
         <!-- Home content -->
         <template v-else-if="content === 'home'">
-          <div class="mobile-nav-wrapper__nav-grid">
-            <NuxtLink
-              v-for="item in navItems"
-              :key="item.href"
-              :to="item.href"
-              :class="[
-                'mobile-nav-wrapper__nav-item',
-                { 'mobile-nav-wrapper__nav-item--active': item.active }
-              ]"
-              @click="emit('close')"
-            >
-              <span class="mobile-nav-wrapper__nav-name">{{ item.name }}</span>
-            </NuxtLink>
+          <div class="mobile-nav-wrapper__home">
+            <!-- Navigation cards -->
+            <div class="mobile-nav-wrapper__nav-cards">
+              <NuxtLink
+                v-for="item in navItems"
+                :key="item.href"
+                :to="item.href"
+                :class="[
+                  'mobile-nav-wrapper__nav-card',
+                  { 'mobile-nav-wrapper__nav-card--active': isActiveRoute(item.href) }
+                ]"
+                @click="emit('close')"
+              >
+                <div class="mobile-nav-wrapper__nav-card-content">
+                  <div class="mobile-nav-wrapper__nav-card-header">
+                    <span class="mobile-nav-wrapper__nav-card-title">{{ item.name }}</span>
+                    <!-- Arrow icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14"/>
+                      <path d="m12 5 7 7-7 7"/>
+                    </svg>
+                  </div>
+                  <p class="mobile-nav-wrapper__nav-card-desc">{{ item.description }}</p>
+                </div>
+                <!-- Icon -->
+                <div class="mobile-nav-wrapper__nav-card-icon">
+                  <!-- Image icon -->
+                  <svg v-if="item.icon === 'image'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  <!-- Baby icon -->
+                  <svg v-else-if="item.icon === 'baby'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-9c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm4 0c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm-2 5.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                  </svg>
+                  <!-- Grid icon -->
+                  <svg v-else-if="item.icon === 'grid'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="7" height="7" x="3" y="3" rx="1"/>
+                    <rect width="7" height="7" x="14" y="3" rx="1"/>
+                    <rect width="7" height="7" x="14" y="14" rx="1"/>
+                    <rect width="7" height="7" x="3" y="14" rx="1"/>
+                  </svg>
+                </div>
+              </NuxtLink>
+            </div>
+
+            <!-- Footer -->
+            <div class="mobile-nav-wrapper__footer">
+              <p class="mobile-nav-wrapper__footer-visit">
+                Visita <a href="https://studiomalek.com" target="_blank" rel="noopener">StudioMalek.com</a>
+              </p>
+              <div class="mobile-nav-wrapper__footer-links">
+                <a href="#" class="mobile-nav-wrapper__footer-link">Términos y condiciones</a>
+                <span class="mobile-nav-wrapper__footer-copyright">Todos los derechos reservados 2026</span>
+              </div>
+            </div>
           </div>
         </template>
       </div>
@@ -492,35 +539,156 @@ function handleDelete(e: Event, id: string) {
     }
   }
 
-  // Navigation grid (home content)
-  &__nav-grid {
+  // Home content
+  &__home {
     display: flex;
     flex-direction: column;
-    gap: $space-md;
+    justify-content: space-between;
+    flex: 1;
+    gap: $space-xl;
   }
 
-  &__nav-item {
+  &__nav-cards {
     display: flex;
-    align-items: center;
-    gap: $space-lg;
-    padding: $space-xl;
-    background: $color-bg-primary;
-    border-radius: $radius-xl;
-    transition: background-color $transition-fast;
+    flex-direction: column;
+    gap: $space-xl;
+  }
 
+  &__nav-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 143px;
+    padding: $space-2xl;
+    border-radius: $radius-xl;
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform $transition-fast;
+
+    // Default - light orange (Personaliza)
+    background: $color-brand-light;
+    border: 1px solid $color-brand-light;
+    color: #b75700;
+
+    // Momentos - medium orange
+    &:nth-child(3) {
+      background: #ffe1cc;
+      border-color: $color-brand-light;
+    }
+
+    // Active state - dark orange (Birth Poster when active)
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
+      background: #b75700;
+      border-color: $color-brand-light;
+      color: #fff8f2;
+
+      .mobile-nav-wrapper__nav-card-desc {
+        color: #fff8f2;
+      }
+
+      .mobile-nav-wrapper__nav-card-icon {
+        opacity: 1;
+        color: $color-brand;
+      }
     }
 
     @include hover {
-      background: $color-bg-tertiary;
+      transform: scale(0.98);
     }
   }
 
-  &__nav-name {
+  &__nav-card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    max-width: 209px;
+  }
+
+  &__nav-card-header {
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+
+    svg {
+      width: 20px;
+      height: 20px;
+      color: inherit;
+    }
+  }
+
+  &__nav-card-title {
+    font-family: $font-primary;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-semibold;
+    line-height: 32px;
+  }
+
+  &__nav-card-desc {
+    font-family: $font-primary;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-normal;
+    line-height: 18px;
+    color: #4d2300;
+  }
+
+  &__nav-card-icon {
+    width: 113px;
+    height: 113px;
+    flex-shrink: 0;
+    opacity: 0.5;
+    color: #ffcba3;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  // Footer
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-xl;
+    padding-top: $space-xl;
+  }
+
+  &__footer-visit {
+    font-family: $font-primary;
     font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    line-height: 28px;
+    color: $color-text-primary;
+
+    a {
+      color: $color-brand;
+      text-decoration: underline;
+    }
+  }
+
+  &__footer-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-xs;
+    color: #85888e;
+    text-align: center;
+  }
+
+  &__footer-link {
+    font-family: $font-primary;
+    font-size: $font-size-base;
     font-weight: $font-weight-medium;
+    line-height: 24px;
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  &__footer-copyright {
+    font-family: $font-primary;
+    font-size: $font-size-xs;
+    line-height: 18px;
   }
 }
 </style>

@@ -46,7 +46,11 @@ const isToolPage = computed(() => route.path === '/birth-poster')
         <!-- Home (mobile only, on tool pages) -->
         <button
           v-if="isToolPage"
-          class="the-header__action-btn the-header__action-btn--mobile-only"
+          :class="[
+            'the-header__action-btn',
+            'the-header__action-btn--mobile-only',
+            { 'the-header__action-btn--active': uiStore.mobileNavWrapperContent === 'home' }
+          ]"
           aria-label="Inicio"
           @click="uiStore.openMobileNavWrapper('home')"
         >
