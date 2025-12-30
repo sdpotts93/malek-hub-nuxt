@@ -271,6 +271,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     // Use the smaller of: full container height OR width-based height (to fit width)
     height: min(100cqh, calc(100cqw * 7 / 5));
     width: auto;
+    @include mobile {
+      height: auto;
+      width: 80%;
+    }
   }
 
   // Horizontal poster (3-4 babies) - fit within container maintaining 7:5 ratio

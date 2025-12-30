@@ -325,16 +325,21 @@ async function handleAddToCart() {
     @include mobile {
       flex: 1;
       padding: $space-xl;
+      align-items: flex-start;
     }
   }
 
   &__canvas-container {
     width: 100%;
-    height: 95%;
+    height: 90%;
     display: flex;
     align-items: center;
     justify-content: center;
     container-type: size;
+    @include mobile {
+      height: calc(100% - 136px);
+      align-items: center;
+    }
   }
 
   &__history {
