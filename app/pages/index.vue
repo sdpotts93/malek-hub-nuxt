@@ -1,6 +1,18 @@
 <script setup lang="ts">
+const title = 'Studio Malek - Herramientas de Diseño'
+const description = 'Herramientas de diseño fáciles de usar para crear posters únicos y memorables'
+
 useHead({
-  title: 'Studio Malek - Herramientas de Diseño',
+  title,
+})
+
+useSeoMeta({
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
+  ogUrl: 'https://hub.studiomalek.com',
+  ogImage: '/og-image.jpg',
 })
 
 const tools = [

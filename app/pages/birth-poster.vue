@@ -6,8 +6,20 @@ definePageMeta({
   layout: false,
 })
 
+const pageTitle = 'Birth Poster - Studio Malek'
+const pageDescription = 'Crea un poster personalizado para celebrar el nacimiento de tu bebé con Studio Malek'
+
 useHead({
-  title: 'Birth Poster - Studio Malek',
+  title: pageTitle,
+})
+
+useSeoMeta({
+  title: pageTitle,
+  description: pageDescription,
+  ogTitle: pageTitle,
+  ogDescription: pageDescription,
+  ogUrl: 'https://hub.studiomalek.com/birth-poster',
+  ogImage: '/og-image.jpg',
 })
 
 // Stores
