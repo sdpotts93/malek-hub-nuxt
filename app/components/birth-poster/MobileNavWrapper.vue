@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useBirthPosterStore()
-const { designs } = useDesignHistory('birth-poster')
+const { designs, deleteDesign } = useDesignHistory('birth-poster')
 
 // Navigation items for home
 const navItems = [
@@ -65,29 +65,10 @@ function formatDate(date: Date): string {
   })
 }
 
-function getToolLabel(tool: string): string {
-  const labels: Record<string, string> = {
-    'birth-poster': 'Birth poster',
-    'moments': 'Moments',
-    'personaliza': 'Personaliza',
-  }
-  return labels[tool] || tool
-}
-
-// Download thumbnail as image
-async function handleDownload(e: Event, design: SavedDesign) {
+function handleDelete(e: Event, id: string) {
   e.stopPropagation()
-  if (!design.thumbnail) return
-
-  try {
-    const link = document.createElement('a')
-    link.href = design.thumbnail
-    link.download = `${design.name || 'design'}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  } catch (error) {
-    console.error('Error downloading:', error)
+  if (confirm('¿Eliminar este diseño?')) {
+    deleteDesign(id)
   }
 }
 </script>
@@ -160,7 +141,8 @@ async function handleDownload(e: Event, design: SavedDesign) {
           <div class="mobile-nav-wrapper__info">
             <div class="mobile-nav-wrapper__info-bar" />
             <p class="mobile-nav-wrapper__info-text">
-              Las imágenes se quedarán en esta galería por 4 dias
+              Puedes seleccionar un diseño en tu historial para
+              seguir editando.
             </p>
           </div>
 
@@ -176,63 +158,55 @@ async function handleDownload(e: Event, design: SavedDesign) {
 
           <!-- History list -->
           <div v-else class="mobile-nav-wrapper__history-list">
-            <div
+            <button
               v-for="design in designs"
               :key="design.id"
-              class="mobile-nav-wrapper__history-section"
+              class="mobile-nav-wrapper__history-item"
+              @click="handleLoadDesign(design)"
             >
-              <!-- Meta (badge + date) -->
-              <div class="mobile-nav-wrapper__history-meta">
-                <span class="mobile-nav-wrapper__badge">
-                  {{ getToolLabel(design.tool) }}
-                </span>
-                <span class="mobile-nav-wrapper__date">
-                  {{ formatDate(design.updatedAt) }}
-                </span>
+              <!-- Thumbnail -->
+              <div class="mobile-nav-wrapper__thumbnail">
+                <NuxtImg
+                  v-if="design.thumbnail"
+                  :src="design.thumbnail"
+                  :alt="design.name"
+                  width="68"
+                  height="68"
+                />
               </div>
 
-              <!-- Item row -->
-              <div class="mobile-nav-wrapper__history-row">
-                <!-- Thumbnail (clickable to load) -->
+              <!-- Info -->
+              <div class="mobile-nav-wrapper__history-info">
+                <span class="mobile-nav-wrapper__history-name">{{ design.name }}</span>
+                <span class="mobile-nav-wrapper__history-date">{{ formatDate(design.updatedAt) }}</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="mobile-nav-wrapper__actions">
+                <!-- Edit button -->
                 <button
-                  class="mobile-nav-wrapper__thumbnail"
-                  @click="handleLoadDesign(design)"
+                  class="mobile-nav-wrapper__action-btn mobile-nav-wrapper__action-btn--edit"
+                  aria-label="Editar"
+                  @click.stop="handleLoadDesign(design)"
                 >
-                  <NuxtImg
-                    v-if="design.thumbnail"
-                    :src="design.thumbnail"
-                    :alt="design.name"
-                    width="300"
-                    height="100"
-                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <path d="m15 5 4 4"/>
+                  </svg>
                 </button>
-
-                <!-- Actions -->
-                <div class="mobile-nav-wrapper__actions">
-                  <button
-                    class="mobile-nav-wrapper__action-btn mobile-nav-wrapper__action-btn--download"
-                    aria-label="Descargar"
-                    @click="handleDownload($event, design)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                  </button>
-                  <button
-                    class="mobile-nav-wrapper__action-btn mobile-nav-wrapper__action-btn--edit"
-                    aria-label="Editar"
-                    @click="handleLoadDesign(design)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                      <path d="m15 5 4 4"/>
-                    </svg>
-                  </button>
-                </div>
+                <!-- Delete button -->
+                <button
+                  class="mobile-nav-wrapper__delete"
+                  aria-label="Eliminar"
+                  @click="handleDelete($event, design.id)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/>
+                    <path d="m6 6 12 12"/>
+                  </svg>
+                </button>
               </div>
-            </div>
+            </button>
           </div>
         </template>
 
@@ -420,68 +394,67 @@ async function handleDownload(e: Event, design: SavedDesign) {
   &__history-list {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: $space-md;
   }
 
-  &__history-section {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-  }
-
-  &__history-meta {
+  // History item - matches .history-panel__item styling
+  &__history-item {
+    @include button-reset;
     display: flex;
     align-items: center;
-    gap: 4px;
-  }
+    gap: $space-md;
+    padding: $space-md;
+    border-radius: $radius-xl;
+    background: $color-bg-primary;
+    text-align: left;
+    transition: background-color $transition-fast;
 
-  &__badge {
-    display: inline-flex;
-    align-items: center;
-    padding: $space-xxs $space-sm;
-    background: #fffaeb;
-    border: 1px solid #fedf89;
-    border-radius: $radius-sm;
-    font-family: $font-primary;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    line-height: 18px;
-    color: #b54708;
-  }
-
-  &__date {
-    font-family: $font-primary;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    line-height: 18px;
-    color: #717680;
-  }
-
-  &__history-row {
-    display: flex;
-    align-items: flex-end;
-    gap: $space-xl;
+    @include hover {
+      background: $color-bg-tertiary;
+    }
   }
 
   &__thumbnail {
-    @include button-reset;
-    flex: 1;
-    height: 100px;
+    width: 68px;
+    height: 68px;
     border-radius: $radius-xl;
     border: 1px solid $color-border-light;
     overflow: hidden;
-    background: $color-bg-primary;
+    flex-shrink: 0;
+    background: $color-bg-tertiary;
 
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: none;
+      object-position: 50% 16%;
+      transform: scale(1.1);
     }
+  }
+
+  &__history-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__history-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    @include text-truncate;
+  }
+
+  &__history-date {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
   }
 
   &__actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: $space-md;
     flex-shrink: 0;
   }
@@ -494,30 +467,6 @@ async function handleDownload(e: Event, design: SavedDesign) {
     border-radius: $radius-md;
     overflow: hidden;
     position: relative;
-    transition: background-color $transition-fast;
-
-    // Download button - secondary style
-    &--download {
-      background: $color-bg-primary;
-      border: 1px solid #d5d7da;
-      box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
-      color: #414651;
-
-      // Inner shadow for skeuomorphic effect
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        box-shadow: inset 0 0 0 1px rgba(10, 13, 18, 0.18),
-                    inset 0 -2px 0 rgba(10, 13, 18, 0.05);
-        border-radius: inherit;
-      }
-
-      @include hover {
-        background: $color-bg-tertiary;
-      }
-    }
 
     // Edit button - secondary-color/warning style
     &--edit {
@@ -526,20 +475,20 @@ async function handleDownload(e: Event, design: SavedDesign) {
       box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
       color: #b75700;
 
-      // Inner shadow for skeuomorphic effect
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        box-shadow: inset 0 0 0 1px rgba(10, 13, 18, 0.18),
-                    inset 0 -2px 0 rgba(10, 13, 18, 0.05);
-        border-radius: inherit;
-      }
+    }
+  }
 
-      @include hover {
-        background: #fff9f5;
-      }
+  &__delete {
+    @include button-reset;
+    @include flex-center;
+    width: 24px;
+    height: 24px;
+    border-radius: $radius-md;
+    color: $color-text-muted;
+    transition: color $transition-fast;
+
+    @include hover {
+      color: $color-error;
     }
   }
 
