@@ -29,7 +29,7 @@ const PRICE_MAP = {
 const FRAME_OPTIONS = ["negro", "blanco", "roble", "nogal"];
 
 // Config
-const SHOPIFY_ADMIN_TOKEN = 'process.env.SHOPIFY_STOREFRONT_TOKEN';
+const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_STOREFRONT_TOKEN;
 const SHOPIFY_STORE = 'casabravo';
 
 if (!SHOPIFY_ADMIN_TOKEN || !SHOPIFY_STORE) {
