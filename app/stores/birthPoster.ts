@@ -10,6 +10,11 @@ import type {
 } from '~/types'
 import { createDefaultBabyConfig, createDefaultBirthPosterState } from '~/types'
 
+// Validation errors state (separate from main state to avoid persistence issues)
+interface ValidationErrors {
+  babies: { [index: number]: { nombre: boolean } }
+}
+
 // Default configurations for each baby position (0-indexed)
 // Baby 1: aq1, derecha (but izquierda if only 1 baby)
 // Baby 2: aq2, izquierda
@@ -37,9 +42,16 @@ const createBabyConfigForPosition = (index: number, totalCount: number): BabyCon
 }
 
 export const useBirthPosterStore = defineStore('birthPoster', {
-  state: (): BirthPosterState => createDefaultBirthPosterState(),
+  state: (): BirthPosterState & { validationErrors: ValidationErrors } => ({
+    ...createDefaultBirthPosterState(),
+    validationErrors: { babies: {} },
+  }),
 
   getters: {
+    // Check if current baby has a nombre validation error
+    currentBabyHasNombreError(state): boolean {
+      return state.validationErrors.babies[state.activeBabyTab]?.nombre ?? false
+    },
     // Get current baby config based on active tab
     currentBaby(state): BabyConfig {
       return state.babies[state.activeBabyTab] || state.babies[0]
@@ -225,6 +237,10 @@ export const useBirthPosterStore = defineStore('birthPoster', {
     // Set baby data
     setBabyNombre(nombre: string) {
       this.updateCurrentBaby({ nombre })
+      // Clear validation error when user starts typing
+      if (nombre.trim() !== '') {
+        this.clearNombreError(this.activeBabyTab)
+      }
     },
 
     setBabyAltura(altura: number) {
@@ -289,6 +305,26 @@ export const useBirthPosterStore = defineStore('birthPoster', {
     // Get state snapshot for saving
     getSnapshot(): BirthPosterState {
       return JSON.parse(JSON.stringify(this.$state))
+    },
+
+    // Set validation error for baby nombre
+    setNombreError(babyIndex: number) {
+      if (!this.validationErrors.babies[babyIndex]) {
+        this.validationErrors.babies[babyIndex] = { nombre: false }
+      }
+      this.validationErrors.babies[babyIndex].nombre = true
+    },
+
+    // Clear validation error for baby nombre
+    clearNombreError(babyIndex: number) {
+      if (this.validationErrors.babies[babyIndex]) {
+        this.validationErrors.babies[babyIndex].nombre = false
+      }
+    },
+
+    // Clear all validation errors
+    clearAllValidationErrors() {
+      this.validationErrors = { babies: {} }
     },
   },
 })

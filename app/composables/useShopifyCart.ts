@@ -1,107 +1,130 @@
 /**
  * Shopify Cart Composable
  *
- * This is a placeholder implementation with mock data.
- * TODO: Replace with actual Shopify Storefront API integration
- *
- * Shopify Storefront API endpoints needed:
- * - cartCreate mutation
- * - cartLinesAdd mutation
- * - cartLinesUpdate mutation
- * - cartLinesRemove mutation
- * - cart query
+ * Handles fetching product variants, calculating prices,
+ * and adding birth posters to cart with S3 image upload.
  */
 
 import { useCartStore } from '~/stores/cart'
-import type { BirthPosterState } from '~/types'
+import { useBirthPosterStore } from '~/stores/birthPoster'
+import type { BirthPosterState, PosterSize } from '~/types'
 
-// Mock product data for birth poster
-const BIRTH_POSTER_VARIANTS = {
-  // Vertical sizes (1-2 babies)
-  '30x40': {
-    id: 'gid://shopify/ProductVariant/30x40',
-    price: 1350,
-    compareAtPrice: 3250,
-  },
-  '40x50': {
-    id: 'gid://shopify/ProductVariant/40x50',
-    price: 1550,
-    compareAtPrice: 3650,
-  },
-  '50x70': {
-    id: 'gid://shopify/ProductVariant/50x70',
-    price: 1850,
-    compareAtPrice: 4250,
-  },
-  '70x100': {
-    id: 'gid://shopify/ProductVariant/70x100',
-    price: 2350,
-    compareAtPrice: 5250,
-  },
-  // Horizontal sizes (3-4 babies)
-  '40x30': {
-    id: 'gid://shopify/ProductVariant/40x30',
-    price: 1350,
-    compareAtPrice: 3250,
-  },
-  '50x40': {
-    id: 'gid://shopify/ProductVariant/50x40',
-    price: 1550,
-    compareAtPrice: 3650,
-  },
-  '70x50': {
-    id: 'gid://shopify/ProductVariant/70x50',
-    price: 1850,
-    compareAtPrice: 4250,
-  },
-  '100x70': {
-    id: 'gid://shopify/ProductVariant/100x70',
-    price: 2350,
-    compareAtPrice: 5250,
-  },
+// Validation result
+interface ValidationResult {
+  isValid: boolean
+  message: string | null
+  missingBabyIndex: number | null // Index of first baby with missing name
 }
 
-// Mock frame prices (to add to total)
-const FRAME_PRICES = {
-  'frame-natural': 850,
-  'frame-black': 850,
-  'frame-white': 850,
-  'frame-oak': 950,
+// Variant data fetched from Shopify
+interface ShopifyVariant {
+  id: string
+  title: string
+  price: number
+  compareAtPrice: number | null
+  available: boolean
+  options: Array<{ name: string; value: string }>
 }
+
+interface ProductData {
+  id: string
+  title: string
+  variants: ShopifyVariant[]
+}
+
+// Build a lookup map for variants: "size_frame" -> variant
+type VariantLookup = Map<string, ShopifyVariant>
 
 export function useShopifyCart() {
+  const config = useRuntimeConfig()
   const cartStore = useCartStore()
 
+  // Product and variant state
+  const product = ref<ProductData | null>(null)
+  const variantLookup = ref<VariantLookup>(new Map())
+  const isLoadingProduct = ref(false)
+  const productError = ref<string | null>(null)
+
+  // Add to cart state
+  const isAddingToCart = ref(false)
+  const addToCartError = ref<string | null>(null)
+
   /**
-   * Get variant info for a poster size
+   * Fetch birth poster product with all variants
    */
-  function getVariantForSize(size: string) {
-    return BIRTH_POSTER_VARIANTS[size as keyof typeof BIRTH_POSTER_VARIANTS] || null
+  async function fetchProduct() {
+    isLoadingProduct.value = true
+    productError.value = null
+
+    try {
+      const productId = config.public.birthPosterProductId
+      const data = await $fetch<ProductData>(`/api/shopify/product/${productId}`)
+
+      product.value = data
+
+      // Build variant lookup map
+      const lookup = new Map<string, ShopifyVariant>()
+      for (const variant of data.variants) {
+        // Parse variant title like "50x70 / Sin marco" or "50x70 / Negro"
+        const [size, frame] = variant.title.split(' / ').map(s => s.trim())
+        if (size && frame) {
+          const key = `${size}_${frame.toLowerCase()}`
+          lookup.set(key, variant)
+        }
+      }
+      variantLookup.value = lookup
+
+      console.log('[ShopifyCart] Loaded product with', data.variants.length, 'variants')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load product'
+      productError.value = message
+      console.error('[ShopifyCart] Fetch error:', err)
+    } finally {
+      isLoadingProduct.value = false
+    }
   }
 
   /**
-   * Calculate total price for birth poster
+   * Get variant for a size and frame combination
    */
-  function calculateBirthPosterPrice(state: BirthPosterState): {
+  function getVariant(size: PosterSize, frameId: string | null): ShopifyVariant | null {
+    const frameKey = frameId ? getFrameName(frameId) : 'sin marco'
+    const key = `${size}_${frameKey}`
+    return variantLookup.value.get(key) || null
+  }
+
+  /**
+   * Map frame ID to Shopify option value
+   */
+  function getFrameName(frameId: string): string {
+    const frameMap: Record<string, string> = {
+      'negro': 'negro',
+      'blanco': 'blanco',
+      'roble': 'roble',
+      'nogal': 'nogal',
+    }
+    return frameMap[frameId] || 'sin marco'
+  }
+
+  /**
+   * Calculate price for current birth poster state
+   */
+  function calculatePrice(state: BirthPosterState): {
     price: number
-    compareAtPrice: number
+    compareAtPrice: number | null
+    variant: ShopifyVariant | null
   } {
-    const variant = getVariantForSize(state.posterSize)
+    const variant = getVariant(state.posterSize, state.frameStyle?.id || null)
+
     if (!variant) {
-      return { price: 0, compareAtPrice: 0 }
+      return { price: 0, compareAtPrice: null, variant: null }
     }
 
-    let price = variant.price
-    let compareAtPrice = variant.compareAtPrice
-
-    // Add frame price if selected
-    if (state.frameStyle) {
-      const framePrice = FRAME_PRICES[state.frameStyle.id as keyof typeof FRAME_PRICES] || 0
-      price += framePrice
-      compareAtPrice += framePrice
+    return {
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      variant,
     }
-
-    return { price, compareAtPrice }
   }
 
   /**
@@ -117,50 +140,160 @@ export function useShopifyCart() {
   }
 
   /**
-   * Add birth poster to cart
+   * Validate birth poster state before adding to cart
+   * Returns validation result with info about missing data
    */
-  async function addBirthPosterToCart(
-    state: BirthPosterState,
-    thumbnail: string
-  ): Promise<void> {
-    const variant = getVariantForSize(state.posterSize)
-    if (!variant) {
-      throw new Error('Invalid poster size')
+  function validateForCart(state: BirthPosterState): ValidationResult {
+    // Check each baby for missing name
+    for (let i = 0; i < state.babies.length; i++) {
+      const baby = state.babies[i]
+      if (!baby.nombre || baby.nombre.trim() === '') {
+        return {
+          isValid: false,
+          message: 'Por favor completa el nombre de tu bebé',
+          missingBabyIndex: i,
+        }
+      }
     }
 
-    const { price } = calculateBirthPosterPrice(state)
+    // Check if variant exists
+    const variant = getVariant(state.posterSize, state.frameStyle?.id || null)
+    if (!variant) {
+      return {
+        isValid: false,
+        message: 'Combinación de tamaño y marco no disponible',
+        missingBabyIndex: null,
+      }
+    }
 
-    await cartStore.addBirthPoster(state, thumbnail, variant.id, price)
+    return {
+      isValid: true,
+      message: null,
+      missingBabyIndex: null,
+    }
   }
 
   /**
-   * Initialize cart on mount
+   * Add birth poster to cart
+   * 1. Validate state (names, variant)
+   * 2. Generate high-res image from canvas
+   * 3. Upload to S3
+   * 4. Add to Shopify cart with image URL as attribute
+   *
+   * Returns validation result if invalid, or null if successful
    */
-  async function initCart() {
-    await cartStore.init()
+  async function addBirthPosterToCart(
+    canvasElement: HTMLElement,
+    state: BirthPosterState
+  ): Promise<ValidationResult | null> {
+    // Validate first
+    const validation = validateForCart(state)
+    if (!validation.isValid) {
+      addToCartError.value = validation.message
+      return validation
+    }
+
+    isAddingToCart.value = true
+    addToCartError.value = null
+
+    try {
+      // 1. Get variant (already validated above)
+      const { variant } = calculatePrice(state)
+      if (!variant) {
+        throw new Error('No se encontró la variante del producto')
+      }
+
+      // 2. Generate high-res image
+      const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
+      const renderer = useCanvasRenderer()
+
+      const posterSizeCm = getPosterDimensions(state.posterSize)
+      const renderResult = await renderer.generatePosterImage(canvasElement, posterSizeCm)
+
+      // 3. Upload to S3
+      const { useS3Upload } = await import('~/composables/useS3Upload')
+      const uploader = useS3Upload()
+
+      const uploadResult = await uploader.uploadDesignImage(renderResult.blob, 'birth-poster')
+
+      // 4. Add to Shopify cart with attributes
+      const babyNames = state.babies.map(b => b.nombre || 'Sin nombre').join(', ')
+
+      await cartStore.addItem(variant.id, 1, [
+        { key: '_imagen', value: uploadResult.url },
+        { key: '_shop', value: 'BirthPoster' },
+        { key: 'Tamaño', value: state.posterSize },
+        { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
+        { key: 'Bebés', value: babyNames },
+      ])
+
+      console.log('[ShopifyCart] Added to cart:', {
+        variantId: variant.id,
+        imageUrl: uploadResult.url,
+      })
+
+      return null // Success
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al agregar al carrito'
+      addToCartError.value = message
+      console.error('[ShopifyCart] Add to cart error:', err)
+      throw err
+    } finally {
+      isAddingToCart.value = false
+    }
+  }
+
+  /**
+   * Get poster dimensions in cm from size string
+   */
+  function getPosterDimensions(size: PosterSize): { width: number; height: number } {
+    const [w, h] = size.split('x').map(Number)
+    return { width: w, height: h }
+  }
+
+  /**
+   * Initialize: fetch product and cart on mount
+   */
+  async function init() {
+    await Promise.all([
+      fetchProduct(),
+      cartStore.init(),
+    ])
   }
 
   return {
-    // Store state
+    // Product state
+    product: computed(() => product.value),
+    isLoadingProduct,
+    productError,
+
+    // Cart state (from store)
     cartId: computed(() => cartStore.cartId),
     lines: computed(() => cartStore.lines),
     totalQuantity: computed(() => cartStore.totalQuantity),
     subtotal: computed(() => cartStore.subtotal),
     isEmpty: computed(() => cartStore.isEmpty),
     isLoading: computed(() => cartStore.isLoading),
+    checkoutUrl: computed(() => cartStore.checkoutUrl),
     error: computed(() => cartStore.error),
 
-    // Actions
-    initCart,
-    addBirthPosterToCart,
-    updateQuantity: cartStore.updateQuantity,
-    removeItem: cartStore.removeItem,
-    clearCart: cartStore.clearCart,
-    checkout: cartStore.checkout,
+    // Add to cart state
+    isAddingToCart,
+    addToCartError,
 
-    // Utilities
-    getVariantForSize,
-    calculateBirthPosterPrice,
+    // Actions
+    init,
+    fetchProduct,
+    getVariant,
+    calculatePrice,
     formatPrice,
+    validateForCart,
+    addBirthPosterToCart,
+
+    // Cart actions (pass-through)
+    updateQuantity: cartStore.updateQuantity.bind(cartStore),
+    removeItem: cartStore.removeItem.bind(cartStore),
+    clearCart: cartStore.clearCart.bind(cartStore),
+    checkout: cartStore.checkout.bind(cartStore),
   }
 }

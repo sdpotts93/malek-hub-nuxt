@@ -3,6 +3,17 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // Runtime config for environment variables
+  runtimeConfig: {
+    // Server-only (private)
+    shopifyStorefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN || '',
+    // Public (exposed to client)
+    public: {
+      shopifyStoreDomain: process.env.SHOPIFY_STORE_DOMAIN || 'casabravo.myshopify.com',
+      birthPosterProductId: process.env.BIRTH_POSTER_PRODUCT_ID || '9209688719595',
+    },
+  },
+
   modules: [
     '@pinia/nuxt',
     '@nuxt/content',

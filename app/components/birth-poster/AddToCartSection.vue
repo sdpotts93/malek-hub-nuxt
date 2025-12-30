@@ -1,7 +1,7 @@
 <script setup lang="ts">
 interface Props {
   price: number
-  compareAtPrice: number
+  compareAtPrice: number | null
   isLoading?: boolean
   compact?: boolean
 }

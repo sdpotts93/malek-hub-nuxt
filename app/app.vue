@@ -7,9 +7,9 @@
 
 <script setup lang="ts">
 // Initialize cart on app mount
-const { initCart } = useShopifyCart()
+const cart = useShopifyCart()
 
 onMounted(() => {
-  initCart()
+  cart.init()
 })
 </script>

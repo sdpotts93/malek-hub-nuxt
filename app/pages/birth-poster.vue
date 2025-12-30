@@ -17,17 +17,20 @@ const uiStore = useUIStore()
 // Composables
 const { isRendering } = useCanvasRenderer()
 const { saveDesign, designs } = useDesignHistory('birth-poster')
-const { addBirthPosterToCart, formatPrice, calculateBirthPosterPrice } = useShopifyCart()
+const cart = useShopifyCart()
 
-// Canvas ref for rendering
-const canvasRef = ref<HTMLElement | null>(null)
+// Canvas ref for rendering (component instance, not DOM element)
+const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
-const pricing = computed(() => calculateBirthPosterPrice(birthPosterStore.$state))
+const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
 const isMobile = ref(false)
 
-// Check mobile on mount
+// Check mobile on mount and initialize cart
 onMounted(() => {
+  // Initialize Shopify cart and fetch product variants
+  cart.init()
+
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768
   }
@@ -47,22 +50,33 @@ const navItems: { id: PanelType; label: string; icon: string }[] = [
 
 // Handle add to cart
 async function handleAddToCart() {
-  if (!canvasRef.value) return
+  const canvasElement = canvasRef.value?.$el
+  if (!canvasElement) return
 
   try {
     uiStore.setLoading(true)
 
-    // Generate thumbnail
-    const { generateThumbnail } = useCanvasRenderer()
-    const thumbnail = await generateThumbnail(canvasRef.value)
+    // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
+    const validation = await cart.addBirthPosterToCart(canvasElement, birthPosterStore.$state)
 
-    // Save to history
+    // If validation failed, navigate to the missing data and show error
+    if (validation) {
+      // Navigate to datos panel
+      birthPosterStore.setActivePanel('datos')
+
+      // Switch to the baby tab with missing name and show error
+      if (validation.missingBabyIndex !== null) {
+        birthPosterStore.setActiveBabyTab(validation.missingBabyIndex)
+        birthPosterStore.setNombreError(validation.missingBabyIndex)
+      }
+      return
+    }
+
+    // Success - save to history and open cart
+    const { generateThumbnail } = useCanvasRenderer()
+    const thumbnail = await generateThumbnail(canvasElement)
     saveDesign(birthPosterStore.$state, thumbnail)
 
-    // Add to cart
-    await addBirthPosterToCart(birthPosterStore.$state, thumbnail)
-
-    // Open cart
     uiStore.openCart()
   } catch (error) {
     console.error('Error adding to cart:', error)

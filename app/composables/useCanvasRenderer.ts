@@ -40,6 +40,19 @@ export function useCanvasRenderer() {
       // Wait for images to load
       await waitForImages(element)
 
+      // Get computed dimensions before rendering (container queries don't work well with html2canvas)
+      const rect = element.getBoundingClientRect()
+
+      // Temporarily disable container-type to avoid container query issues
+      const originalContainerType = element.style.containerType
+      element.style.containerType = 'normal'
+
+      // Force explicit dimensions
+      const originalWidth = element.style.width
+      const originalHeight = element.style.height
+      element.style.width = `${rect.width}px`
+      element.style.height = `${rect.height}px`
+
       // Render with html2canvas
       const canvas = await html2canvas(element, {
         scale,
@@ -47,9 +60,16 @@ export function useCanvasRenderer() {
         useCORS: true,
         allowTaint: false,
         logging: false,
+        width: rect.width,
+        height: rect.height,
         // Ignore elements with data-html2canvas-ignore
         ignoreElements: (el) => el.hasAttribute('data-html2canvas-ignore'),
       })
+
+      // Restore original styles
+      element.style.containerType = originalContainerType
+      element.style.width = originalWidth
+      element.style.height = originalHeight
 
       // Get data URL
       const dataUrl = canvas.toDataURL('image/png', quality)
@@ -124,24 +144,18 @@ export function useCanvasRenderer() {
   }
 
   /**
-   * Generate high-resolution poster for cart/printing
+   * Generate poster image for cart/preview
+   * Note: This is for order reference, not print production.
+   * Print-ready files should be generated server-side with proper dimensions.
    */
   async function generatePosterImage(
     element: HTMLElement,
-    posterSizeCm: { width: number; height: number }
+    _posterSizeCm: { width: number; height: number }
   ): Promise<RenderResult> {
-    // Calculate scale for 300 DPI printing
-    // 1 inch = 2.54 cm, so DPI * (cm / 2.54) = pixels
-    const dpi = 300
-    const targetWidth = Math.round((posterSizeCm.width / 2.54) * dpi)
-    const targetHeight = Math.round((posterSizeCm.height / 2.54) * dpi)
-
-    // Get element's current dimensions
-    const rect = element.getBoundingClientRect()
-    const scale = Math.max(targetWidth / rect.width, targetHeight / rect.height)
-
+    // Use 2x scale for good quality preview without memory issues
+    // The actual print file will be generated server-side based on the stored configuration
     return renderElement(element, {
-      scale: Math.min(scale, 4), // Cap at 4x to prevent memory issues
+      scale: 2,
       backgroundColor: '#ffffff',
     })
   }

@@ -117,6 +117,15 @@ export interface SavedDesign {
 // UI Types
 // ==========================================================================
 
+export type ToastType = 'info' | 'success' | 'warning' | 'error'
+
+export interface Toast {
+  id: string
+  message: string
+  type: ToastType
+  duration?: number
+}
+
 export interface UIState {
   isCartOpen: boolean
   isHistoryOpen: boolean
@@ -124,6 +133,7 @@ export interface UIState {
   isMobileNavWrapperOpen: boolean
   mobileNavWrapperContent: 'history' | 'home' | null
   isLoading: boolean
+  toasts: Toast[]
 }
 
 // ==========================================================================

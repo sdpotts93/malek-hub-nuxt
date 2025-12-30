@@ -177,11 +177,14 @@ function formatMinute(minute: number): string {
       <input
         id="nombre"
         type="text"
-        class="panel-datos__input"
+        :class="['panel-datos__input', { 'panel-datos__input--error': store.currentBabyHasNombreError }]"
         :value="store.currentBaby.nombre"
         placeholder="Nombre del bebé"
         @input="store.setBabyNombre(($event.target as HTMLInputElement).value)"
       >
+      <span v-if="store.currentBabyHasNombreError" class="panel-datos__error-message">
+        Es necesario este campo
+      </span>
     </div>
 
     <!-- Separator -->
@@ -463,6 +466,22 @@ function formatMinute(minute: number): string {
       border-color: #db6800;
       box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
     }
+
+    &--error {
+      border-color: #ef4444;
+
+      &:focus {
+        border-color: #ef4444;
+        box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(239, 68, 68, 0.1);
+      }
+    }
+  }
+
+  &__error-message {
+    font-family: $font-primary;
+    font-size: 12px;
+    color: #ef4444;
+    margin-top: 4px;
   }
 
   &__input-group {
