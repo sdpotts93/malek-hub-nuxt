@@ -14,7 +14,15 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@pinia/nuxt', '@nuxt/content', '@nuxt/fonts', '@nuxt/image', '@nuxt/test-utils', '@nuxtjs/sitemap'],
+  modules: [
+    '@pinia/nuxt',
+    '@nuxt/content',
+    '@nuxt/fonts',
+    '@nuxt/image',
+    '@nuxt/test-utils',
+    '@nuxtjs/sitemap',
+    '@nuxtjs/robots'
+  ],
 
   // Global CSS
   css: ['~/assets/scss/main.scss'],
@@ -31,6 +39,10 @@ export default defineNuxtConfig({
         }
       }
     }
+  },
+  site: {
+    url: 'https://hub.studiomalek.com',
+    name: 'Studio Malek Hub'
   },
 
   // Fonts configuration
