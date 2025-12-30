@@ -7,7 +7,7 @@
  *   SHOPIFY_ADMIN_TOKEN=shpat_xxx SHOPIFY_STORE=your-store node scripts/update-shopify-variants.mjs
  */
 
-const PRODUCT_ID = "9209688719595";
+const PRODUCT_ID = process.env.BIRTH_POSTER_PRODUCT_ID || "";
 const GRAPHQL_PRODUCT_GID = `gid://shopify/Product/${PRODUCT_ID}`;
 const INVENTORY_QUANTITY = 1000;
 
@@ -30,7 +30,7 @@ const FRAME_OPTIONS = ["negro", "blanco", "roble", "nogal"];
 
 // Config
 const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_STOREFRONT_TOKEN;
-const SHOPIFY_STORE = 'casabravo';
+const SHOPIFY_STORE = process.env.SHOPIFY_STORE || '';
 
 if (!SHOPIFY_ADMIN_TOKEN || !SHOPIFY_STORE) {
   console.error("Missing environment variables!");

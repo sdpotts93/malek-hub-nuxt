@@ -9,8 +9,8 @@ export default defineNuxtConfig({
     shopifyStorefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN || '',
     // Public (exposed to client)
     public: {
-      shopifyStoreDomain: process.env.SHOPIFY_STORE_DOMAIN || 'casabravo.myshopify.com',
-      birthPosterProductId: process.env.BIRTH_POSTER_PRODUCT_ID || '9209688719595',
+      shopifyStoreDomain: process.env.SHOPIFY_STORE_DOMAIN || '',
+      birthPosterProductId: process.env.BIRTH_POSTER_PRODUCT_ID || '',
     },
   },
 
