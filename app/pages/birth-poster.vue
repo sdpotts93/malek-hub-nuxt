@@ -25,6 +25,17 @@ const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 // Computed
 const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
 const isMobile = ref(false)
+const isMobileSheetOpen = ref(false)
+
+// Handle mobile panel selection
+function handleMobilePanelSelect(panel: PanelType) {
+  birthPosterStore.setActivePanel(panel)
+  isMobileSheetOpen.value = true
+}
+
+function handleMobileSheetClose() {
+  isMobileSheetOpen.value = false
+}
 
 // Track if design has been modified since last save
 const lastSavedState = ref<string | null>(null)
@@ -242,15 +253,15 @@ async function handleAddToCart() {
     <BirthPosterBottomNavbar
       v-if="isMobile"
       :items="navItems"
-      :active-panel="birthPosterStore.activePanel"
-      @select="birthPosterStore.setActivePanel"
+      :active-panel="isMobileSheetOpen ? birthPosterStore.activePanel : null"
+      @select="handleMobilePanelSelect"
     />
 
     <!-- Mobile: Bottom Sheet -->
     <BirthPosterMobileBottomSheet
       v-if="isMobile"
-      :is-open="birthPosterStore.activePanel !== 'general'"
-      @close="birthPosterStore.setActivePanel('general')"
+      :is-open="isMobileSheetOpen"
+      @close="handleMobileSheetClose"
     >
       <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
     </BirthPosterMobileBottomSheet>

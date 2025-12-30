@@ -9,7 +9,7 @@ interface NavItem {
 
 interface Props {
   items: NavItem[]
-  activePanel: PanelType
+  activePanel: PanelType | null
 }
 
 defineProps<Props>()
@@ -82,7 +82,6 @@ const emit = defineEmits<{
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: $space-xs;
     padding: $space-md $space-lg;
     color: $color-text-secondary;
     transition: color $transition-fast;
@@ -90,17 +89,25 @@ const emit = defineEmits<{
 
     &--active {
       color: $color-brand;
+
+      .bottom-navbar__icon {
+        background: $color-brand-light;
+        border: 1px solid rgba(14, 19, 24, 0.09);
+        box-shadow: 0 4px 7px rgba(51, 51, 51, 0.1);
+      }
     }
   }
 
   &__icon {
     @include flex-center;
-    width: 24px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-xl;
+    transition: background-color $transition-fast, box-shadow $transition-fast;
 
     svg {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
     }
   }
 

@@ -284,6 +284,10 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
     // Use the smaller of: full container width OR height-based width (to fit height)
     width: min(100cqw, calc(100cqh * 7 / 5));
     height: auto;
+    @include mobile {
+      height: auto;
+      width: 90%;
+    }
   }
 
   // ==========================================================================
