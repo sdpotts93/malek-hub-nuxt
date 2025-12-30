@@ -260,9 +260,12 @@ function handleDelete(e: Event, id: string) {
     background: $color-bg-primary;
 
     img {
-      width: 200%;
+      width: 100%;
+      height: 100%;
       object-fit: none;
-      object-position: 50% 20%;
+      object-position: 50% 16%;
+      /* max-width: unset; */
+      transform: scale(1.1);
     }
   }
 
@@ -332,15 +335,17 @@ function handleDelete(e: Event, id: string) {
     flex-shrink: 0;
 
     img {
-      width: 200%;
+      width: 100%;
+      height: 100%;
       object-fit: none;
-      object-position: 50% 20%;
+      object-position: 50% 16%;
+      transform: scale(1.1);
       transition: transform $transition-fast;
     }
 
     @include hover {
       img {
-        transform: scale(1.1);
+        transform: scale(1.2);
       }
     }
   }
