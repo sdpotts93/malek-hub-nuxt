@@ -75,6 +75,9 @@ function selectFrame(frame: FrameStyle) {
   flex-direction: column;
   gap: 16px;
   padding-top: 20px;
+  @include mobile {
+    padding-top: 0;
+  }
 
   &__section {
     display: flex;

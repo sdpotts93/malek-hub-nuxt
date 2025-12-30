@@ -48,6 +48,8 @@ const CLOSE_THRESHOLD = 100
 function handleTouchStart(e: TouchEvent) {
   const touch = e.touches[0]
   if (!touch) return
+  // Prevent pull-to-refresh
+  e.preventDefault()
   isDragging.value = true
   dragStartY.value = touch.clientY
   currentTranslateY.value = 0
@@ -55,6 +57,8 @@ function handleTouchStart(e: TouchEvent) {
 
 function handleTouchMove(e: TouchEvent) {
   if (!isDragging.value) return
+  // Prevent pull-to-refresh
+  e.preventDefault()
   const touch = e.touches[0]
   if (!touch) return
   const deltaY = touch.clientY - dragStartY.value
@@ -333,9 +337,11 @@ function handleDelete(e: Event, id: string) {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: $space-xl 0 $space-md;
+    padding: 16px 0 48px;
     flex-shrink: 0;
     cursor: grab;
+    // Prevent browser gestures (pull-to-refresh) on drag handle
+    touch-action: none;
 
     &:active {
       cursor: grabbing;

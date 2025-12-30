@@ -383,6 +383,9 @@ function formatMinute(minute: number): string {
   gap: 16px;
   padding-inline: 20px;
   padding-top: 20px;
+  @include mobile {
+    padding-top: 0;
+  }
 
   &__title {
     font-family: $font-primary;

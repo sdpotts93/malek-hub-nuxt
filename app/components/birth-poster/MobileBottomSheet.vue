@@ -151,7 +151,7 @@ function handleOverlayClick() {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: $space-lg 0;
+    padding: 16px 0 48px;
     flex-shrink: 0;
     cursor: grab;
     // Prevent browser gestures (pull-to-refresh) on drag handle
@@ -179,6 +179,9 @@ function handleOverlayClick() {
     // Hide content when sheet is closed to prevent showing old panel on reopen
     opacity: 0;
     transition: opacity 0.15s ease;
+    @include mobile {
+      padding-top: 0;
+    }
   }
 
   &--open &__content {

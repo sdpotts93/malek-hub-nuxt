@@ -103,6 +103,9 @@ const scrollColors = (direction: 'left' | 'right') => {
   flex-direction: column;
   gap: 16px;
   padding-top: 20px;
+  @include mobile {
+    padding-top: 0;
+  }
 
   &__title {
     font-family: $font-primary;
