@@ -180,11 +180,13 @@ function formatMinute(minute: number): string {
         :class="['panel-datos__input', { 'panel-datos__input--error': store.currentBabyHasNombreError }]"
         :value="store.currentBaby.nombre"
         placeholder="Nombre del bebé"
+        maxlength="20"
         @input="store.setBabyNombre(($event.target as HTMLInputElement).value)"
       >
       <span v-if="store.currentBabyHasNombreError" class="panel-datos__error-message">
         Es necesario este campo
       </span>
+      <span v-else class="panel-datos__hint">Máx. 20 caracteres</span>
     </div>
 
     <!-- Separator -->
@@ -366,8 +368,10 @@ function formatMinute(minute: number): string {
         class="panel-datos__input"
         :value="store.currentBaby.lugarNacimiento ?? ''"
         placeholder="ej. Ciudad de México"
+        maxlength="20"
         @input="store.setBabyLugarNacimiento(($event.target as HTMLInputElement).value || null)"
       >
+      <span class="panel-datos__hint">Máx. 20 caracteres</span>
     </div>
   </div>
 </template>
@@ -482,6 +486,13 @@ function formatMinute(minute: number): string {
     font-size: 12px;
     color: #ef4444;
     margin-top: 4px;
+  }
+
+  &__hint {
+    font-family: $font-primary;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
   }
 
   &__input-group {

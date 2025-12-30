@@ -113,7 +113,6 @@ export function useDesignHistory(tool: ToolType) {
 
     persistDesigns()
 
-    console.log('[DesignHistory] Saved design:', design.id)
     return design
   }
 
@@ -141,7 +140,6 @@ export function useDesignHistory(tool: ToolType) {
 
     persistDesigns()
 
-    console.log('[DesignHistory] Updated design:', design.id)
     return design
   }
 
@@ -155,7 +153,6 @@ export function useDesignHistory(tool: ToolType) {
     designs.value.splice(index, 1)
     persistDesigns()
 
-    console.log('[DesignHistory] Deleted design:', id)
     return true
   }
 
@@ -172,7 +169,6 @@ export function useDesignHistory(tool: ToolType) {
   function clearHistory() {
     designs.value = []
     persistDesigns()
-    console.log('[DesignHistory] Cleared history for:', tool)
   }
 
   /**

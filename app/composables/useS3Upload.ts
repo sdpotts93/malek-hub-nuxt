@@ -91,7 +91,6 @@ export function useS3Upload() {
       uploadProgress.value = 100
 
       const url = `${S3_BASE_URL}/${filename}`
-      console.log('[S3Upload] Uploaded:', url)
 
       return { url, filename }
     } catch (err) {

@@ -73,8 +73,6 @@ export function useShopifyCart() {
         }
       }
       variantLookup.value = lookup
-
-      console.log('[ShopifyCart] Loaded product with', data.variants.length, 'variants')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load product'
       productError.value = message
@@ -237,11 +235,6 @@ export function useShopifyCart() {
         { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
         { key: 'Bebés', value: babyNames },
       ])
-
-      console.log('[ShopifyCart] Added to cart:', {
-        variantId: variant.id,
-        imageUrl: uploadResult.url,
-      })
 
       return null // Success
     } catch (err) {

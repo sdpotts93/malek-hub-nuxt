@@ -20,9 +20,6 @@ export async function shopifyStorefrontQuery<T>(
 ): Promise<T> {
   const { domain, storefrontToken, apiVersion } = getShopifyConfig(event)
 
-  // Debug: log config (remove token for security)
-  console.log('[Shopify] Config:', { domain, apiVersion, hasToken: !!storefrontToken, tokenLength: storefrontToken?.length })
-
   if (!storefrontToken) {
     throw createError({
       statusCode: 500,

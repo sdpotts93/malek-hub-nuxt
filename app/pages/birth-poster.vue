@@ -50,7 +50,6 @@ async function saveCurrentDesign() {
     const thumbnail = await generateThumbnail(canvasElement)
     saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-    console.log('[BirthPoster] Auto-saved design')
   } catch (error) {
     console.error('[BirthPoster] Auto-save failed:', error)
   }
@@ -73,7 +72,6 @@ onMounted(() => {
       birthPosterStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
       pendingHistorySave.value = true // Mark for saving to history once canvas is ready
-      console.log('[BirthPoster] Restored from autosave:', savedState.babies?.[0]?.nombre || 'unnamed')
     }
   } catch (e) {
     console.error('[BirthPoster] Failed to restore autosave:', e)
@@ -94,7 +92,6 @@ onMounted(() => {
           const thumbnail = await generateThumbnail(canvasElement)
           saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
           lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-          console.log('[BirthPoster] Saved restored design to history')
         } catch (error) {
           console.error('[BirthPoster] Failed to save restored design:', error)
         }
