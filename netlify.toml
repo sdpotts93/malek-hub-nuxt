@@ -1,0 +1,2 @@
+[images]
+  remote_images = ["https://birth-poster.s3.us-west-1.amazonaws.com/*"]

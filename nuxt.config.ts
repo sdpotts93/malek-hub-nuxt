@@ -65,6 +65,7 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['webp', 'avif', 'png', 'jpg'],
+    domains: ['birth-poster.s3.us-west-1.amazonaws.com'],
   },
 
   // App configuration
