@@ -59,7 +59,11 @@ const isToolPage = computed(() => route.path === '/birth-poster')
         <!-- History (mobile only, on tool pages) -->
         <button
           v-if="isToolPage"
-          class="the-header__action-btn the-header__action-btn--mobile-only"
+          :class="[
+            'the-header__action-btn',
+            'the-header__action-btn--mobile-only',
+            { 'the-header__action-btn--active': uiStore.mobileNavWrapperContent === 'history' }
+          ]"
           aria-label="Historial"
           @click="uiStore.openMobileNavWrapper('history')"
         >
@@ -223,6 +227,11 @@ const isToolPage = computed(() => route.path === '/birth-poster')
       @include mobile {
         display: flex;
       }
+    }
+
+    &--active {
+      background: #ffcba3;
+      color: $color-text-primary;
     }
   }
 
