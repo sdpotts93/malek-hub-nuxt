@@ -60,7 +60,7 @@ const store = useBirthPosterStore()
 
     &--active {
       background: transparent;
-      color: #db6800;
+      color: $color-brand;
       border-right-color: #eaddd3;
       border-bottom: none;
       @include hover {

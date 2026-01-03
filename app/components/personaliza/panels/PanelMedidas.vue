@@ -174,11 +174,11 @@ function formatSizeLabel(sizeId: PersonalizaSize): string {
     }
 
     @include hover {
-      border-color: #db6800;
+      border-color: $color-brand;
     }
 
     &--active {
-      border-color: #db6800;
+      border-color: $color-brand;
       border-width: 2px;
     }
   }
@@ -191,7 +191,7 @@ function formatSizeLabel(sizeId: PersonalizaSize): string {
     text-align: center;
 
     .panel-medidas__size--active & {
-      color: #db6800;
+      color: $color-brand;
     }
   }
 

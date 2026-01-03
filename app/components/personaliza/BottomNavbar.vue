@@ -135,13 +135,13 @@ const store = usePersonalizaStore()
     }
   }
 
-  &__svg-fill {
-    fill: #e5e7eb;
+  // &__svg-fill {
+  //   fill: #e5e7eb;
 
-    .bottom-navbar__item--active & {
-      fill: #FFCBA3;
-    }
-  }
+  //   .bottom-navbar__item--active & {
+  //     fill: #FFCBA3;
+  //   }
+  // }
 
   &__label {
     font-size: 11px;

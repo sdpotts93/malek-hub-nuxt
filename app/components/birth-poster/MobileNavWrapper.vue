@@ -526,9 +526,9 @@ function handleDelete(e: Event, id: string) {
     // Edit button - secondary-color/warning style
     &--edit {
       background: $color-bg-primary;
-      border: 1px solid #ffb077;
+      border: 1px solid $color-brand;
       box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
-      color: #b75700;
+      color: $color-brand-hover;
 
     }
   }
@@ -576,22 +576,22 @@ function handleDelete(e: Event, id: string) {
     // Default - light orange (Personaliza)
     background: $color-brand-light;
     border: 1px solid $color-brand-light;
-    color: #b75700;
+    color: $color-brand-hover;
 
     // Momentos - medium orange
     &:nth-child(3) {
-      background: #ffe1cc;
+      background: $color-brand-lightish;
       border-color: $color-brand-light;
     }
 
     // Active state - dark orange (Birth Poster when active)
     &--active {
-      background: #b75700;
+      background: $color-brand-hover;
       border-color: $color-brand-light;
       color: #fff8f2;
 
       .mobile-nav-wrapper__nav-card-header svg {
-        color: #ffcba3; // Cream arrow for active state
+        color: $color-brand-lighter; // Cream arrow for active state
       }
 
       .mobile-nav-wrapper__nav-card-desc {
@@ -649,7 +649,7 @@ function handleDelete(e: Event, id: string) {
     height: 113px;
     flex-shrink: 0;
     opacity: 0.5;
-    color: #ffcba3;
+    color: $color-brand-lightosh;
 
     svg {
       width: 100%;

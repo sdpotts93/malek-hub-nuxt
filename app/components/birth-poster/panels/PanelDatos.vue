@@ -512,7 +512,7 @@ function formatMinute(minute: number): string {
     }
 
     &:focus {
-      border-color: #db6800;
+      border-color: $color-brand;
       box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
     }
 
@@ -614,7 +614,7 @@ function formatMinute(minute: number): string {
     transition: border-color $transition-fast, box-shadow $transition-fast;
 
     &:focus {
-      border-color: #db6800;
+      border-color: $color-brand;
       box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
     }
   }
@@ -646,7 +646,7 @@ function formatMinute(minute: number): string {
     input[type="checkbox"] {
       width: 18px;
       height: 18px;
-      accent-color: #db6800;
+      accent-color: $color-brand;
       cursor: pointer;
     }
 

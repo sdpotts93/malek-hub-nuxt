@@ -148,7 +148,7 @@ const { formatPrice } = useShopifyCart()
     position: relative;
     width: 100%;
     padding: 16px 22px;
-    background: #db6800;
+    background: $color-brand;
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
     font-family: $font-primary;
@@ -178,7 +178,7 @@ const { formatPrice } = useShopifyCart()
     }
 
     @include hover {
-      background: #c45e00;
+      background: $color-brand-hover;
     }
 
     &:disabled {

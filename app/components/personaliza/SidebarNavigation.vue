@@ -144,13 +144,13 @@ const store = usePersonalizaStore()
     flex-shrink: 0;
   }
 
-  &__svg-fill {
-    fill: #e5e7eb;
+  // &__svg-fill {
+  //   fill: #e5e7eb;
 
-    .sidebar-nav__item--active & {
-      fill: #FFCBA3;
-    }
-  }
+  //   .sidebar-nav__item--active & {
+  //     fill: #FFCBA3;
+  //   }
+  // }
 
   &__label {
     font-family: $font-primary;

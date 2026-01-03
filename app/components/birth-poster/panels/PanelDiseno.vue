@@ -95,7 +95,7 @@ const scrollColors = (direction: 'left' | 'right') => {
             @click="scrollColors('left')"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <button
@@ -104,7 +104,7 @@ const scrollColors = (direction: 'left' | 'right') => {
             @click="scrollColors('right')"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
@@ -228,8 +228,8 @@ const scrollColors = (direction: 'left' | 'right') => {
     }
 
     &--active {
-      background: #fff0e5;
-      color: #db6800;
+      background: $color-brand-light;
+      color: $color-brand;
       border-right-color: #eaddd3;
     }
   }
@@ -254,11 +254,11 @@ const scrollColors = (direction: 'left' | 'right') => {
     position: relative;
 
     @include hover {
-      border-color: #db6800;
+      border-color: $color-brand;
     }
 
     &--active {
-      border-color: #db6800;
+      border-color: $color-brand;
       border-width: 2px;
     }
   }
@@ -296,6 +296,7 @@ const scrollColors = (direction: 'left' | 'right') => {
 
     svg {
       display: block;
+      stroke: $color-brand;
     }
 
     @include hover {

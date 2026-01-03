@@ -115,7 +115,7 @@ function scrollColors(direction: 'left' | 'right') {
             @click="scrollColors('left')"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <button
@@ -124,7 +124,7 @@ function scrollColors(direction: 'left' | 'right') {
             @click="scrollColors('right')"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="#F2330D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
@@ -237,7 +237,7 @@ function scrollColors(direction: 'left' | 'right') {
     transition: background-color $transition-fast, color $transition-fast;
 
     &--active {
-      background: #fff0e5;
+      background: $color-brand-light;
       color: $color-brand;
     }
 
@@ -245,7 +245,7 @@ function scrollColors(direction: 'left' | 'right') {
       background: #ebebeb;
 
       &.panel-texto__style-btn--active {
-        background: #fff0e5;
+        background: $color-brand-light;
       }
     }
   }
@@ -333,6 +333,7 @@ function scrollColors(direction: 'left' | 'right') {
 
     svg {
       display: block;
+      stroke: $color-brand;
     }
 
     @include hover {

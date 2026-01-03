@@ -234,7 +234,7 @@ const isToolPage = computed(() => route.path === '/birth-poster')
     }
 
     &--active {
-      background: #ffcba3;
+      background: $color-brand-lightish;
       color: $color-text-primary;
     }
   }

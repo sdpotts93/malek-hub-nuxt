@@ -153,8 +153,8 @@ function selectSize(size: PosterSize) {
   }
 
   &__highlight {
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
+    background: #fef2d9;
+    border: 1px solid #ffc857;
     border-radius: 8px;
     padding: 12px 14px;
   }
@@ -193,11 +193,11 @@ function selectSize(size: PosterSize) {
     }
 
     @include hover {
-      border-color: #db6800;
+      border-color: $color-brand;
     }
 
     &--active {
-      border-color: #db6800;
+      border-color: $color-brand;
       border-width: 2px;
     }
   }
@@ -217,7 +217,7 @@ function selectSize(size: PosterSize) {
     text-align: center;
 
     .panel-medidas__size--active & {
-      color: #db6800;
+      color: $color-brand;
     }
   }
 
