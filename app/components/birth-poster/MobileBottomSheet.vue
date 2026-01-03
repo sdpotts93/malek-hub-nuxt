@@ -119,11 +119,11 @@ function handleOverlayClick() {
 .mobile-bottom-sheet {
   position: fixed;
   // Position above bottom navbar + cart bar
-  bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
+  bottom: calc(#{$mobile-cart-bar-height});
   left: 0;
   right: 0;
   // Fixed height to prevent resizing when switching tabs
-  height: 55vh;
+  height: calc(55vh + 70px);  
   background: $color-bg-primary;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;

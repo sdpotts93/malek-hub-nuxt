@@ -77,7 +77,7 @@ const discountPercent = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: $space-lg;
-  z-index: $z-fixed + 2;
+  z-index: $z-fixed + 1;
 
   &__info {
     display: flex;
