@@ -1,2 +1,2 @@
 [images]
-  remote_images = ["https://birth-poster.s3.us-west-1.amazonaws.com/*"]
+  remote_images = ["https://birth-poster.s3.us-west-1.amazonaws.com/*", "https://custom-prints.s3.us-west-1.amazonaws.com/*"]

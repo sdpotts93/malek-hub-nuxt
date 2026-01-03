@@ -327,8 +327,8 @@ export function useShopifyCart() {
       const uploader = useS3Upload()
 
       const [uploadResult, thumbnailUpload] = await Promise.all([
-        uploader.uploadDesignImage(renderResult.blob, 'custom-prints'),
-        uploader.uploadDesignImage(thumbnailBlob, 'custom-prints-thumb'),
+        uploader.uploadDesignImage(renderResult.blob, 'personaliza', 'custom-prints'),
+        uploader.uploadDesignImage(thumbnailBlob, 'personaliza-thumb', 'custom-prints'),
       ])
 
       // 4. Build description from state

@@ -6,8 +6,16 @@
  */
 
 const PRESIGNED_URL_ENDPOINT = 'https://bs64vihq06.execute-api.us-west-1.amazonaws.com/v1/getPresignedPostData'
-const S3_BUCKET = 'birth-poster'
-const S3_BASE_URL = `https://${S3_BUCKET}.s3.us-west-1.amazonaws.com`
+
+// Available S3 buckets
+const S3_BUCKETS = {
+  'birth-poster': 'birth-poster',
+  'custom-prints': 'custom-prints',
+} as const
+
+type S3Bucket = keyof typeof S3_BUCKETS
+
+const getS3BaseUrl = (bucket: S3Bucket) => `https://${bucket}.s3.us-west-1.amazonaws.com`
 
 interface UploadResult {
   url: string
@@ -22,14 +30,14 @@ export function useS3Upload() {
   /**
    * Get presigned URL from Lambda
    */
-  async function getPresignedUrl(filename: string, contentType: string): Promise<string> {
+  async function getPresignedUrl(filename: string, contentType: string, bucket: S3Bucket): Promise<string> {
     const response = await fetch(PRESIGNED_URL_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fileName: filename,
         contentType: contentType,
-        bucket: S3_BUCKET,
+        bucket: bucket,
       }),
     })
 
@@ -68,10 +76,15 @@ export function useS3Upload() {
   /**
    * Upload design image to S3
    * @param blob - Image blob to upload
-   * @param prefix - Filename prefix (e.g., 'birth-poster')
+   * @param prefix - Filename prefix (e.g., 'birth-poster', 'personaliza-original')
+   * @param bucket - S3 bucket to upload to (default: 'birth-poster')
    * @returns Upload result with S3 URL
    */
-  async function uploadDesignImage(blob: Blob, prefix: string = 'birth-poster'): Promise<UploadResult> {
+  async function uploadDesignImage(
+    blob: Blob,
+    prefix: string = 'birth-poster',
+    bucket: S3Bucket = 'birth-poster'
+  ): Promise<UploadResult> {
     isUploading.value = true
     uploadProgress.value = 0
     error.value = null
@@ -82,7 +95,7 @@ export function useS3Upload() {
 
       // Get presigned URL
       uploadProgress.value = 20
-      const presignedUrl = await getPresignedUrl(filename, contentType)
+      const presignedUrl = await getPresignedUrl(filename, contentType, bucket)
 
       // Upload to S3
       uploadProgress.value = 50
@@ -90,7 +103,7 @@ export function useS3Upload() {
 
       uploadProgress.value = 100
 
-      const url = `${S3_BASE_URL}/${filename}`
+      const url = `${getS3BaseUrl(bucket)}/${filename}`
 
       return { url, filename }
     } catch (err) {

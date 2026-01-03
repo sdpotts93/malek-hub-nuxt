@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PersonalizaPanelType } from '~/stores/personaliza'
 import type { PersonalizaState } from '~/types'
+import { isBlobUrl } from '~/utils/imageUtils'
 
 // Page meta
 definePageMeta({
@@ -68,6 +69,24 @@ function getDesignName(): string {
   return 'Mi Poster'
 }
 
+// Prepare state for persistence
+// We save: imageS3Url (original) + cropCoordinates + all settings
+// Cropped image is regenerated on load from original + coordinates
+function prepareStateForPersistence(): Omit<PersonalizaState, 'imageFile' | 'croppedBlob' | 'croppedImageUrl' | 'isUploadingToS3'> | null {
+  const snapshot = personalizaStore.getSnapshot()
+
+  // Check if we have a persistent image URL
+  if (!snapshot.imageS3Url) {
+    console.error('[Personaliza] Cannot save: original image not uploaded to S3 yet')
+    return null
+  }
+
+  // Clear the temporary blob URL for original image (S3 URL is in imageS3Url)
+  snapshot.imageUrl = null
+
+  return snapshot
+}
+
 // Save design to history (auto-save helper)
 async function saveCurrentDesign() {
   const canvasElement = canvasRef.value?.$el
@@ -76,7 +95,10 @@ async function saveCurrentDesign() {
 
   try {
     const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
+    const persistentState = prepareStateForPersistence()
+    if (!persistentState) return
+
+    saveDesign(persistentState, thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(personalizaStore.$state)
   } catch (error) {
     console.error('[Personaliza] Auto-save failed:', error)
@@ -122,8 +144,11 @@ onMounted(async () => {
       if (canvasElement && personalizaStore.hasImage) {
         try {
           const thumbnail = await generateThumbnail(canvasElement)
-          saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
-          lastSavedState.value = JSON.stringify(personalizaStore.$state)
+          const persistentState = prepareStateForPersistence()
+          if (persistentState) {
+            saveDesign(persistentState, thumbnail, getDesignName())
+            lastSavedState.value = JSON.stringify(personalizaStore.$state)
+          }
         } catch (error) {
           console.error('[Personaliza] Failed to save restored design:', error)
         }
@@ -139,10 +164,20 @@ onMounted(async () => {
   window.addEventListener('resize', checkMobile)
 
   // Auto-save on page unload (browser close/refresh)
-  // Always save state - cheaper to save unnecessarily than to lose user work
+  // Note: This is synchronous, so we can't convert blob URLs here
+  // The image will need to be re-uploaded if user returns after browser close
+  // But other settings (format, size, text, etc.) will be preserved
   const handleBeforeUnload = () => {
     try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(personalizaStore.getSnapshot()))
+      const snapshot = personalizaStore.getSnapshot()
+      // Clear blob URL since it won't work after page reload
+      // (S3 URL in imageS3Url + cropCoordinates are preserved)
+      if (isBlobUrl(snapshot.imageUrl)) {
+        snapshot.imageUrl = null
+      }
+      // isImageReady will be restored when crop is regenerated on load
+      snapshot.isImageReady = false
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
     } catch (e) {
       console.error('[Personaliza] Failed to save on unload:', e)
     }

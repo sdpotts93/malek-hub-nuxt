@@ -7,8 +7,8 @@ import type { FrameStyle } from '~/types'
 
 export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
 
-// Image format options: 1:1 (square), 4:3 (horizontal), 3:4 (vertical)
-export type ImageFormat = '1:1' | '4:3' | '3:4'
+// Image format options
+export type ImageFormat = '1:1' | '3:2' | '2:3' | '4:3' | '3:4'
 
 // Map format to orientation for product lookup
 export type ImageOrientation = 'square' | 'horizontal' | 'vertical'
@@ -86,6 +86,14 @@ export const PRODUCT_IDS = {
   vertical: '8111389442283',
 }
 
+// Crop coordinates for persistence (from vue-advanced-cropper)
+export interface CropCoordinates {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 // ==========================================================================
 // State Interface
 // ==========================================================================
@@ -93,14 +101,17 @@ export const PRODUCT_IDS = {
 export interface PersonalizaState {
   // Image state
   imageFile: File | null
-  imageUrl: string | null // Object URL for preview
+  imageUrl: string | null // Object URL for preview (temporary)
+  imageS3Url: string | null // Persistent S3 URL for original image
   imageDimensions: { width: number; height: number } | null
   imageFormat: ImageFormat
   zoomLevel: number // 0-100 percentage
+  isUploadingToS3: boolean // Track S3 upload status
 
   // Cropped image data (from vue-advanced-cropper)
-  croppedImageUrl: string | null
-  croppedBlob: Blob | null
+  croppedImageUrl: string | null // Blob URL for live preview (not persisted)
+  croppedBlob: Blob | null // Blob for live preview (not persisted)
+  cropCoordinates: CropCoordinates | null // Saved for persistence
 
   // Text state
   textStyle: TextStyle
@@ -132,8 +143,11 @@ export const getOrientationFromFormat = (format: ImageFormat): ImageOrientation 
     case '1:1':
       return 'square'
     case '4:3':
+    case '3:2':
       return 'horizontal'
     case '3:4':
+    case '2:3':
+    default:
       return 'vertical'
   }
 }
@@ -142,9 +156,14 @@ export const getAspectRatio = (format: ImageFormat): number => {
   switch (format) {
     case '1:1':
       return 1
+    case '3:2':
+      return 3 / 2
+    case '2:3':
+      return 2 / 3
     case '4:3':
       return 4 / 3
     case '3:4':
+    default:
       return 3 / 4
   }
 }
@@ -165,11 +184,14 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
   // Image state
   imageFile: null,
   imageUrl: null,
+  imageS3Url: null,
   imageDimensions: null,
   imageFormat: '1:1',
   zoomLevel: 0,
+  isUploadingToS3: false,
   croppedImageUrl: null,
   croppedBlob: null,
+  cropCoordinates: null,
 
   // Text state
   textStyle: 'moderno',
@@ -215,9 +237,9 @@ export const usePersonalizaStore = defineStore('personaliza', {
       return PERSONALIZA_SIZES[this.orientation]
     },
 
-    // Check if image is uploaded
+    // Check if image is uploaded (either blob URL or S3 URL)
     hasImage(state): boolean {
-      return state.imageUrl !== null
+      return state.imageUrl !== null || state.imageS3Url !== null
     },
 
     // Check if design can be added to cart
@@ -275,28 +297,48 @@ export const usePersonalizaStore = defineStore('personaliza', {
       if (this.imageUrl) {
         URL.revokeObjectURL(this.imageUrl)
       }
-      if (this.croppedImageUrl) {
+      // Only revoke blob URLs, not S3 URLs
+      if (this.croppedImageUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(this.croppedImageUrl)
       }
       this.imageFile = null
       this.imageUrl = null
+      this.imageS3Url = null
       this.imageDimensions = null
       this.croppedImageUrl = null
       this.croppedBlob = null
+      this.cropCoordinates = null
       this.isImageReady = false
+      this.isUploadingToS3 = false
       this.showSizeWarning = false
       this.sizeWarningAcknowledged = false
       this.zoomLevel = 0
     },
 
-    // Set cropped image data
+    // Set cropped image data (blob URL for preview)
     setCroppedImage(blob: Blob) {
-      if (this.croppedImageUrl) {
+      // Only revoke blob URLs, not S3 URLs
+      if (this.croppedImageUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(this.croppedImageUrl)
       }
       this.croppedBlob = blob
       this.croppedImageUrl = URL.createObjectURL(blob)
       this.isImageReady = true
+    },
+
+    // Set crop coordinates (for persistence)
+    setCropCoordinates(coordinates: CropCoordinates | null) {
+      this.cropCoordinates = coordinates
+    },
+
+    // Set original image S3 URL
+    setImageS3Url(url: string) {
+      this.imageS3Url = url
+    },
+
+    // Set S3 upload status
+    setIsUploadingToS3(uploading: boolean) {
+      this.isUploadingToS3 = uploading
     },
 
     // Set image format and update size accordingly
@@ -399,21 +441,25 @@ export const usePersonalizaStore = defineStore('personaliza', {
     reset() {
       const defaults = createDefaultPersonalizaState()
 
-      // Clean up URLs before reset
-      if (this.imageUrl) URL.revokeObjectURL(this.imageUrl)
-      if (this.croppedImageUrl) URL.revokeObjectURL(this.croppedImageUrl)
+      // Clean up blob URLs before reset (not S3 URLs)
+      if (this.imageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.imageUrl)
+      if (this.croppedImageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.croppedImageUrl)
 
       this.$patch(defaults)
     },
 
     // Load state from saved design
     loadState(state: Partial<PersonalizaState>) {
+      // Clean up existing blob URLs before loading new state
+      if (this.imageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.imageUrl)
+      if (this.croppedImageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.croppedImageUrl)
+
       this.$patch(state)
     },
 
-    // Get state snapshot for saving (excluding File and Blob objects)
-    getSnapshot(): Omit<PersonalizaState, 'imageFile' | 'croppedBlob'> {
-      const { imageFile, croppedBlob, ...rest } = this.$state
+    // Get state snapshot for saving (excluding File, Blob, and transient state)
+    getSnapshot(): Omit<PersonalizaState, 'imageFile' | 'croppedBlob' | 'croppedImageUrl' | 'isUploadingToS3'> {
+      const { imageFile, croppedBlob, croppedImageUrl, isUploadingToS3, ...rest } = this.$state
       return rest
     },
   },

@@ -160,7 +160,7 @@ function handleDelete(e: Event, id: string) {
               <path d="M3 3v5h5"/>
               <path d="M12 7v5l4 2"/>
             </svg>
-            <p>No hay disenos guardados</p>
+            <p>No hay diseños guardados</p>
           </div>
 
           <!-- History list -->

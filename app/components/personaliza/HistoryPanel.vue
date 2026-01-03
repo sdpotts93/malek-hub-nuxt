@@ -65,7 +65,7 @@ function handleDelete(e: Event, id: string) {
     <div v-if="isOpen" class="history-panel__content">
       <!-- Empty state -->
       <div v-if="designs.length === 0" class="history-panel__empty">
-        <p>No hay disenos guardados</p>
+        <p>No hay diseños guardados</p>
       </div>
 
       <!-- Design thumbnails -->

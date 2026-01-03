@@ -108,20 +108,29 @@ export type DesignState = BirthPosterState | PersonalizaState
 
 // Personaliza types
 export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
-export type ImageFormat = '1:1' | '4:3' | '3:4'
+export type ImageFormat = '1:1' | '3:2' | '2:3' | '4:3' | '3:4'
 export type TextStyle = 'moderno' | 'clasico' | 'minimalista'
 export type SquareSize = '50x50'
 export type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
 export type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
 export type PersonalizaSize = SquareSize | HorizontalSize | VerticalSize
 
+// Crop coordinates for persistence
+export interface CropCoordinates {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 // Personaliza state type for saved designs (excludes non-serializable fields)
 export interface PersonalizaState {
-  imageUrl: string | null
+  imageUrl: string | null // Not persisted (blob URL)
+  imageS3Url: string | null // Persistent S3 URL for original image
   imageDimensions: { width: number; height: number } | null
   imageFormat: ImageFormat
   zoomLevel: number
-  croppedImageUrl: string | null
+  cropCoordinates: CropCoordinates | null // Saved crop position
   textStyle: TextStyle
   title: string
   subtitle: string

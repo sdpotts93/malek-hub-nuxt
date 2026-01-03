@@ -4,6 +4,7 @@ import 'vue-advanced-cropper/dist/style.css'
 import type { ImageFormat } from '~/stores/personaliza'
 
 const store = usePersonalizaStore()
+const { uploadDesignImage } = useS3Upload()
 
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -12,15 +13,23 @@ const cropperRef = ref<any>(null)
 // Drag state
 const isDragging = ref(false)
 
-// Format options
-const formatOptions: { id: ImageFormat; label: string; aspectRatio: number }[] = [
-  { id: '1:1', label: 'Cuadrado', aspectRatio: 1 },
-  { id: '4:3', label: 'Horizontal', aspectRatio: 4 / 3 },
-  { id: '3:4', label: 'Vertical', aspectRatio: 3 / 4 },
+// Track if we're loading from saved state (to restore crop)
+const isRestoringCrop = ref(false)
+
+// Image source for cropper - use blob URL if available, fall back to S3 URL
+const cropperImageSrc = computed(() => store.imageUrl || store.imageS3Url)
+
+// Format options with visual preview dimensions
+const formatOptions: { id: ImageFormat; label: string; width: number; height: number }[] = [
+  { id: '1:1', label: '1:1', width: 30, height: 30 },
+  { id: '3:2', label: '3:2', width: 21, height: 32 },
+  { id: '2:3', label: '2:3', width: 32, height: 21 },
+  { id: '4:3', label: '4:3', width: 32, height: 26 },
+  { id: '3:4', label: '3:4', width: 26, height: 32 },
 ]
 
 // Accepted file types
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif']
 
 // Handle file selection
 function handleFileSelect() {
@@ -51,13 +60,25 @@ function onDrop(e: DragEvent) {
 }
 
 // Process uploaded file
-function processFile(file: File) {
+async function processFile(file: File) {
   if (!ACCEPTED_TYPES.includes(file.type)) {
-    alert('Solo se aceptan imagenes JPG, PNG o WEBP')
+    alert('Solo se aceptan imagenes PNG, JPEG o GIF')
     return
   }
 
   store.setImage(file)
+
+  // Upload original image to S3 in background
+  try {
+    store.setIsUploadingToS3(true)
+    const result = await uploadDesignImage(file, 'personaliza-original', 'custom-prints')
+    store.setImageS3Url(result.url)
+  } catch (error) {
+    console.error('[PanelArchivo] Failed to upload original to S3:', error)
+    // Don't block the user - they can still use blob URL for preview
+  } finally {
+    store.setIsUploadingToS3(false)
+  }
 }
 
 // Change image
@@ -71,22 +92,11 @@ function handleChangeImage() {
 // Format selection
 function selectFormat(format: ImageFormat) {
   store.setImageFormat(format)
+  // Clear saved coordinates when format changes (aspect ratio is different)
+  store.setCropCoordinates(null)
   nextTick(() => {
     resizeStencil()
   })
-}
-
-// Zoom controls
-function handleZoomIn() {
-  if (cropperRef.value) {
-    cropperRef.value.zoom(1.25)
-  }
-}
-
-function handleZoomOut() {
-  if (cropperRef.value) {
-    cropperRef.value.zoom(0.8)
-  }
 }
 
 // Handle zoom slider
@@ -111,10 +121,17 @@ function handleZoomSlider(e: Event) {
   }
 }
 
-// Resize stencil when format changes
+// Resize stencil when format changes or cropper is ready
 async function resizeStencil() {
   const cropper = cropperRef.value
   if (!cropper) return
+
+  // If we have saved crop coordinates, restore them instead of resetting
+  if (store.cropCoordinates) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    restoreCropFromCoordinates()
+    return
+  }
 
   cropper.reset()
   await new Promise(resolve => setTimeout(resolve, 100))
@@ -137,18 +154,50 @@ async function resizeStencil() {
   })
 }
 
-// Handle crop change to generate preview
+// Handle crop change to generate preview and save coordinates
 function handleCropChange() {
   if (!cropperRef.value) return
 
-  const { canvas } = cropperRef.value.getResult()
-  if (!canvas) return
+  const result = cropperRef.value.getResult()
+  if (!result.canvas || !result.coordinates) return
 
-  canvas.toBlob((blob: Blob | null) => {
+  // Save crop coordinates for persistence
+  store.setCropCoordinates({
+    left: result.coordinates.left,
+    top: result.coordinates.top,
+    width: result.coordinates.width,
+    height: result.coordinates.height,
+  })
+
+  // Generate blob for live preview
+  result.canvas.toBlob((blob: Blob | null) => {
     if (blob) {
       store.setCroppedImage(blob)
     }
   }, 'image/jpeg', 0.95)
+}
+
+// Restore crop coordinates when loading a saved design
+function restoreCropFromCoordinates() {
+  if (!cropperRef.value || !store.cropCoordinates) return
+
+  isRestoringCrop.value = true
+  cropperRef.value.setCoordinates(store.cropCoordinates)
+
+  // Generate the cropped preview after restoring
+  nextTick(() => {
+    const result = cropperRef.value?.getResult()
+    if (result?.canvas) {
+      result.canvas.toBlob((blob: Blob | null) => {
+        if (blob) {
+          store.setCroppedImage(blob)
+        }
+        isRestoringCrop.value = false
+      }, 'image/jpeg', 0.95)
+    } else {
+      isRestoringCrop.value = false
+    }
+  })
 }
 
 // Acknowledge size warning
@@ -166,72 +215,64 @@ function acknowledgeWarning() {
           <path class="panel-archivo__title-icon-fill" d="M1 5.6C1 3.98985 1 3.18477 1.31336 2.56978C1.58899 2.02881 2.02881 1.58899 2.56978 1.31336C3.18477 1 3.98985 1 5.6 1H15.5667C17.1768 1 17.9819 1 18.5969 1.31336C19.1379 1.58899 19.5777 2.02881 19.8533 2.56978C20.1667 3.18477 20.1667 3.98985 20.1667 5.6V13.65C20.1667 15.2602 20.1667 16.0652 19.8533 16.6802C19.5777 17.2212 19.1379 17.661 18.5969 17.9366C17.9819 18.25 17.1768 18.25 15.5667 18.25H5.6C3.98985 18.25 3.18477 18.25 2.56978 17.9366C2.02881 17.661 1.58899 17.2212 1.31336 16.6802C1 16.0652 1 15.2602 1 13.65V5.6Z"/>
           <path d="M3.17742 17.9892L9.4991 11.6676C9.87862 11.288 10.0684 11.0983 10.2872 11.0272C10.4797 10.9647 10.687 10.9647 10.8795 11.0272C11.0983 11.0983 11.2881 11.2881 11.6676 11.6676L17.9471 17.9471M12.5 12.5L15.2491 9.7509C15.6286 9.37138 15.8184 9.18162 16.0372 9.11053C16.2297 9.04799 16.437 9.04799 16.6295 9.11053C16.8483 9.18162 17.038 9.37138 17.4176 9.7509L20.1667 12.5M8.66667 6.75C8.66667 7.80855 7.80855 8.66667 6.75 8.66667C5.69145 8.66667 4.83333 7.80855 4.83333 6.75C4.83333 5.69145 5.69145 4.83333 6.75 4.83333C7.80855 4.83333 8.66667 5.69145 8.66667 6.75ZM5.6 18.25H15.5667C17.1768 18.25 17.9819 18.25 18.5969 17.9366C19.1379 17.661 19.5777 17.2212 19.8533 16.6802C20.1667 16.0652 20.1667 15.2602 20.1667 13.65V5.6C20.1667 3.98985 20.1667 3.18477 19.8533 2.56978C19.5777 2.02881 19.1379 1.58899 18.5969 1.31336C17.9819 1 17.1768 1 15.5667 1H5.6C3.98985 1 3.18477 1 2.56978 1.31336C2.02881 1.58899 1.58899 2.02881 1.31336 2.56978C1 3.18477 1 3.98985 1 5.6V13.65C1 15.2602 1 16.0652 1.31336 16.6802C1.58899 17.2212 2.02881 17.661 2.56978 17.9366C3.18477 18.25 3.98985 18.25 5.6 18.25Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Sube tu imagen
+        Archivo
       </h3>
-      <p class="panel-archivo__description">
-        Arrastra tu imagen o haz clic para seleccionar
-      </p>
     </div>
 
     <!-- Upload zone (when no image) -->
-    <div
-      v-if="!store.hasImage"
-      class="panel-archivo__upload-zone"
-      :class="{ 'panel-archivo__upload-zone--dragging': isDragging }"
-      @dragover="onDragOver"
-      @dragleave="onDragLeave"
-      @drop="onDrop"
-      @click="handleFileSelect"
-    >
-      <div class="panel-archivo__upload-icon">
-        <svg width="32" height="29" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M6.75 8.66667C7.80855 8.66667 8.66667 7.80855 8.66667 6.75C8.66667 5.69145 7.80855 4.83333 6.75 4.83333C5.69145 4.83333 4.83333 5.69145 4.83333 6.75C4.83333 7.80855 5.69145 8.66667 6.75 8.66667Z"/>
-          <path class="panel-archivo__upload-icon-fill" d="M1 5.6C1 3.98985 1 3.18477 1.31336 2.56978C1.58899 2.02881 2.02881 1.58899 2.56978 1.31336C3.18477 1 3.98985 1 5.6 1H15.5667C17.1768 1 17.9819 1 18.5969 1.31336C19.1379 1.58899 19.5777 2.02881 19.8533 2.56978C20.1667 3.18477 20.1667 3.98985 20.1667 5.6V13.65C20.1667 15.2602 20.1667 16.0652 19.8533 16.6802C19.5777 17.2212 19.1379 17.661 18.5969 17.9366C17.9819 18.25 17.1768 18.25 15.5667 18.25H5.6C3.98985 18.25 3.18477 18.25 2.56978 17.9366C2.02881 17.661 1.58899 17.2212 1.31336 16.6802C1 16.0652 1 15.2602 1 13.65V5.6Z"/>
-          <path d="M3.17742 17.9892L9.4991 11.6676C9.87862 11.288 10.0684 11.0983 10.2872 11.0272C10.4797 10.9647 10.687 10.9647 10.8795 11.0272C11.0983 11.0983 11.2881 11.2881 11.6676 11.6676L17.9471 17.9471M12.5 12.5L15.2491 9.7509C15.6286 9.37138 15.8184 9.18162 16.0372 9.11053C16.2297 9.04799 16.437 9.04799 16.6295 9.11053C16.8483 9.18162 17.038 9.37138 17.4176 9.7509L20.1667 12.5M8.66667 6.75C8.66667 7.80855 7.80855 8.66667 6.75 8.66667C5.69145 8.66667 4.83333 7.80855 4.83333 6.75C4.83333 5.69145 5.69145 4.83333 6.75 4.83333C7.80855 4.83333 8.66667 5.69145 8.66667 6.75ZM5.6 18.25H15.5667C17.1768 18.25 17.9819 18.25 18.5969 17.9366C19.1379 17.661 19.5777 17.2212 19.8533 16.6802C20.1667 16.0652 20.1667 15.2602 20.1667 13.65V5.6C20.1667 3.98985 20.1667 3.18477 19.8533 2.56978C19.5777 2.02881 19.1379 1.58899 18.5969 1.31336C17.9819 1 17.1768 1 15.5667 1H5.6C3.98985 1 3.18477 1 2.56978 1.31336C2.02881 1.58899 1.58899 2.02881 1.31336 2.56978C1 3.18477 1 3.98985 1 5.6V13.65C1 15.2602 1 16.0652 1.31336 16.6802C1.58899 17.2212 2.02881 17.661 2.56978 17.9366C3.18477 18.25 3.98985 18.25 5.6 18.25Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    <div v-if="!cropperImageSrc" class="panel-archivo__upload-section">
+      <div
+        class="panel-archivo__upload-zone"
+        :class="{ 'panel-archivo__upload-zone--dragging': isDragging }"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+        @click="handleFileSelect"
+      >
+        <div class="panel-archivo__upload-icon">
+          <img
+            src="/personaliza/icon/image-add.svg"
+            alt="Upload"
+            width="43"
+            height="43"
+          >
+        </div>
+        <p class="panel-archivo__upload-text">
+          <span class="panel-archivo__upload-link">Carga</span> o arrastra un archivo aquí
+        </p>
+        <p class="panel-archivo__upload-hint">
+          <span class="panel-archivo__upload-formats">PNG, JPEG, GIF </span>
+          <span class="panel-archivo__upload-size">hasta 20MB</span>
+        </p>
       </div>
-      <p class="panel-archivo__upload-text">
-        <span class="panel-archivo__upload-link">Clic para subir</span>
-        o arrastra y suelta
-      </p>
-      <p class="panel-archivo__upload-hint">PNG, JPG o WEBP</p>
+      <button
+        class="panel-archivo__upload-btn"
+        @click="handleFileSelect"
+      >
+        <span>Cargar archivos</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6.66699 13.3333L10.0003 10M10.0003 10L13.3337 13.3333M10.0003 10V17.5M16.667 13.9524C17.6849 13.1117 18.3337 11.8399 18.3337 10.4167C18.3337 7.88536 16.2816 5.83333 13.7503 5.83333C13.5682 5.83333 13.3979 5.73833 13.3054 5.58145C12.2187 3.73736 10.2124 2.5 7.91699 2.5C4.46521 2.5 1.66699 5.29822 1.66699 8.75C1.66699 10.4718 2.36372 12.0309 3.48945 13.1613" stroke="currentColor" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Hidden file input -->
     <input
       ref="fileInput"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      accept="image/jpeg,image/png,image/gif"
       class="panel-archivo__file-input"
       @change="handleFileChange"
     >
 
     <!-- Image uploaded state -->
-    <template v-if="store.hasImage">
-      <!-- Format selector -->
-      <div class="panel-archivo__section">
-        <label class="panel-archivo__label">Formato</label>
-        <div class="panel-archivo__formats">
-          <button
-            v-for="format in formatOptions"
-            :key="format.id"
-            :class="[
-              'panel-archivo__format-btn',
-              { 'panel-archivo__format-btn--active': store.imageFormat === format.id }
-            ]"
-            @click="selectFormat(format.id)"
-          >
-            {{ format.label }}
-          </button>
-        </div>
-      </div>
-
+    <template v-if="cropperImageSrc">
       <!-- Cropper -->
       <div class="panel-archivo__cropper-section">
         <div class="panel-archivo__cropper-container">
           <Cropper
             ref="cropperRef"
-            :src="store.imageUrl!"
+            :src="cropperImageSrc"
             :stencil-component="RectangleStencil"
             :stencil-props="{
               handlers: {},
@@ -247,40 +288,48 @@ function acknowledgeWarning() {
             @change="handleCropChange"
           />
         </div>
+      </div>
 
-        <!-- Zoom controls -->
-        <div class="panel-archivo__zoom">
+      <div class="panel-archivo__separator" />
+
+      <!-- Format selector -->
+      <div class="panel-archivo__section">
+        <h3 class="panel-archivo__section-title">Formato de la imágen</h3>
+        <div class="panel-archivo__formats">
           <button
-            class="panel-archivo__zoom-btn"
-            aria-label="Alejar"
-            @click="handleZoomOut"
+            v-for="format in formatOptions"
+            :key="format.id"
+            :class="[
+              'panel-archivo__format-card',
+              { 'panel-archivo__format-card--active': store.imageFormat === format.id }
+            ]"
+            @click="selectFormat(format.id)"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.3-4.3"/>
-              <path d="M8 11h6"/>
-            </svg>
+            <div
+              class="panel-archivo__format-shape"
+              :style="{ width: format.width + 'px', height: format.height + 'px' }"
+            />
+            <span class="panel-archivo__format-label">{{ format.label }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Zoom & Crop -->
+      <div class="panel-archivo__section">
+        <h3 class="panel-archivo__section-title">Zoom &amp; Crop</h3>
+        <div
+          class="panel-archivo__slider-wrapper"
+          :style="{ '--progress': store.zoomLevel + '%' }"
+        >
           <input
             type="range"
             min="0"
             max="100"
             :value="store.zoomLevel"
-            class="panel-archivo__zoom-slider"
+            class="panel-archivo__slider"
             @input="handleZoomSlider"
           >
-          <button
-            class="panel-archivo__zoom-btn"
-            aria-label="Acercar"
-            @click="handleZoomIn"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.3-4.3"/>
-              <path d="M11 8v6"/>
-              <path d="M8 11h6"/>
-            </svg>
-          </button>
+          <span class="panel-archivo__slider-value">{{ store.zoomLevel }}%</span>
         </div>
       </div>
 
@@ -344,6 +393,13 @@ function acknowledgeWarning() {
     padding-inline: 20px;
   }
 
+  &__separator {
+    height: 1px;
+    background-color: #e5e7eb;
+    width: calc(100% - 40px);
+    margin: 4px auto;
+  }
+
   &__title {
     font-family: $font-primary;
     font-size: 16px;
@@ -383,19 +439,29 @@ function acknowledgeWarning() {
     color: #414651;
   }
 
+  // Upload section
+  &__upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-inline: 20px;
+  }
+
   // Upload zone
   &__upload-zone {
-    margin-inline: 20px;
-    padding: 32px 20px;
-    background: #fafafa;
-    border: 2px dashed #e9eaeb;
-    border-radius: 12px;
+    padding: 24px 20px;
+    background: white;
+    border: 1px dashed #d5d7da;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    gap: 8px;
+    min-height: 170px;
     cursor: pointer;
-    transition: border-color $transition-fast, background-color $transition-fast;
+    transition: border-color $transition-fast, background-color $transition-fast, box-shadow $transition-fast;
+    box-shadow: 0px 4px 6px -1px rgba(10, 13, 18, 0.1), 0px 1px 10px -2px $color-brand-light;
 
     &:hover,
     &--dragging {
@@ -405,83 +471,217 @@ function acknowledgeWarning() {
   }
 
   &__upload-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 43px;
+    height: 43px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #717680;
 
-    .panel-archivo__upload-zone:hover &,
-    .panel-archivo__upload-zone--dragging & {
-      color: $color-brand;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
   }
 
-  // &__upload-icon-fill {
-  //   fill: #e5e7eb;
-
-  //   .panel-archivo__upload-zone:hover &,
-  //   .panel-archivo__upload-zone--dragging & {
-  //     fill: $color-brand-light;
-  //   }
-  // }
-
   &__upload-text {
-    font-family: $font-primary;
-    font-size: 14px;
-    color: #535861;
+    font-family: 'Lexend', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #2f3038;
     margin: 0;
     text-align: center;
+    line-height: 24px;
   }
 
   &__upload-link {
     color: $color-brand;
-    font-weight: $font-weight-semibold;
+    font-weight: 500;
   }
 
   &__upload-hint {
-    font-family: $font-primary;
-    font-size: 12px;
-    color: #717680;
+    font-family: 'Lexend', sans-serif;
+    font-weight: 400;
+    color: #2f3038;
     margin: 0;
+    line-height: 24px;
+  }
+
+  &__upload-formats {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  &__upload-size {
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  &__upload-btn {
+    @include button-reset;
+    width: 100%;
+    padding: 10px 16px;
+    background: #252b37;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    color: white;
+    line-height: 24px;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+    box-shadow: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0px 0px 0px 1px rgba(10, 13, 18, 0.18), inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
+    }
+
+    @include hover {
+      background: #1a1f28;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__file-input {
     display: none;
   }
 
+  // Section title
+  &__section-title {
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    line-height: 24px;
+    color: #2f3038;
+    margin: 0;
+  }
+
   // Format selector
   &__formats {
     display: flex;
-    border-radius: 8px;
-    overflow: hidden;
+    gap: 10px;
   }
 
-  &__format-btn {
+  &__format-card {
     @include button-reset;
-    flex: 1;
-    padding: 10px 16px;
-    font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
+    width: 54px;
+    height: 75px;
+    padding: 8px 10px;
     background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    cursor: pointer;
+    transition: background-color $transition-fast;
 
     &--active {
       background: $color-brand-light;
-      color: $color-brand;
+
+      .panel-archivo__format-shape {
+        background: $color-brand;
+      }
+
+      .panel-archivo__format-label {
+        color: #b75700;
+      }
     }
 
     @include hover {
-      background: #ebebeb;
-
-      &.panel-archivo__format-btn--active {
-        background: $color-brand-light;
+      &:not(.panel-archivo__format-card--active) {
+        background: #ebebeb;
       }
     }
+  }
+
+  &__format-shape {
+    background: #a4a7ae;
+    border-radius: 2px;
+    transition: background-color $transition-fast;
+  }
+
+  &__format-label {
+    font-family: 'Lexend', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #2f3038;
+    text-align: center;
+    transition: color $transition-fast;
+  }
+
+  // Slider (Zoom & Crop)
+  &__slider-wrapper {
+    position: relative;
+    height: 56px;
+    padding-top: 8px;
+  }
+
+  &__slider {
+    width: 100%;
+    height: 8px;
+    appearance: none;
+    background: #e9eaeb;
+    border-radius: 9999px;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid $color-brand;
+      box-shadow: 0px 4px 6px -1px rgba(10, 13, 18, 0.1), 0px 2px 4px -2px rgba(10, 13, 18, 0.06);
+      cursor: pointer;
+      margin-top: -8px;
+    }
+
+    &::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid $color-brand;
+      box-shadow: 0px 4px 6px -1px rgba(10, 13, 18, 0.1), 0px 2px 4px -2px rgba(10, 13, 18, 0.06);
+      cursor: pointer;
+    }
+
+    &::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 9999px;
+      background: linear-gradient(to right, $color-brand var(--progress, 0%), #e9eaeb var(--progress, 0%));
+    }
+  }
+
+  &__slider-value {
+    position: absolute;
+    left: var(--progress, 0%);
+    top: 42px;
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-medium;
+    line-height: 24px;
+    color: #181d27;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: none;
   }
 
   // Cropper
@@ -495,61 +695,10 @@ function acknowledgeWarning() {
   &__cropper-container {
     width: 100%;
     aspect-ratio: 1;
-    max-height: 300px;
+    height: 170px;
     border-radius: 8px;
     overflow: hidden;
     background: #1a1a1a;
-  }
-
-  // Zoom controls
-  &__zoom {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  &__zoom-btn {
-    @include button-reset;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #414651;
-    transition: background-color $transition-fast;
-
-    @include hover {
-      background: #ebebeb;
-    }
-  }
-
-  &__zoom-slider {
-    flex: 1;
-    height: 4px;
-    appearance: none;
-    background: #e9eaeb;
-    border-radius: 2px;
-    cursor: pointer;
-
-    &::-webkit-slider-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: $color-brand;
-      cursor: pointer;
-    }
-
-    &::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: $color-brand;
-      cursor: pointer;
-      border: none;
-    }
   }
 
   // Change image button
