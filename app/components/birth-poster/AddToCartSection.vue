@@ -242,7 +242,7 @@ const { formatPrice } = useShopifyCart()
     svg {
       width: 15px;
       height: 15px;
-      color: #d9d618;
+      color: $color-yellow;
     }
   }
 

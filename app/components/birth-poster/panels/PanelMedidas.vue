@@ -135,6 +135,9 @@ function selectSize(size: PosterSize) {
   &__title-icon {
     color: $color-brand;
     flex-shrink: 0;
+    path:not(.omit-fill), rect:not(.omit-fill) {
+      fill: $color-icon-fill;
+    }
   }
 
   &__description {
@@ -153,8 +156,8 @@ function selectSize(size: PosterSize) {
   }
 
   &__highlight {
-    background: #fef2d9;
-    border: 1px solid #ffc857;
+    background: $color-yellow-lighter;
+    border: 1px solid $color-yellow;
     border-radius: 8px;
     padding: 12px 14px;
   }

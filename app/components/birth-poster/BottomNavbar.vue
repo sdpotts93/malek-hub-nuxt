@@ -60,7 +60,8 @@ const store = useBirthPosterStore()
         </svg>
         <!-- Marco (frame) icon -->
         <svg v-else-if="item.id === 'marco'" width="24" height="24" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M992 1024H32q-13 0-22.5-9.5T0 992V288q0-13 9.5-22.5T32 256h211L488 11l.5-1l.5-1q10-9 23-9t23 9l.5 1l.5 1l245 245h211q13 0 22.5 9.5t9.5 22.5v704q0 13-9.5 22.5T992 1024M512 77L333 256h358zm384 307H128v512h768z" fill="currentColor"/>
+          <rect class="sidebar-nav__svg-frame-fill" x="128" y="384" width="768" height="512"/>
+          <path class="omit-fill" d="M992 1024H32q-13 0-22.5-9.5T0 992V288q0-13 9.5-22.5T32 256h211L488 11l.5-1l.5-1q10-9 23-9t23 9l.5 1l.5 1l245 245h211q13 0 22.5 9.5t9.5 22.5v704q0 13-9.5 22.5T992 1024M512 77L333 256h358zm384 307H128v512h768z" fill="currentColor"/>
         </svg>
       </span>
       <span class="bottom-navbar__label">{{ item.label }}</span>
@@ -105,6 +106,11 @@ const store = useBirthPosterStore()
         border: 1px solid rgba(14, 19, 24, 0.09);
         box-shadow: 0 4px 7px rgba(51, 51, 51, 0.1);
       }
+      .bottom-navbar__icon path:not(.omit-fill),
+      .bottom-navbar__icon rect:not(.omit-fill) {
+        fill: $color-icon-fill;
+      }
+
     }
   }
 

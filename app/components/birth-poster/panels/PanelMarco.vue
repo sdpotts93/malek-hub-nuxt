@@ -21,7 +21,8 @@ function selectFrame(frame: FrameStyle) {
     <div class="panel-marco__section">
       <h3 class="panel-marco__title">
         <svg class="panel-marco__title-icon" width="20" height="20" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M992 1024H32q-13 0-22.5-9.5T0 992V288q0-13 9.5-22.5T32 256h211L488 11l.5-1l.5-1q10-9 23-9t23 9l.5 1l.5 1l245 245h211q13 0 22.5 9.5t9.5 22.5v704q0 13-9.5 22.5T992 1024M512 77L333 256h358zm384 307H128v512h768z" fill="currentColor"/>
+          <rect class="sidebar-nav__svg-frame-fill" x="128" y="384" width="768" height="512"/>
+          <path class="omit-fill" d="M992 1024H32q-13 0-22.5-9.5T0 992V288q0-13 9.5-22.5T32 256h211L488 11l.5-1l.5-1q10-9 23-9t23 9l.5 1l.5 1l245 245h211q13 0 22.5 9.5t9.5 22.5v704q0 13-9.5 22.5T992 1024M512 77L333 256h358zm384 307H128v512h768z" fill="currentColor"/>
         </svg>
         Marco del poster
       </h3>
@@ -101,6 +102,9 @@ function selectFrame(frame: FrameStyle) {
   &__title-icon {
     color: $color-brand;
     flex-shrink: 0;
+    path:not(.omit-fill), rect:not(.omit-fill) {
+      fill: $color-icon-fill;
+    }
   }
 
   &__description {

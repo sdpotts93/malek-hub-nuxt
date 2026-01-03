@@ -359,6 +359,9 @@ function acknowledgeWarning() {
   &__title-icon {
     color: $color-brand;
     flex-shrink: 0;
+    path:not(.omit-fill), rect:not(.omit-fill) {
+      fill: $color-icon-fill;
+    }
   }
 
   // &__title-icon-fill {
