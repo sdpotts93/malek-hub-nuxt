@@ -71,7 +71,8 @@ function getDesignName(): string {
 // Save design to history (auto-save helper)
 async function saveCurrentDesign() {
   const canvasElement = canvasRef.value?.$el
-  if (!canvasElement || !isDirty.value) return
+  // Don't save if no image uploaded or no changes
+  if (!canvasElement || !isDirty.value || !personalizaStore.hasImage) return
 
   try {
     const thumbnail = await generateThumbnail(canvasElement)
@@ -111,13 +112,14 @@ onMounted(async () => {
   // Store initial state to track changes
   lastSavedState.value = JSON.stringify(personalizaStore.$state)
 
-  // If we restored from autosave, save to history once canvas is ready
+  // If we restored from autosave, save to history once canvas is ready (only if has image)
   if (pendingHistorySave.value) {
     nextTick(async () => {
       // Wait a bit for images to load
       await new Promise(resolve => setTimeout(resolve, 500))
       const canvasElement = canvasRef.value?.$el
-      if (canvasElement) {
+      // Only save to history if an image has been uploaded
+      if (canvasElement && personalizaStore.hasImage) {
         try {
           const thumbnail = await generateThumbnail(canvasElement)
           saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
