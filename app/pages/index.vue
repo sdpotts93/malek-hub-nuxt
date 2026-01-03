@@ -27,7 +27,7 @@ const tools = [
     name: 'Personaliza',
     description: 'Diseña posters personalizados con tus propias fotos y textos',
     href: '/personaliza',
-    available: false,
+    available: true,
     icon: 'palette',
   },
   {

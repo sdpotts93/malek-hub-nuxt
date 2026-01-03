@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { SavedDesign, BirthPosterState } from '~/types'
+import type { SavedDesign, PersonalizaState } from '~/types'
 
 interface Props {
-  designs: SavedDesign<BirthPosterState>[]
+  designs: SavedDesign<PersonalizaState>[]
   isOpen?: boolean
 }
 
@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   toggle: []
-  load: [state: BirthPosterState]
+  load: [state: Partial<PersonalizaState>]
   delete: [id: string]
 }>()
 
@@ -23,13 +23,13 @@ function formatDate(date: Date): string {
   })
 }
 
-function handleLoad(design: SavedDesign<BirthPosterState>) {
+function handleLoad(design: SavedDesign<PersonalizaState>) {
   emit('load', design.state)
 }
 
 function handleDelete(e: Event, id: string) {
   e.stopPropagation()
-  if (confirm('¿Eliminar este diseño?')) {
+  if (confirm('Eliminar este diseno?')) {
     emit('delete', id)
   }
 }
@@ -65,7 +65,7 @@ function handleDelete(e: Event, id: string) {
     <div v-if="isOpen" class="history-panel__content">
       <!-- Empty state -->
       <div v-if="designs.length === 0" class="history-panel__empty">
-        <p>No hay diseños guardados</p>
+        <p>No hay disenos guardados</p>
       </div>
 
       <!-- Design thumbnails -->
@@ -262,10 +262,7 @@ function handleDelete(e: Event, id: string) {
     img {
       width: 100%;
       height: 100%;
-      object-fit: none;
-      object-position: 50% 16%;
-      /* max-width: unset; */
-      transform: scale(1.1);
+      object-fit: cover;
     }
   }
 
@@ -337,15 +334,13 @@ function handleDelete(e: Event, id: string) {
     img {
       width: 100%;
       height: 100%;
-      object-fit: none;
-      object-position: 50% 16%;
-      transform: scale(1.1);
+      object-fit: cover;
       transition: transform $transition-fast;
     }
 
     @include hover {
       img {
-        transform: scale(1.2);
+        transform: scale(1.1);
       }
     }
   }

@@ -103,14 +103,47 @@ export interface Cart {
 
 export type ToolType = 'birth-poster' | 'moments' | 'personaliza'
 
-export interface SavedDesign {
+// Union type for all possible design states
+export type DesignState = BirthPosterState | PersonalizaState
+
+// Personaliza types
+export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
+export type ImageFormat = '1:1' | '4:3' | '3:4'
+export type TextStyle = 'moderno' | 'clasico' | 'minimalista'
+export type SquareSize = '50x50'
+export type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
+export type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
+export type PersonalizaSize = SquareSize | HorizontalSize | VerticalSize
+
+// Personaliza state type for saved designs (excludes non-serializable fields)
+export interface PersonalizaState {
+  imageUrl: string | null
+  imageDimensions: { width: number; height: number } | null
+  imageFormat: ImageFormat
+  zoomLevel: number
+  croppedImageUrl: string | null
+  textStyle: TextStyle
+  title: string
+  subtitle: string
+  hasMargin: boolean
+  marginColor: string
+  posterSize: PersonalizaSize
+  frameStyle: FrameStyle | null
+  hasFrame: boolean
+  activePanel: PersonalizaPanelType
+  showSizeWarning: boolean
+  sizeWarningAcknowledged: boolean
+  isImageReady: boolean
+}
+
+export interface SavedDesign<T = DesignState> {
   id: string
   tool: ToolType
   name: string
   createdAt: Date
   updatedAt: Date
   thumbnail: string // Base64 or blob URL
-  state: BirthPosterState // | MomentsState | PersonalizaState (for future)
+  state: T
 }
 
 // ==========================================================================

@@ -5,12 +5,12 @@
  * Each tool has its own separate history.
  */
 
-import type { SavedDesign, ToolType, BirthPosterState } from '~/types'
+import type { SavedDesign, ToolType, DesignState } from '~/types'
 
 const HISTORY_STORAGE_KEY = 'studiomalek_design_history'
 const MAX_SAVED_DESIGNS = 10
 
-export function useDesignHistory(tool: ToolType) {
+export function useDesignHistory<T extends DesignState>(tool: ToolType) {
   const designs = ref<SavedDesign[]>([])
   const isLoading = ref(false)
 
@@ -90,7 +90,7 @@ export function useDesignHistory(tool: ToolType) {
   /**
    * Save a new design
    */
-  function saveDesign(state: BirthPosterState, thumbnail: string, name?: string): SavedDesign {
+  function saveDesign(state: T, thumbnail: string, name?: string): SavedDesign {
     const now = new Date()
 
     const design: SavedDesign = {
@@ -121,7 +121,7 @@ export function useDesignHistory(tool: ToolType) {
    */
   function updateDesign(
     id: string,
-    state: BirthPosterState,
+    state: T,
     thumbnail: string,
     name?: string
   ): SavedDesign | null {
@@ -193,8 +193,8 @@ export function useDesignHistory(tool: ToolType) {
   })
 
   return {
-    // State
-    designs: computed(() => designs.value),
+    // State - cast to typed designs for consumers
+    designs: computed(() => designs.value as SavedDesign<T>[]),
     isLoading,
     isEmpty: computed(() => designs.value.length === 0),
     count: computed(() => designs.value.length),

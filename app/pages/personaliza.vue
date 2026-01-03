@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import type { PanelType, BirthPosterState } from '~/types'
+import type { PersonalizaPanelType } from '~/stores/personaliza'
+import type { PersonalizaState } from '~/types'
 
 // Page meta
 definePageMeta({
   layout: false,
 })
 
-const pageTitle = 'Birth Poster - Studio Malek'
-const pageDescription = 'Crea un poster personalizado para celebrar el nacimiento de tu bebé con Studio Malek'
+const pageTitle = 'Personaliza - Studio Malek'
+const pageDescription = 'Crea un poster personalizado con tu propia imagen con Studio Malek'
 
 useHead({
   title: pageTitle,
@@ -18,30 +19,30 @@ useSeoMeta({
   description: pageDescription,
   ogTitle: pageTitle,
   ogDescription: pageDescription,
-  ogUrl: 'https://hub.studiomalek.com/birth-poster',
+  ogUrl: 'https://hub.studiomalek.com/personaliza',
   ogImage: '/og-image.jpg',
 })
 
 // Stores
-const birthPosterStore = useBirthPosterStore()
+const personalizaStore = usePersonalizaStore()
 const uiStore = useUIStore()
 
 // Composables
 const { isRendering, generateThumbnail } = useCanvasRenderer()
-const { saveDesign, deleteDesign, designs } = useDesignHistory<BirthPosterState>('birth-poster')
+const { saveDesign, deleteDesign, designs } = useDesignHistory<PersonalizaState>('personaliza')
 const cart = useShopifyCart()
 
 // Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
-const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
+const pricing = computed(() => cart.calculatePersonalizaPrice(personalizaStore.$state))
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 
 // Handle mobile panel selection
-async function handleMobilePanelSelect(panel: PanelType) {
-  birthPosterStore.setActivePanel(panel)
+async function handleMobilePanelSelect(panel: PersonalizaPanelType) {
+  personalizaStore.setActivePanel(panel)
   // Wait for Vue to render the new panel before opening the sheet
   await nextTick()
   isMobileSheetOpen.value = true
@@ -54,16 +55,17 @@ function handleMobileSheetClose() {
 // Track if design has been modified since last save
 const lastSavedState = ref<string | null>(null)
 const isDirty = computed(() => {
-  const currentState = JSON.stringify(birthPosterStore.$state)
+  const currentState = JSON.stringify(personalizaStore.$state)
   return lastSavedState.value !== currentState
 })
 
-// Generate design name from baby names
+// Generate design name from title or subtitle
 function getDesignName(): string {
-  const names = birthPosterStore.babies
-    .map(b => b.nombre?.trim())
-    .filter(Boolean)
-  return names.length > 0 ? names.join(' & ') : 'Birth Poster'
+  const title = personalizaStore.title?.trim()
+  const subtitle = personalizaStore.subtitle?.trim()
+  if (title) return title
+  if (subtitle) return subtitle
+  return 'Mi Poster'
 }
 
 // Save design to history (auto-save helper)
@@ -73,38 +75,41 @@ async function saveCurrentDesign() {
 
   try {
     const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+    saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
+    lastSavedState.value = JSON.stringify(personalizaStore.$state)
   } catch (error) {
-    console.error('[BirthPoster] Auto-save failed:', error)
+    console.error('[Personaliza] Auto-save failed:', error)
   }
 }
 
 // Auto-save settings
-const AUTOSAVE_KEY = 'studiomalek_autosave_birthposter'
+const AUTOSAVE_KEY = 'studiomalek_autosave_personaliza'
 const pendingHistorySave = ref(false)
 
 // Check mobile on mount and initialize cart
-onMounted(() => {
-  // Initialize Shopify cart and fetch product variants
-  cart.init()
+onMounted(async () => {
+  // Initialize Shopify cart and fetch personaliza product variants
+  await Promise.all([
+    cart.init(),
+    cart.fetchPersonalizaProducts(),
+  ])
 
   // Restore from autosave if exists (from browser refresh/crash)
   try {
     const autosaved = localStorage.getItem(AUTOSAVE_KEY)
     if (autosaved) {
       const savedState = JSON.parse(autosaved)
-      birthPosterStore.loadState(savedState)
+      personalizaStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
       pendingHistorySave.value = true // Mark for saving to history once canvas is ready
     }
   } catch (e) {
-    console.error('[BirthPoster] Failed to restore autosave:', e)
+    console.error('[Personaliza] Failed to restore autosave:', e)
     localStorage.removeItem(AUTOSAVE_KEY)
   }
 
   // Store initial state to track changes
-  lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+  lastSavedState.value = JSON.stringify(personalizaStore.$state)
 
   // If we restored from autosave, save to history once canvas is ready
   if (pendingHistorySave.value) {
@@ -115,10 +120,10 @@ onMounted(() => {
       if (canvasElement) {
         try {
           const thumbnail = await generateThumbnail(canvasElement)
-          saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-          lastSavedState.value = JSON.stringify(birthPosterStore.$state)
+          saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
+          lastSavedState.value = JSON.stringify(personalizaStore.$state)
         } catch (error) {
-          console.error('[BirthPoster] Failed to save restored design:', error)
+          console.error('[Personaliza] Failed to save restored design:', error)
         }
       }
       pendingHistorySave.value = false
@@ -135,9 +140,9 @@ onMounted(() => {
   // Always save state - cheaper to save unnecessarily than to lose user work
   const handleBeforeUnload = () => {
     try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(birthPosterStore.$state))
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(personalizaStore.getSnapshot()))
     } catch (e) {
-      console.error('[BirthPoster] Failed to save on unload:', e)
+      console.error('[Personaliza] Failed to save on unload:', e)
     }
   }
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -157,10 +162,9 @@ onBeforeRouteLeave(async () => {
 })
 
 // Panel navigation items
-const navItems: { id: PanelType; label: string; icon: string }[] = [
-  { id: 'general', label: 'General', icon: 'settings' },
-  { id: 'diseno', label: 'Diseño', icon: 'palette' },
-  { id: 'datos', label: 'Datos', icon: 'text' },
+const navItems: { id: PersonalizaPanelType; label: string; icon: string }[] = [
+  { id: 'archivo', label: 'Archivo', icon: 'upload' },
+  { id: 'texto', label: 'Texto', icon: 'text' },
   { id: 'medidas', label: 'Medidas', icon: 'ruler' },
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
@@ -170,38 +174,38 @@ async function handleAddToCart() {
   const canvasElement = canvasRef.value?.$el
   if (!canvasElement) return
 
+  // Check if image is ready
+  if (!personalizaStore.isImageReady) {
+    // Navigate to archivo panel
+    personalizaStore.setActivePanel('archivo')
+    if (isMobile.value) {
+      await nextTick()
+      isMobileSheetOpen.value = true
+    }
+    return
+  }
+
+  // Check size warning
+  if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
+    // Navigate to archivo panel to show the warning
+    personalizaStore.setActivePanel('archivo')
+    if (isMobile.value) {
+      await nextTick()
+      isMobileSheetOpen.value = true
+    }
+    return
+  }
+
   try {
     uiStore.setLoading(true)
 
     // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
-    const validation = await cart.addBirthPosterToCart(canvasElement, birthPosterStore.$state)
-
-    // If validation failed, navigate to the missing data and show error
-    if (validation) {
-      // Navigate to datos panel
-      birthPosterStore.setActivePanel('datos')
-
-      // Switch to the baby tab with missing name and show error
-      if (validation.missingBabyIndex !== null) {
-        birthPosterStore.setActiveBabyTab(validation.missingBabyIndex)
-        birthPosterStore.setNombreError(validation.missingBabyIndex)
-      }
-
-      // On mobile, open the bottom sheet to show the datos panel
-      if (isMobile.value) {
-        await nextTick()
-        isMobileSheetOpen.value = true
-      }
-
-      // Trigger focus on nombre input after panel is ready
-      birthPosterStore.triggerNombreFocus()
-      return
-    }
+    await cart.addPersonalizaToCart(canvasElement, personalizaStore.$state)
 
     // Success - save to history and open cart
     const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(birthPosterStore.$state) // Mark as saved
+    saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
+    lastSavedState.value = JSON.stringify(personalizaStore.$state) // Mark as saved
 
     uiStore.openCart()
   } catch (error) {
@@ -213,30 +217,30 @@ async function handleAddToCart() {
 </script>
 
 <template>
-  <div class="birth-poster tool-page">
+  <div class="personaliza tool-page">
     <!-- Header -->
     <SharedTheHeader />
 
     <!-- Main Content -->
-    <main class="birth-poster__main">
+    <main class="personaliza__main">
       <!-- Desktop: Sidebar Navigation -->
-      <aside v-if="!isMobile" class="birth-poster__sidebar">
-        <BirthPosterSidebarNavigation
+      <aside v-if="!isMobile" class="personaliza__sidebar">
+        <PersonalizaSidebarNavigation
           :items="navItems"
-          :active-panel="birthPosterStore.activePanel"
-          @select="birthPosterStore.setActivePanel"
+          :active-panel="personalizaStore.activePanel"
+          @select="personalizaStore.setActivePanel"
         />
       </aside>
 
       <!-- Design Panel -->
-      <div v-if="!isMobile" class="birth-poster__panel-wrapper">
+      <div v-if="!isMobile" class="personaliza__panel-wrapper">
         <!-- Panel Content (scrollable) -->
-        <div class="birth-poster__panel-content">
-          <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
+        <div class="personaliza__panel-content">
+          <PersonalizaDesignPanelWrapper :active-panel="personalizaStore.activePanel" />
         </div>
 
         <!-- Add to Cart Section (fixed at bottom) -->
-        <BirthPosterAddToCartSection
+        <PersonalizaAddToCartSection
           :price="pricing.price"
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
@@ -245,26 +249,26 @@ async function handleAddToCart() {
       </div>
 
       <!-- Canvas Area -->
-      <div class="birth-poster__canvas-area">
-        <div class="birth-poster__canvas-container">
-          <BirthPosterBabyCanvas ref="canvasRef" />
+      <div class="personaliza__canvas-area">
+        <div class="personaliza__canvas-container">
+          <PersonalizaCanvas ref="canvasRef" />
         </div>
       </div>
 
       <!-- Desktop: History Panel -->
-      <aside v-if="!isMobile" class="birth-poster__history">
-        <BirthPosterHistoryPanel
+      <aside v-if="!isMobile" class="personaliza__history">
+        <PersonalizaHistoryPanel
           :designs="designs"
           :is-open="uiStore.isHistoryOpen"
           @toggle="uiStore.toggleHistory"
-          @load="birthPosterStore.loadState"
+          @load="personalizaStore.loadState"
           @delete="deleteDesign"
         />
       </aside>
     </main>
 
     <!-- Mobile: Fixed Add to Cart Bar -->
-    <BirthPosterMobileAddToCartBar
+    <PersonalizaMobileAddToCartBar
       v-if="isMobile"
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
@@ -273,24 +277,24 @@ async function handleAddToCart() {
     />
 
     <!-- Mobile: Bottom Navbar -->
-    <BirthPosterBottomNavbar
+    <PersonalizaBottomNavbar
       v-if="isMobile"
       :items="navItems"
-      :active-panel="isMobileSheetOpen ? birthPosterStore.activePanel : null"
+      :active-panel="isMobileSheetOpen ? personalizaStore.activePanel : null"
       @select="handleMobilePanelSelect"
     />
 
     <!-- Mobile: Bottom Sheet -->
-    <BirthPosterMobileBottomSheet
+    <PersonalizaMobileBottomSheet
       v-if="isMobile"
       :is-open="isMobileSheetOpen"
       @close="handleMobileSheetClose"
     >
-      <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
-    </BirthPosterMobileBottomSheet>
+      <PersonalizaDesignPanelWrapper :active-panel="personalizaStore.activePanel" />
+    </PersonalizaMobileBottomSheet>
 
     <!-- Mobile Nav Wrapper (History/Home overlay) -->
-    <BirthPosterMobileNavWrapper
+    <PersonalizaMobileNavWrapper
       v-if="isMobile"
       :is-open="uiStore.isMobileNavWrapperOpen"
       :content="uiStore.mobileNavWrapperContent"
@@ -303,7 +307,7 @@ async function handleAddToCart() {
 </template>
 
 <style lang="scss" scoped>
-.birth-poster {
+.personaliza {
   display: flex;
   flex-direction: column;
 
@@ -333,7 +337,7 @@ async function handleAddToCart() {
 
   &__panel-wrapper {
     background: $color-bg-primary;
-    
+
     border: 1px solid $color-border;
     border-radius: 12px;
     box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
