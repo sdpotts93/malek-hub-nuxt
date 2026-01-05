@@ -65,13 +65,12 @@ const textStyleClass = computed(() => {
           <span>Sube una imagen</span>
         </div>
 
-        <!-- Cropped image -->
+        <!-- Cropped image (blob URL - no crossorigin needed) -->
         <img
           v-else
           :src="store.croppedImageUrl"
           alt="Tu imagen"
           class="personaliza-canvas__image"
-          crossorigin="anonymous"
         >
       </div>
 
@@ -149,10 +148,10 @@ const textStyleClass = computed(() => {
     }
   }
 
-  // Horizontal (4:3)
+  // Horizontal (7:5)
   &--horizontal {
-    aspect-ratio: 4 / 3;
-    width: min(100cqw, calc(100cqh * 4 / 3));
+    aspect-ratio: 7 / 5;
+    width: min(100cqw, calc(100cqh * 7 / 5));
     height: auto;
 
     @include mobile {
@@ -166,10 +165,10 @@ const textStyleClass = computed(() => {
     }
   }
 
-  // Vertical (3:4)
+  // Vertical (5:7)
   &--vertical {
-    aspect-ratio: 3 / 4;
-    height: min(100cqh, calc(100cqw * 4 / 3));
+    aspect-ratio: 5 / 7;
+    height: min(100cqh, calc(100cqw * 7 / 5));
     width: auto;
 
     @include mobile {

@@ -333,7 +333,7 @@ export function useShopifyCart() {
 
       // 4. Build description from state
       const orientation = getOrientationFromFormat(state.imageFormat)
-      const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '4:3' ? 'Horizontal' : 'Vertical'
+      const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = state.title ? `"${state.title}"` : 'Sin texto'
 
       // 5. Add to Shopify cart with attributes

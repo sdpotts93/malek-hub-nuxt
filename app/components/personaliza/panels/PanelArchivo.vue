@@ -19,13 +19,11 @@ const isRestoringCrop = ref(false)
 // Image source for cropper - use blob URL if available, fall back to S3 URL
 const cropperImageSrc = computed(() => store.imageUrl || store.imageS3Url)
 
-// Format options with visual preview dimensions
+// Format options with visual preview dimensions (5:7, 7:5, 1:1)
 const formatOptions: { id: ImageFormat; label: string; width: number; height: number }[] = [
+  { id: '5:7', label: '5:7', width: 25, height: 35 },
   { id: '1:1', label: '1:1', width: 30, height: 30 },
-  { id: '3:2', label: '3:2', width: 21, height: 32 },
-  { id: '2:3', label: '2:3', width: 32, height: 21 },
-  { id: '4:3', label: '4:3', width: 32, height: 26 },
-  { id: '3:4', label: '3:4', width: 26, height: 32 },
+  { id: '7:5', label: '7:5', width: 35, height: 25 },
 ]
 
 // Accepted file types

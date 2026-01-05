@@ -82,7 +82,6 @@ async function saveCurrentDesign() {
 
 // Auto-save settings
 const AUTOSAVE_KEY = 'studiomalek_autosave_birthposter'
-const pendingHistorySave = ref(false)
 
 // Check mobile on mount and initialize cart
 onMounted(() => {
@@ -96,34 +95,14 @@ onMounted(() => {
       const savedState = JSON.parse(autosaved)
       birthPosterStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
-      pendingHistorySave.value = true // Mark for saving to history once canvas is ready
     }
   } catch (e) {
     console.error('[BirthPoster] Failed to restore autosave:', e)
     localStorage.removeItem(AUTOSAVE_KEY)
   }
 
-  // Store initial state to track changes
+  // Store initial state to track changes (after autosave restore)
   lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-
-  // If we restored from autosave, save to history once canvas is ready
-  if (pendingHistorySave.value) {
-    nextTick(async () => {
-      // Wait a bit for images to load
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const canvasElement = canvasRef.value?.$el
-      if (canvasElement) {
-        try {
-          const thumbnail = await generateThumbnail(canvasElement)
-          saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-          lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-        } catch (error) {
-          console.error('[BirthPoster] Failed to save restored design:', error)
-        }
-      }
-      pendingHistorySave.value = false
-    })
-  }
 
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768

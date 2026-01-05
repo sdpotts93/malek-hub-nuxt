@@ -54,9 +54,10 @@ function handleMobileSheetClose() {
 }
 
 // Track if design has been modified since last save
+// Use getSnapshot() to exclude transient properties (blob URLs, File, etc.)
 const lastSavedState = ref<string | null>(null)
 const isDirty = computed(() => {
-  const currentState = JSON.stringify(personalizaStore.$state)
+  const currentState = JSON.stringify(personalizaStore.getSnapshot())
   return lastSavedState.value !== currentState
 })
 
@@ -99,7 +100,7 @@ async function saveCurrentDesign() {
     if (!persistentState) return
 
     saveDesign(persistentState, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(personalizaStore.$state)
+    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
   } catch (error) {
     console.error('[Personaliza] Auto-save failed:', error)
   }
@@ -107,7 +108,6 @@ async function saveCurrentDesign() {
 
 // Auto-save settings
 const AUTOSAVE_KEY = 'studiomalek_autosave_personaliza'
-const pendingHistorySave = ref(false)
 
 // Check mobile on mount and initialize cart
 onMounted(async () => {
@@ -124,38 +124,14 @@ onMounted(async () => {
       const savedState = JSON.parse(autosaved)
       personalizaStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
-      pendingHistorySave.value = true // Mark for saving to history once canvas is ready
     }
   } catch (e) {
     console.error('[Personaliza] Failed to restore autosave:', e)
     localStorage.removeItem(AUTOSAVE_KEY)
   }
 
-  // Store initial state to track changes
-  lastSavedState.value = JSON.stringify(personalizaStore.$state)
-
-  // If we restored from autosave, save to history once canvas is ready (only if has image)
-  if (pendingHistorySave.value) {
-    nextTick(async () => {
-      // Wait a bit for images to load
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const canvasElement = canvasRef.value?.$el
-      // Only save to history if an image has been uploaded
-      if (canvasElement && personalizaStore.hasImage) {
-        try {
-          const thumbnail = await generateThumbnail(canvasElement)
-          const persistentState = prepareStateForPersistence()
-          if (persistentState) {
-            saveDesign(persistentState, thumbnail, getDesignName())
-            lastSavedState.value = JSON.stringify(personalizaStore.$state)
-          }
-        } catch (error) {
-          console.error('[Personaliza] Failed to save restored design:', error)
-        }
-      }
-      pendingHistorySave.value = false
-    })
-  }
+  // Store initial state to track changes (after autosave restore)
+  lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
 
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768
@@ -242,7 +218,7 @@ async function handleAddToCart() {
     // Success - save to history and open cart
     const thumbnail = await generateThumbnail(canvasElement)
     saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(personalizaStore.$state) // Mark as saved
+    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot()) // Mark as saved
 
     uiStore.openCart()
   } catch (error) {

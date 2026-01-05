@@ -25,18 +25,102 @@ export function useCanvasRenderer() {
   const error = ref<string | null>(null)
 
   /**
+   * Convert a blob URL to a data URL
+   */
+  async function blobUrlToDataUrl(blobUrl: string): Promise<string> {
+    const response = await fetch(blobUrl)
+    const blob = await response.blob()
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  }
+
+  /**
    * Wait for all images in an element to load
    */
   async function waitForImages(element: HTMLElement): Promise<void> {
     const images = element.querySelectorAll('img')
+
+    // Wait for all images to load
     const imagePromises = Array.from(images).map((img) => {
-      if (img.complete) return Promise.resolve()
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve()
       return new Promise<void>((resolve) => {
         img.onload = () => resolve()
         img.onerror = () => resolve() // Don't fail on image error
+        // Timeout fallback in case events don't fire
+        setTimeout(resolve, 1000)
       })
     })
     await Promise.all(imagePromises)
+    // Additional small delay to ensure browser has painted
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  /**
+   * Clone element and convert blob URLs to data URLs for reliable rendering
+   */
+  async function prepareElementForRender(element: HTMLElement): Promise<HTMLElement> {
+    // Get computed styles and dimensions from original
+    const rect = element.getBoundingClientRect()
+    const computedStyle = window.getComputedStyle(element)
+
+    // Clone the element
+    const clone = element.cloneNode(true) as HTMLElement
+
+    // Create a wrapper to maintain container query context
+    const wrapper = document.createElement('div')
+    wrapper.style.position = 'fixed'
+    wrapper.style.left = '-9999px'
+    wrapper.style.top = '0'
+    wrapper.style.width = `${rect.width}px`
+    wrapper.style.height = `${rect.height}px`
+    wrapper.style.overflow = 'hidden'
+    wrapper.style.containerType = 'size' // Enable container queries
+
+    // Apply explicit dimensions to clone to preserve layout
+    clone.style.width = `${rect.width}px`
+    clone.style.height = `${rect.height}px`
+    clone.style.position = 'relative'
+    clone.style.left = '0'
+    clone.style.top = '0'
+
+    // Copy background color
+    clone.style.backgroundColor = computedStyle.backgroundColor
+
+    wrapper.appendChild(clone)
+    document.body.appendChild(wrapper)
+
+    // Convert blob URLs to data URLs in the clone
+    const images = clone.querySelectorAll('img')
+    for (const img of Array.from(images)) {
+      if (img.src.startsWith('blob:')) {
+        try {
+          const dataUrl = await blobUrlToDataUrl(img.src)
+          img.src = dataUrl
+          // Wait for the new src to load
+          await new Promise<void>((resolve) => {
+            if (img.complete && img.naturalWidth > 0) {
+              resolve()
+            } else {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+              // Timeout fallback
+              setTimeout(resolve, 500)
+            }
+          })
+        } catch (err) {
+          console.warn('[CanvasRenderer] Failed to convert blob URL:', err)
+        }
+      }
+    }
+
+    // Store wrapper reference on clone for cleanup
+    (clone as any).__wrapper = wrapper
+
+    return clone
   }
 
   /**
@@ -51,14 +135,19 @@ export function useCanvasRenderer() {
     isRendering.value = true
     error.value = null
 
+    let clone: HTMLElement | null = null
+
     try {
-      // Wait for images to load
+      // Wait for images to load in original element
       await waitForImages(element)
 
-      // Get actual dimensions
+      // Get actual dimensions from original element
       const rect = element.getBoundingClientRect()
       const width = Math.round(rect.width)
       const height = Math.round(rect.height)
+
+      // Prepare clone with blob URLs converted to data URLs
+      clone = await prepareElementForRender(element)
 
       // html-to-image options
       const renderOptions = {
@@ -72,8 +161,9 @@ export function useCanvasRenderer() {
         },
         backgroundColor,
         pixelRatio: 1, // We handle scaling manually
-        cacheBust: true,
+        cacheBust: false, // Don't cache bust - causes issues with blob URLs
         skipFonts: true, // Skip font loading issues
+        includeQueryParams: true,
         // Skip elements with this attribute
         filter: (node: HTMLElement) => {
           if (node.hasAttribute?.('data-html2canvas-ignore')) return false
@@ -81,11 +171,11 @@ export function useCanvasRenderer() {
         },
       }
 
-      // Generate PNG data URL
-      const dataUrl = await toPng(element, renderOptions)
+      // Generate PNG data URL from clone
+      const dataUrl = await toPng(clone, renderOptions)
 
-      // Generate blob
-      const blob = await toBlob(element, renderOptions)
+      // Generate blob from clone
+      const blob = await toBlob(clone, renderOptions)
       if (!blob) throw new Error('Failed to create blob')
 
       return {
@@ -100,16 +190,26 @@ export function useCanvasRenderer() {
       console.error('[CanvasRenderer] Error:', err)
       throw err
     } finally {
+      // Clean up clone and its wrapper
+      if (clone) {
+        const wrapper = (clone as any).__wrapper
+        if (wrapper && wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper)
+        } else if (clone.parentNode) {
+          clone.parentNode.removeChild(clone)
+        }
+      }
       isRendering.value = false
     }
   }
 
   /**
    * Generate a thumbnail (smaller version for history/previews)
+   * Uses JPEG format with compression to minimize storage size
    */
   async function generateThumbnail(
     element: HTMLElement,
-    maxSize = 300
+    maxSize = 150 // Reduced from 300 to save storage
   ): Promise<string> {
     const result = await renderElement(element, { scale: 1 })
 
@@ -132,6 +232,10 @@ export function useCanvasRenderer() {
     canvas.width = thumbWidth
     canvas.height = thumbHeight
 
+    // Fill with white background (for JPEG transparency)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, thumbWidth, thumbHeight)
+
     // Draw resized image
     const img = new Image()
     await new Promise<void>((resolve, reject) => {
@@ -142,7 +246,9 @@ export function useCanvasRenderer() {
 
     ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight)
 
-    return canvas.toDataURL('image/png', 0.8)
+    // Use JPEG with 0.6 quality for much smaller file size
+    // A 150px JPEG at 0.6 quality is typically 5-15KB vs 50-200KB PNG
+    return canvas.toDataURL('image/jpeg', 0.6)
   }
 
   /**

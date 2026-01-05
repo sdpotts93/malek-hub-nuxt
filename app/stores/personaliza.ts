@@ -7,8 +7,8 @@ import type { FrameStyle } from '~/types'
 
 export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
 
-// Image format options
-export type ImageFormat = '1:1' | '3:2' | '2:3' | '4:3' | '3:4'
+// Image format options (matches poster aspect ratios)
+export type ImageFormat = '1:1' | '7:5' | '5:7'
 
 // Map format to orientation for product lookup
 export type ImageOrientation = 'square' | 'horizontal' | 'vertical'
@@ -142,11 +142,9 @@ export const getOrientationFromFormat = (format: ImageFormat): ImageOrientation 
   switch (format) {
     case '1:1':
       return 'square'
-    case '4:3':
-    case '3:2':
+    case '7:5':
       return 'horizontal'
-    case '3:4':
-    case '2:3':
+    case '5:7':
     default:
       return 'vertical'
   }
@@ -156,16 +154,27 @@ export const getAspectRatio = (format: ImageFormat): number => {
   switch (format) {
     case '1:1':
       return 1
-    case '3:2':
-      return 3 / 2
-    case '2:3':
-      return 2 / 3
-    case '4:3':
-      return 4 / 3
-    case '3:4':
+    case '7:5':
+      return 7 / 5
+    case '5:7':
     default:
-      return 3 / 4
+      return 5 / 7
   }
+}
+
+// Detect best format based on image dimensions
+export const detectFormatFromDimensions = (width: number, height: number): ImageFormat => {
+  const ratio = width / height
+  // If close to square (within 10%), use 1:1
+  if (ratio >= 0.9 && ratio <= 1.1) {
+    return '1:1'
+  }
+  // If horizontal (wider than tall), use 7:5
+  if (ratio > 1) {
+    return '7:5'
+  }
+  // Otherwise vertical, use 5:7
+  return '5:7'
 }
 
 export const getDefaultSize = (orientation: ImageOrientation): PersonalizaSize => {
@@ -186,7 +195,7 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
   imageUrl: null,
   imageS3Url: null,
   imageDimensions: null,
-  imageFormat: '1:1',
+  imageFormat: '5:7',
   zoomLevel: 0,
   isUploadingToS3: false,
   croppedImageUrl: null,
@@ -203,7 +212,7 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
   marginColor: '#fafafa',
 
   // Poster settings
-  posterSize: '50x50',
+  posterSize: '30x40',
   frameStyle: null,
   hasFrame: true,
 
@@ -282,11 +291,21 @@ export const usePersonalizaStore = defineStore('personaliza', {
       this.isImageReady = false
       this.croppedImageUrl = null
       this.croppedBlob = null
+      this.cropCoordinates = null
 
-      // Load image to get dimensions
+      // Load image to get dimensions and auto-detect format
       const img = new Image()
       img.onload = () => {
         this.imageDimensions = { width: img.width, height: img.height }
+
+        // Auto-detect format based on image orientation
+        const detectedFormat = detectFormatFromDimensions(img.width, img.height)
+        this.imageFormat = detectedFormat
+
+        // Update poster size to match the new orientation
+        const orientation = getOrientationFromFormat(detectedFormat)
+        this.posterSize = getDefaultSize(orientation)
+
         this.checkSizeWarning()
       }
       img.src = this.imageUrl

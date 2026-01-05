@@ -108,7 +108,7 @@ export type DesignState = BirthPosterState | PersonalizaState
 
 // Personaliza types
 export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
-export type ImageFormat = '1:1' | '3:2' | '2:3' | '4:3' | '3:4'
+export type ImageFormat = '1:1' | '7:5' | '5:7'
 export type TextStyle = 'moderno' | 'clasico' | 'minimalista'
 export type SquareSize = '50x50'
 export type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
