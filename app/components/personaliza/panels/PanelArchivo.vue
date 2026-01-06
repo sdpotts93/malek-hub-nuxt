@@ -1,42 +1,31 @@
 <script setup lang="ts">
-import { Cropper, RectangleStencil } from 'vue-advanced-cropper'
-import 'vue-advanced-cropper/dist/style.css'
+import CropperJS from 'cropperjs'
+import 'cropperjs/dist/cropper.css'
 import type { ImageFormat } from '~/stores/personaliza'
 
 const store = usePersonalizaStore()
 const { uploadDesignImage } = useS3Upload()
 
-// File input ref
+// Refs
 const fileInput = ref<HTMLInputElement | null>(null)
-const cropperRef = ref<any>(null)
+const imageRef = ref<HTMLImageElement | null>(null)
+let cropper: CropperJS | null = null
 
 // Drag state
 const isDragging = ref(false)
 
-// Track if we're loading from saved state (to restore crop)
+// Track if we're loading from saved state
 const isRestoringCrop = ref(false)
 
-// Track if user is actively using the zoom slider (to prevent feedback loops)
-const isZoomingViaSlider = ref(false)
+// Track when cropper is ready (to avoid flash of unstyled image)
+const isCropperReady = ref(false)
 
 // Image source for cropper - use blob URL if available, fall back to S3 URL
 const cropperImageSrc = computed(() => store.imageUrl || store.imageS3Url)
 
-// Watch for when cropperImageSrc changes to an S3 URL (loading from history)
-// The @ready event may not re-fire when src changes on an already-mounted Cropper
-watch(cropperImageSrc, (newSrc, oldSrc) => {
-  // Only trigger when src changes to a new S3 URL (not blob)
-  // This indicates loading from history or autosave
-  if (newSrc && !newSrc.startsWith('blob:') && newSrc !== oldSrc) {
-    // Wait for the image to load in the Cropper before restoring crop
-    // The Cropper needs time to load the new image
-    setTimeout(() => {
-      if (cropperRef.value && store.cropCoordinates) {
-        restoreCropFromCoordinates()
-      }
-    }, 500)
-  }
-})
+// Zoom levels - calculated dynamically based on image/container ratio
+let minZoom = 0.1 // Will be set when cropper is ready (fit ratio)
+let maxZoom = 3 // Will be set when cropper is ready (3x fit ratio)
 
 // Format options with visual preview dimensions (5:7, 7:5, 1:1)
 const formatOptions: { id: ImageFormat; label: string; width: number; height: number }[] = [
@@ -47,6 +36,188 @@ const formatOptions: { id: ImageFormat; label: string; width: number; height: nu
 
 // Accepted file types
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif']
+
+// Initialize cropper when image is ready
+function initCropper() {
+  if (!imageRef.value || cropper) return
+
+  cropper = new CropperJS(imageRef.value, {
+    aspectRatio: store.aspectRatio,
+    viewMode: 1, // Restrict crop box to canvas
+    dragMode: 'move', // Move the image, not the crop box
+    autoCropArea: 1, // Full crop area
+    cropBoxMovable: false,
+    cropBoxResizable: false,
+    toggleDragModeOnDblclick: false,
+    guides: false,
+    center: false,
+    highlight: false,
+    background: false,
+    responsive: true,
+    restore: false,
+    checkCrossOrigin: true,
+    checkOrientation: false,
+    ready() {
+      // Restore saved state if available
+      if (store.cropCoordinates && store.zoomLevel > 0) {
+        restoreCropState()
+      } else {
+        // Set initial zoom to fit
+        resetToInitialState()
+      }
+      // Generate initial preview
+      generatePreview()
+      // Mark as ready to show the cropper
+      isCropperReady.value = true
+    },
+    cropend() {
+      if (!isRestoringCrop.value) {
+        saveCropState()
+        generatePreview()
+      }
+    },
+    zoom(event) {
+      // Prevent zoom beyond limits
+      const newRatio = event.detail.ratio
+      if (newRatio < minZoom || newRatio > maxZoom) {
+        event.preventDefault()
+        return
+      }
+
+      if (!isRestoringCrop.value) {
+        // Sync slider with zoom
+        const zoomPercent = Math.round(((newRatio - minZoom) / (maxZoom - minZoom)) * 100)
+        store.setZoomLevel(Math.max(0, Math.min(100, zoomPercent)))
+        saveCropState()
+        generatePreview()
+      }
+    },
+  })
+}
+
+// Calculate zoom limits based on image and container
+function calculateZoomLimits() {
+  if (!cropper) return
+
+  const containerData = cropper.getContainerData()
+  const imageData = cropper.getImageData()
+
+  // Calculate the zoom ratio to fit the image in the container
+  const fitRatio = Math.min(
+    containerData.width / imageData.naturalWidth,
+    containerData.height / imageData.naturalHeight
+  )
+
+  // Set zoom limits: min = fit ratio, max = 3x fit ratio
+  minZoom = fitRatio
+  maxZoom = fitRatio * 3
+}
+
+// Reset to initial state (fit image, zoom 0%)
+function resetToInitialState() {
+  if (!cropper) return
+
+  calculateZoomLimits()
+
+  // Set to fit ratio so image fills the container
+  cropper.zoomTo(minZoom)
+
+  const containerData = cropper.getContainerData()
+  const imageData = cropper.getImageData()
+
+  cropper.moveTo(
+    (containerData.width - imageData.naturalWidth * minZoom) / 2,
+    (containerData.height - imageData.naturalHeight * minZoom) / 2
+  )
+
+  store.setZoomLevel(0)
+}
+
+// Handle zoom slider
+function handleZoomSlider(e: Event) {
+  if (!cropper) return
+
+  const input = e.target as HTMLInputElement
+  const value = Number(input.value)
+
+  // Convert 0-100 to zoom ratio (1x to 3x)
+  const zoomRatio = minZoom + (value / 100) * (maxZoom - minZoom)
+
+  // Use zoomTo for absolute zoom
+  cropper.zoomTo(zoomRatio)
+  store.setZoomLevel(value)
+}
+
+// Save crop state for persistence
+function saveCropState() {
+  if (!cropper || isRestoringCrop.value) return
+
+  const canvasData = cropper.getCanvasData()
+  const imageData = cropper.getImageData()
+
+  // Save canvas data for restoration
+  store.setCropCoordinates({
+    left: canvasData.left,
+    top: canvasData.top,
+    width: canvasData.width,
+    height: canvasData.height,
+  })
+}
+
+// Restore crop state from saved data
+function restoreCropState() {
+  if (!cropper || !store.cropCoordinates) return
+
+  isRestoringCrop.value = true
+  calculateZoomLimits()
+
+  try {
+    // Restore zoom level
+    const zoomRatio = minZoom + (store.zoomLevel / 100) * (maxZoom - minZoom)
+    cropper.zoomTo(zoomRatio)
+
+    // Restore canvas position
+    cropper.setCanvasData({
+      left: store.cropCoordinates.left,
+      top: store.cropCoordinates.top,
+      width: store.cropCoordinates.width,
+      height: store.cropCoordinates.height,
+    })
+  } finally {
+    setTimeout(() => {
+      isRestoringCrop.value = false
+    }, 100)
+  }
+}
+
+// Generate cropped preview
+function generatePreview() {
+  if (!cropper) return
+
+  const canvas = cropper.getCroppedCanvas({
+    maxWidth: 1200,
+    maxHeight: 1200,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high',
+  })
+
+  if (canvas) {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        store.setCroppedImage(blob)
+      }
+    }, 'image/jpeg', 0.95)
+  }
+}
+
+// Destroy cropper
+function destroyCropper() {
+  isCropperReady.value = false
+  if (cropper) {
+    cropper.destroy()
+    cropper = null
+  }
+}
 
 // Handle file selection
 function handleFileSelect() {
@@ -83,6 +254,9 @@ async function processFile(file: File) {
     return
   }
 
+  // Destroy existing cropper before setting new image
+  destroyCropper()
+
   store.setImage(file)
 
   // Upload original image to S3 in background
@@ -92,7 +266,6 @@ async function processFile(file: File) {
     store.setImageS3Url(result.url)
   } catch (error) {
     console.error('[PanelArchivo] Failed to upload original to S3:', error)
-    // Don't block the user - they can still use blob URL for preview
   } finally {
     store.setIsUploadingToS3(false)
   }
@@ -100,6 +273,7 @@ async function processFile(file: File) {
 
 // Change image
 function handleChangeImage() {
+  destroyCropper()
   store.clearImage()
   nextTick(() => {
     fileInput.value?.click()
@@ -109,200 +283,14 @@ function handleChangeImage() {
 // Format selection
 function selectFormat(format: ImageFormat) {
   store.setImageFormat(format)
-  // Clear saved coordinates when format changes (aspect ratio is different)
   store.setCropCoordinates(null)
-  nextTick(() => {
-    resizeStencil()
-  })
-}
-
-// Handle zoom slider - uses working example pattern
-function handleZoomSlider(e: Event) {
-  const input = e.target as HTMLInputElement
-  const targetValue = Number(input.value) / 100 // Convert 0-100 to 0-1 scale
-
-  const cropper = cropperRef.value
-  if (!cropper) return
-
-  const { coordinates, imageSize, sizeRestrictions } = cropper
-  if (!coordinates || !imageSize || !sizeRestrictions) return
-
-  // Mark that we're zooming via slider to prevent feedback loop
-  isZoomingViaSlider.value = true
-
-  // Calculate current zoom value (0-1 scale) and apply relative zoom
-  if (imageSize.height < imageSize.width) {
-    // Image is wider - constrain by height
-    const minHeight = sizeRestrictions.minHeight
-    const imageHeight = imageSize.height
-
-    // Current zoom: 0 = coordinates at max (imageHeight), 1 = at min (minHeight)
-    const currentZoomValue = (imageHeight - coordinates.height) / (imageHeight - minHeight)
-
-    // Calculate relative factor to go from current to target
-    const factor = (imageHeight - currentZoomValue * (imageHeight - minHeight)) /
-                   (imageHeight - targetValue * (imageHeight - minHeight))
-
-    cropper.zoom(factor)
-  } else {
-    // Image is taller - constrain by width
-    const minWidth = sizeRestrictions.minWidth
-    const imageWidth = imageSize.width
-
-    // Current zoom: 0 = coordinates at max (imageWidth), 1 = at min (minWidth)
-    const currentZoomValue = (imageWidth - coordinates.width) / (imageWidth - minWidth)
-
-    // Calculate relative factor to go from current to target
-    const factor = (imageWidth - currentZoomValue * (imageWidth - minWidth)) /
-                   (imageWidth - targetValue * (imageWidth - minWidth))
-
-    cropper.zoom(factor)
-  }
-
-  // Update store after zoom (not before, to match actual cropper state)
-  store.setZoomLevel(Number(input.value))
-
-  // Reset flag after a short delay
-  requestAnimationFrame(() => {
-    isZoomingViaSlider.value = false
-  })
-}
-
-// Resize stencil when format changes or cropper is ready
-async function resizeStencil() {
-  const cropper = cropperRef.value
-  if (!cropper) return
-
-  // If we have saved crop coordinates, restore them instead of resetting
-  if (store.cropCoordinates) {
-    isRestoringCrop.value = true
-    await new Promise(resolve => setTimeout(resolve, 100))
-    cropper.setCoordinates(store.cropCoordinates)
-    await new Promise(resolve => setTimeout(resolve, 50))
-    // Call refresh to ensure the cropper recalculates visible area
-    cropper.refresh()
-    await new Promise(resolve => setTimeout(resolve, 50))
-    // Generate preview after restore
-    const result = cropper.getResult()
-    if (result?.canvas) {
-      result.canvas.toBlob((blob: Blob | null) => {
-        if (blob) {
-          store.setCroppedImage(blob)
-        }
-        isRestoringCrop.value = false
-      }, 'image/jpeg', 0.95)
-    } else {
-      isRestoringCrop.value = false
-    }
-    return
-  }
-
-  // Reset zoom level to 0 when resetting the cropper
   store.setZoomLevel(0)
 
-  cropper.reset()
-  await new Promise(resolve => setTimeout(resolve, 100))
-
-  cropper.setCoordinates(({ imageSize }: any) => {
-    const aspectRatio = store.aspectRatio
-
-    let width: number
-    let height: number
-
-    // Calculate dimensions to fill the image while maintaining aspect ratio
-    if (imageSize.width / imageSize.height > aspectRatio) {
-      // Image is wider than aspect ratio - constrain by height
-      height = imageSize.height
-      width = height * aspectRatio
-    } else {
-      // Image is taller than aspect ratio - constrain by width
-      width = imageSize.width
-      height = width / aspectRatio
-    }
-
-    // Center the stencil in the full image
-    const left = (imageSize.width - width) / 2
-    const top = (imageSize.height - height) / 2
-
-    return {
-      left,
-      top,
-      width,
-      height,
-    }
-  })
-}
-
-// Handle crop change to generate preview, save coordinates, and sync zoom slider
-function handleCropChange() {
-  if (!cropperRef.value) return
-  // Skip saving coordinates during restoration to prevent overwriting good values
-  if (isRestoringCrop.value) return
-
-  const cropper = cropperRef.value
-  const { coordinates, imageSize, sizeRestrictions } = cropper
-
-  if (!coordinates || !imageSize) return
-
-  // Sync zoom slider with actual cropper state (unless we're actively using slider)
-  if (!isZoomingViaSlider.value && sizeRestrictions) {
-    let zoomValue: number
-
-    if (imageSize.width / imageSize.height > coordinates.width / coordinates.height) {
-      // Image is wider than stencil - constrained by height
-      zoomValue = (imageSize.height - coordinates.height) / (imageSize.height - sizeRestrictions.minHeight)
-    } else {
-      // Image is taller than stencil - constrained by width
-      zoomValue = (imageSize.width - coordinates.width) / (imageSize.width - sizeRestrictions.minWidth)
-    }
-
-    // Convert to 0-100 scale and clamp
-    const zoomPercent = Math.max(0, Math.min(100, Math.round(zoomValue * 100)))
-    store.setZoomLevel(zoomPercent)
-  }
-
-  // Save crop coordinates for persistence
-  store.setCropCoordinates({
-    left: coordinates.left,
-    top: coordinates.top,
-    width: coordinates.width,
-    height: coordinates.height,
-  })
-
-  // Generate blob for live preview
-  const result = cropper.getResult()
-  if (result?.canvas) {
-    result.canvas.toBlob((blob: Blob | null) => {
-      if (blob) {
-        store.setCroppedImage(blob)
-      }
-    }, 'image/jpeg', 0.95)
-  }
-}
-
-// Restore crop coordinates when loading a saved design
-async function restoreCropFromCoordinates() {
-  if (!cropperRef.value || !store.cropCoordinates) return
-
-  isRestoringCrop.value = true
-  cropperRef.value.setCoordinates(store.cropCoordinates)
-
-  await new Promise(resolve => setTimeout(resolve, 50))
-  // Call refresh to ensure the cropper recalculates visible area
-  cropperRef.value.refresh()
-  await new Promise(resolve => setTimeout(resolve, 50))
-
-  // Generate the cropped preview after restoring
-  const result = cropperRef.value?.getResult()
-  if (result?.canvas) {
-    result.canvas.toBlob((blob: Blob | null) => {
-      if (blob) {
-        store.setCroppedImage(blob)
-      }
-      isRestoringCrop.value = false
-    }, 'image/jpeg', 0.95)
-  } else {
-    isRestoringCrop.value = false
+  // Update cropper aspect ratio
+  if (cropper) {
+    cropper.setAspectRatio(store.aspectRatio)
+    resetToInitialState()
+    generatePreview()
   }
 }
 
@@ -310,6 +298,30 @@ async function restoreCropFromCoordinates() {
 function acknowledgeWarning() {
   store.acknowledgeSizeWarning()
 }
+
+// Watch for image source changes
+watch(cropperImageSrc, (newSrc, oldSrc) => {
+  if (newSrc && newSrc !== oldSrc) {
+    // Destroy old cropper
+    destroyCropper()
+
+    // Wait for image to load then init cropper
+    nextTick(() => {
+      if (imageRef.value) {
+        // If image already loaded, init immediately
+        if (imageRef.value.complete) {
+          initCropper()
+        }
+        // Otherwise wait for load event (handled by @load)
+      }
+    })
+  }
+})
+
+// Cleanup on unmount
+onBeforeUnmount(() => {
+  destroyCropper()
+})
 </script>
 
 <template>
@@ -377,27 +389,16 @@ function acknowledgeWarning() {
       <div class="panel-archivo__cropper-section">
         <div
           class="panel-archivo__cropper-container"
-          :class="{ 'panel-archivo__cropper-container--no-transition': isZoomingViaSlider }"
+          :class="{ 'panel-archivo__cropper-container--ready': isCropperReady }"
         >
-          <Cropper
-            ref="cropperRef"
+          <img
+            ref="imageRef"
             :src="cropperImageSrc"
-            :stencil-component="RectangleStencil"
-            :stencil-props="{
-              handlers: {},
-              aspectRatio: store.aspectRatio,
-              resizable: false,
-              movable: false
-            }"
-            :image-restriction="'stencil'"
-            :resize-image="{
-              adjustStencil: false
-            }"
-            :transitions="false"
-            :debounce="false"
-            @ready="resizeStencil"
-            @change="handleCropChange"
-          />
+            alt="Crop preview"
+            class="panel-archivo__cropper-image"
+            crossorigin="anonymous"
+            @load="initCropper"
+          >
         </div>
       </div>
 
@@ -430,7 +431,7 @@ function acknowledgeWarning() {
         <h3 class="panel-archivo__section-title">Zoom &amp; Crop</h3>
         <div
           class="panel-archivo__slider-wrapper"
-          :style="{ '--progress': store.zoomLevel + '%' }"
+          :style="{ '--progress': store.zoomLevel + '%', '--zoom': store.zoomLevel / 100 }"
         >
           <input
             type="range"
@@ -439,11 +440,6 @@ function acknowledgeWarning() {
             :value="store.zoomLevel"
             class="panel-archivo__slider"
             @input="handleZoomSlider"
-            @mousedown="isZoomingViaSlider = true"
-            @mouseup="isZoomingViaSlider = false"
-            @mouseleave="isZoomingViaSlider = false"
-            @touchstart="isZoomingViaSlider = true"
-            @touchend="isZoomingViaSlider = false"
           >
           <span class="panel-archivo__slider-value">{{ store.zoomLevel }}%</span>
         </div>
@@ -492,8 +488,6 @@ function acknowledgeWarning() {
 </template>
 
 <style lang="scss" scoped>
-
-
 .panel-archivo {
   display: flex;
   flex-direction: column;
@@ -537,10 +531,6 @@ function acknowledgeWarning() {
       fill: $color-icon-fill;
     }
   }
-
-  // &__title-icon-fill {
-  //   fill: #FFCBA3;
-  // }
 
   &__description {
     font-family: $font-primary;
@@ -798,7 +788,7 @@ function acknowledgeWarning() {
     line-height: 24px;
     color: #181d27;
     white-space: nowrap;
-    transform: translateX(-50%);
+    transform: translateX(calc(-100% * var(--zoom)));
     pointer-events: none;
   }
 
@@ -812,11 +802,20 @@ function acknowledgeWarning() {
 
   &__cropper-container {
     width: 100%;
-    aspect-ratio: 1;
     height: 170px;
     border-radius: 8px;
     overflow: hidden;
     background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__cropper-image {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
   }
 
   // Change image button
@@ -897,18 +896,31 @@ function acknowledgeWarning() {
   }
 }
 
-// Cropper overrides
-:deep(.vue-advanced-cropper__background) {
-  background-color: #1a1a1a;
+// Cropper.js overrides
+:deep(.cropper-container) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
-:deep(.vue-rectangle-stencil) {
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px dashed rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-  }
+:deep(.cropper-view-box) {
+  outline: none;
+  border: 2px dashed white;
+}
+
+:deep(.cropper-face) {
+  background-color: transparent;
+}
+
+:deep(.cropper-modal) {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+:deep(.cropper-line),
+:deep(.cropper-point) {
+  display: none;
+}
+
+:deep(.cropper-dashed) {
+  display: none;
 }
 </style>
