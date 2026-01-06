@@ -245,7 +245,7 @@ function acknowledgeWarning() {
       >
         <div class="panel-archivo__upload-icon">
           <img
-            src="/personaliza/icon/image-add.svg"
+            src="/personaliza-icons/icon/image-add.svg"
             alt="Upload"
             width="43"
             height="43"
