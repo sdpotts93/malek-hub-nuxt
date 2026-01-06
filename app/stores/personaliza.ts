@@ -466,11 +466,6 @@ export async function generateHighResComposite(
     // cqi = container query inline = 1% of container WIDTH (always width in horizontal writing mode)
     const inlineSize = width
 
-    // Text container area (matching CSS positioning)
-    const textAreaHeight = paddingBottom
-    const textAreaY = height - paddingBottom
-    const textCenterY = textAreaY + textAreaHeight / 2
-
     // Calculate font sizes
     const titleFontSize = Math.round(inlineSize * fontSizes.title)
     const subtitleFontSize = Math.round(inlineSize * fontSizes.subtitle)
@@ -485,12 +480,38 @@ export async function generateHighResComposite(
     const titleBoxHeight = titleFontSize * titleLineHeight
     const subtitleBoxHeight = subtitleFontSize * subtitleLineHeight
 
-    // Calculate total text height to center vertically
+    // Calculate total text height
     let totalTextHeight = 0
     if (title) totalTextHeight += titleBoxHeight
     if (subtitle) totalTextHeight += subtitleBoxHeight
 
-    let currentY = textCenterY - totalTextHeight / 2
+    // Calculate starting Y position for text
+    let currentY: number
+
+    if (hasMargin) {
+      // With margin: center text vertically within the bottom padding area
+      const textAreaCenterY = height - paddingBottom / 2
+      currentY = textAreaCenterY - totalTextHeight / 2
+    } else {
+      // No margin: text floats at bottom with just padding (CSS: height: auto, bottom: 0)
+      // IMPORTANT: CSS percentage padding is calculated based on WIDTH, not height!
+      // CSS padding-bottom values: 5% (vertical), 3.5% (square), 2.5% (horizontal)
+      let noMarginBottomPadding: number
+      switch (orientation) {
+        case 'square':
+          noMarginBottomPadding = width * 0.035
+          break
+        case 'horizontal':
+          noMarginBottomPadding = width * 0.025
+          break
+        case 'vertical':
+        default:
+          noMarginBottomPadding = width * 0.05
+          break
+      }
+      // Position text so its bottom edge is at (height - bottomPadding)
+      currentY = height - noMarginBottomPadding - totalTextHeight
+    }
 
     // Draw title
     if (title) {
