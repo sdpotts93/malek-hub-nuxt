@@ -11,10 +11,13 @@ defineProps<Props>()
 <template>
   <div class="design-panel-wrapper">
     <Transition name="fade" mode="out-in">
-      <PersonalizaPanelsPanelArchivo v-if="activePanel === 'archivo'" key="archivo" />
-      <PersonalizaPanelsPanelTexto v-else-if="activePanel === 'texto'" key="texto" />
-      <PersonalizaPanelsPanelMedidas v-else-if="activePanel === 'medidas'" key="medidas" />
-      <PersonalizaPanelsPanelMarco v-else-if="activePanel === 'marco'" key="marco" />
+      <!-- Only keep PanelArchivo alive (has CropperJS that's expensive to reinit) -->
+      <KeepAlive include="PersonalizaPanelsPanelArchivo">
+        <PersonalizaPanelsPanelArchivo v-if="activePanel === 'archivo'" key="archivo" />
+        <PersonalizaPanelsPanelTexto v-else-if="activePanel === 'texto'" key="texto" />
+        <PersonalizaPanelsPanelMedidas v-else-if="activePanel === 'medidas'" key="medidas" />
+        <PersonalizaPanelsPanelMarco v-else-if="activePanel === 'marco'" key="marco" />
+      </KeepAlive>
     </Transition>
   </div>
 </template>
@@ -28,7 +31,7 @@ defineProps<Props>()
   }
 }
 
-// Panel transition - smooth crossfade with subtle slide (desktop only)
+// Panel transition
 .fade-enter-active {
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 

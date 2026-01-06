@@ -3,6 +3,10 @@ import CropperJS from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import type { ImageFormat } from '~/stores/personaliza'
 
+defineOptions({
+  name: 'PersonalizaPanelsPanelArchivo',
+})
+
 const store = usePersonalizaStore()
 const { uploadDesignImage } = useS3Upload()
 
