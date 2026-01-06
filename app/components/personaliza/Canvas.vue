@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isColorDark } from '~/stores/personaliza'
+
 const store = usePersonalizaStore()
 
 // Check if image is loading (has source but no cropped preview yet)
@@ -43,6 +45,11 @@ const hasText = computed(() => {
   return !!(store.title || store.subtitle)
 })
 
+// Check if margin color is dark (for text contrast)
+const isDarkMargin = computed(() => {
+  return store.hasMargin && isColorDark(store.marginColor)
+})
+
 // Calculate padding multiplier based on orientation (matching malekcustomposter logic)
 // This is the base value used for calculating padding percentages
 const paddingMultiplierType = computed(() => {
@@ -68,6 +75,7 @@ const paddingMultiplierType = computed(() => {
         'personaliza-canvas--has-frame': store.frameStyle,
         'personaliza-canvas--has-text': hasText,
         'personaliza-canvas--has-margin': store.hasMargin,
+        'personaliza-canvas--dark-margin': isDarkMargin,
         [`personaliza-canvas--padding-${paddingMultiplierType}`]: store.hasMargin
       }
     ]"
@@ -403,6 +411,16 @@ $padding-bottom-with-text: 12.143%;
     letter-spacing: 0.28em;
     text-transform: uppercase;
     white-space: nowrap; // Prevent text wrapping in high-res export
+  }
+
+  // ==========================================================================
+  // Dark margin - white text for contrast
+  // ==========================================================================
+  &--dark-margin {
+    .personaliza-canvas__title,
+    .personaliza-canvas__subtitle {
+      color: #ffffff;
+    }
   }
 
   // ==========================================================================

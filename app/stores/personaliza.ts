@@ -69,7 +69,8 @@ export const PERSONALIZA_SIZES: Record<ImageOrientation, Record<string, SizeData
 
 // Background/margin colors (reuse from birth poster)
 export const MARGIN_COLORS = [
-  { id: 'white', name: 'Blanco', hex: '#fafafa' },
+  { id: 'white', name: 'Blanco', hex: '#ffffff' },
+  { id: 'black', name: 'Negro', hex: '#000000' },
   { id: 'cream-1', name: 'Crema', hex: '#f8f6f2' },
   { id: 'cream-2', name: 'Crema claro', hex: '#faf8f4' },
   { id: 'light-blue', name: 'Azul claro', hex: '#d9ebf1' },
@@ -78,6 +79,16 @@ export const MARGIN_COLORS = [
   { id: 'gray', name: 'Gris', hex: '#d2d3d4' },
   { id: 'peach', name: 'Durazno', hex: '#fbf1e8' },
 ]
+
+// Helper to determine if a color is dark (for text contrast)
+export const isColorDark = (hex: string): boolean => {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  // Using relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance < 0.5
+}
 
 // Shopify product IDs for each orientation
 export const PRODUCT_IDS = {
@@ -227,7 +238,7 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
 
   // Margin state
   hasMargin: true,
-  marginColor: '#fafafa',
+  marginColor: '#ffffff',
 
   // Poster settings
   posterSize: '30x40',
@@ -562,32 +573,7 @@ export const usePersonalizaStore = defineStore('personaliza', {
       if (this.imageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.imageUrl)
       if (this.croppedImageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.croppedImageUrl)
 
-      // Use explicit property assignment to ensure all fields are set correctly,
-      // especially frameStyle and nested objects which can have reactivity issues with $patch
-      this.$patch({
-        imageFile: state.imageFile ?? null,
-        imageUrl: state.imageUrl ?? null,
-        imageS3Url: state.imageS3Url ?? null,
-        imageDimensions: state.imageDimensions ? { ...state.imageDimensions } : null,
-        imageFormat: state.imageFormat ?? this.imageFormat,
-        zoomLevel: state.zoomLevel ?? this.zoomLevel,
-        isUploadingToS3: state.isUploadingToS3 ?? false,
-        croppedImageUrl: state.croppedImageUrl ?? null,
-        croppedBlob: state.croppedBlob ?? null,
-        cropCoordinates: state.cropCoordinates ? { ...state.cropCoordinates } : null,
-        textStyle: state.textStyle ?? this.textStyle,
-        title: state.title ?? this.title,
-        subtitle: state.subtitle ?? this.subtitle,
-        hasMargin: state.hasMargin ?? this.hasMargin,
-        marginColor: state.marginColor ?? this.marginColor,
-        posterSize: state.posterSize ?? this.posterSize,
-        frameStyle: state.frameStyle ? { ...state.frameStyle } : null, // Explicitly handle frameStyle
-        hasFrame: state.hasFrame ?? this.hasFrame,
-        activePanel: state.activePanel ?? this.activePanel,
-        showSizeWarning: state.showSizeWarning ?? false,
-        sizeWarningAcknowledged: state.sizeWarningAcknowledged ?? false,
-        isImageReady: state.isImageReady ?? false,
-      })
+      this.$patch(state)
     },
 
     // Get state snapshot for saving (excluding File, Blob, and transient state)

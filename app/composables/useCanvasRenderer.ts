@@ -254,9 +254,11 @@ export function useCanvasRenderer() {
     element: HTMLElement,
     maxSize = 200 // Match cart thumbnail size
   ): Promise<string> {
+    // Use element's computed background color
+    const computedBg = window.getComputedStyle(element).backgroundColor
     // Use scale 2 for standalone thumbnails (faster, less memory)
-    const result = await renderElement(element, { scale: 2 })
-    return resizeToThumbnail(result.dataUrl, maxSize)
+    const result = await renderElement(element, { scale: 2, backgroundColor: computedBg })
+    return resizeToThumbnail(result.dataUrl, maxSize, computedBg)
   }
 
   /**
@@ -265,7 +267,8 @@ export function useCanvasRenderer() {
    */
   async function resizeToThumbnail(
     imageDataUrl: string,
-    maxSize = 150
+    maxSize = 150,
+    backgroundColor = '#ffffff'
   ): Promise<string> {
     // Load the image to get dimensions
     const img = new Image()
@@ -294,8 +297,8 @@ export function useCanvasRenderer() {
     canvas.width = thumbWidth
     canvas.height = thumbHeight
 
-    // Fill with white background (for JPEG transparency)
-    ctx.fillStyle = '#ffffff'
+    // Fill with background color (for JPEG transparency)
+    ctx.fillStyle = backgroundColor
     ctx.fillRect(0, 0, thumbWidth, thumbHeight)
 
     // Draw resized image
@@ -311,13 +314,16 @@ export function useCanvasRenderer() {
    * Print-ready files should be generated server-side with proper dimensions.
    */
   async function generatePosterImage(
-    element: HTMLElement
+    element: HTMLElement,
+    backgroundColor?: string
   ): Promise<RenderResult> {
     // Use 6x scale for high quality image
     // Higher scales (10+) can cause SVG filter rendering issues in some browsers
+    // Use element's computed background color if not specified
+    const computedBg = backgroundColor ?? window.getComputedStyle(element).backgroundColor
     return renderElement(element, {
       scale: 6,
-      backgroundColor: '#ffffff',
+      backgroundColor: computedBg,
     })
   }
 
