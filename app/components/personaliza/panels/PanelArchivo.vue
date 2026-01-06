@@ -2,6 +2,7 @@
 import CropperJS from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import type { ImageFormat } from '~/stores/personaliza'
+import { registerCropper, unregisterCropper } from '~/stores/personaliza'
 
 defineOptions({
   name: 'PersonalizaPanelsPanelArchivo',
@@ -69,6 +70,10 @@ function initCropper() {
     checkCrossOrigin: true,
     checkOrientation: false,
     ready() {
+      // Register cropper instance for high-res export
+      if (cropper) {
+        registerCropper(cropper)
+      }
       // Restore saved state if available
       if (store.cropCoordinates && store.zoomLevel > 0) {
         restoreCropState()
@@ -235,6 +240,8 @@ function generatePreviewDebounced() {
 // Destroy cropper
 function destroyCropper() {
   isCropperReady.value = false
+  // Unregister from global registry
+  unregisterCropper()
   // Clear any pending debounced preview
   if (previewDebounceTimer) {
     clearTimeout(previewDebounceTimer)
@@ -357,6 +364,30 @@ watch(cropperImageSrc, (newSrc, oldSrc) => {
     })
   }
 })
+
+// Watch for crop coordinates changes from loading saved state with same image
+// This handles the case where user selects a thumbnail with the same image
+watch(
+  () => store.cropCoordinates,
+  (newCoords) => {
+    // Only act if cropper is ready and we have new coordinates and not already restoring
+    if (cropper && isCropperReady.value && newCoords && !isRestoringCrop.value) {
+      // Check if coordinates differ from current canvas data
+      const currentCanvas = cropper.getCanvasData()
+      const hasSignificantChange =
+        Math.abs(newCoords.left - currentCanvas.left) > 1 ||
+        Math.abs(newCoords.top - currentCanvas.top) > 1 ||
+        Math.abs(newCoords.width - currentCanvas.width) > 1 ||
+        Math.abs(newCoords.height - currentCanvas.height) > 1
+
+      if (hasSignificantChange) {
+        restoreCropState()
+        generatePreview()
+      }
+    }
+  },
+  { deep: true }
+)
 
 // Cleanup on unmount
 onBeforeUnmount(() => {

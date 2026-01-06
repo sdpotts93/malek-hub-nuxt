@@ -9,7 +9,7 @@ import { useCartStore } from '~/stores/cart'
 import { useBirthPosterStore } from '~/stores/birthPoster'
 import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
-import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, getOrientationFromFormat } from '~/stores/personaliza'
+import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, getOrientationFromFormat, generateHighResCrop } from '~/stores/personaliza'
 
 // Validation result
 interface ValidationResult {
@@ -308,7 +308,30 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate images from the canvas element
+      // 2. Generate high-res crop from CropperJS (4000x4000 max)
+      // This ensures we use the original image at full resolution
+      const { usePersonalizaStore } = await import('~/stores/personaliza')
+      const personalizaStore = usePersonalizaStore()
+
+      const highResCropBlob = await generateHighResCrop()
+      if (!highResCropBlob) {
+        throw new Error('No se pudo generar la imagen de alta resolución. Asegúrate de que la imagen esté cargada.')
+      }
+
+      // 3. Temporarily swap the cropped image with high-res version
+      // Save current preview for restoration
+      const originalCroppedUrl = personalizaStore.croppedImageUrl
+      const originalCroppedBlob = personalizaStore.croppedBlob
+
+      // Set high-res version
+      personalizaStore.setCroppedImage(highResCropBlob)
+
+      // Wait for canvas to update with high-res image
+      await nextTick()
+      // Small delay to ensure image is loaded in canvas
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // 4. Generate images from the canvas element (now using high-res crop)
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
@@ -318,11 +341,20 @@ export function useShopifyCart() {
         renderer.generateThumbnail(canvasElement, 200), // 200px max dimension
       ])
 
+      // 5. Restore original preview (don't leave high-res in memory)
+      if (originalCroppedBlob) {
+        personalizaStore.setCroppedImage(originalCroppedBlob)
+      } else if (originalCroppedUrl) {
+        // If we only had the URL, regenerate from the cropper
+        // This shouldn't happen in normal flow, but just in case
+        console.warn('[ShopifyCart] Restoring from URL, preview may be regenerated')
+      }
+
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
 
-      // 3. Upload both to S3 (custom-prints bucket)
+      // 6. Upload both to S3 (custom-prints bucket)
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
@@ -331,12 +363,12 @@ export function useShopifyCart() {
         uploader.uploadDesignImage(thumbnailBlob, 'personaliza-thumb', 'custom-prints'),
       ])
 
-      // 4. Build description from state
+      // 7. Build description from state
       const orientation = getOrientationFromFormat(state.imageFormat)
       const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = state.title ? `"${state.title}"` : 'Sin texto'
 
-      // 5. Add to Shopify cart with attributes
+      // 8. Add to Shopify cart with attributes
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },

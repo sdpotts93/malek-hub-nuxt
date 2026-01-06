@@ -154,10 +154,10 @@ $padding-bottom-with-text: 12.143%;
   // Frame extends outside the canvas
   &__frame {
     position: absolute;
-    inset: -21%;
+    inset: -21.1%;
     z-index: 10;
     pointer-events: none;
-    transform: translate(3px, 5px);
+    transform: translate(0.1%, 0.7%);
   }
 
   &__frame-image {
@@ -182,8 +182,8 @@ $padding-bottom-with-text: 12.143%;
     }
 
     .personaliza-canvas__frame {
-      inset: -21%;
-      transform: translate(0.3%, 0.8%);
+      inset: -31%;
+      transform: translate(0.3%, 0%);    
     }
   }
 
@@ -199,7 +199,7 @@ $padding-bottom-with-text: 12.143%;
     }
 
     .personaliza-canvas__frame {
-      inset: -30%;
+      inset: -40.5%;
       transform: translate(0.3%, 0.8%);
     }
   }
@@ -286,7 +286,7 @@ $padding-bottom-with-text: 12.143%;
   &--padding-width-scaled.personaliza-canvas--has-margin.personaliza-canvas--has-text {
     .personaliza-canvas__content {
       // 12.143% of (width * 1.4) for bottom padding
-      padding-bottom: calc(100cqw * 1.4 * 0.12143);
+      padding-bottom: calc(92cqw * 1.4 * 0.12143);
     }
 
     .personaliza-canvas__text-container {
@@ -385,7 +385,8 @@ $padding-bottom-with-text: 12.143%;
   &__title {
     margin: 0;
     font-size: 3cqi;
-    line-height: 1.3;
+    line-height: 1.5;
+    letter-spacing: 0.12em;
     color: #1a1a1a;
     text-transform: uppercase;
   }
@@ -393,12 +394,12 @@ $padding-bottom-with-text: 12.143%;
   &__subtitle {
     margin: 0;
     font-size: 2cqi;
-    line-height: 1.3;
-    color: #666666;
+    line-height: 2.1em;
+    color: #000;
     // Subtitle is ALWAYS Avenir 300 uppercase (matching malekcustomposter)
     font-family: $font-minimal;
     font-weight: $font-weight-light;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
   }
 
@@ -409,12 +410,52 @@ $padding-bottom-with-text: 12.143%;
     .personaliza-canvas__text-container {
       // No extra height/padding when no margin - text floats at bottom of image
       height: auto;
-      padding: 3% $padding-side;
+      padding: 5% $padding-side;
     }
 
     .personaliza-canvas__title,
     .personaliza-canvas__subtitle {
       color: #ffffff;
+    }
+
+    // Square orientation - adjusted padding
+    &.personaliza-canvas--square {
+      .personaliza-canvas__text-container {
+        padding-bottom: 3.5%;
+      }
+    }
+
+    // Horizontal orientation - adjusted padding
+    &.personaliza-canvas--horizontal {
+      .personaliza-canvas__text-container {
+        padding-bottom: 2.5%;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Orientation-specific font sizes (applies with or without margin)
+  // ==========================================================================
+
+  // Square orientation - font sizes
+  &--square {
+    .personaliza-canvas__title {
+      font-size: 2.14cqi;
+    }
+
+    .personaliza-canvas__subtitle {
+      font-size: 1.42cqi;
+    }
+  }
+
+  // Horizontal orientation - font sizes
+  &--horizontal {
+    .personaliza-canvas__title {
+      font-size: 1.5cqi;
+    }
+
+    .personaliza-canvas__subtitle {
+      font-size: 1cqi;
     }
   }
 
@@ -427,7 +468,6 @@ $padding-bottom-with-text: 12.143%;
     .personaliza-canvas__title {
       font-family: $font-primary;
       font-weight: $font-weight-semibold;
-      letter-spacing: 0.15em;
     }
   }
 
@@ -436,7 +476,6 @@ $padding-bottom-with-text: 12.143%;
     .personaliza-canvas__title {
       font-family: $font-serif;
       font-weight: $font-weight-normal;
-      letter-spacing: 0.05em;
     }
   }
 
@@ -445,8 +484,6 @@ $padding-bottom-with-text: 12.143%;
     .personaliza-canvas__title {
       font-family: $font-minimal;
       font-weight: $font-weight-light;
-      font-size: 2.5cqi;
-      letter-spacing: 0.2em;
     }
   }
 

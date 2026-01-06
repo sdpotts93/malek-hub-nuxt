@@ -36,6 +36,27 @@ function formatDate(date: Date): string {
 }
 
 function handleLoad(design: SavedDesign<PersonalizaState>) {
+  // Check if this design is already loaded (same image and crop coordinates)
+  const currentImageUrl = store.imageS3Url || store.imageUrl
+  const designImageUrl = design.state.imageS3Url || design.state.imageUrl
+  const isSameImage = currentImageUrl === designImageUrl
+
+  if (isSameImage && design.state.cropCoordinates && store.cropCoordinates) {
+    // Check if crop coordinates are the same (within threshold)
+    const coords = design.state.cropCoordinates
+    const currentCoords = store.cropCoordinates
+    const isSameCrop =
+      Math.abs(coords.left - currentCoords.left) <= 1 &&
+      Math.abs(coords.top - currentCoords.top) <= 1 &&
+      Math.abs(coords.width - currentCoords.width) <= 1 &&
+      Math.abs(coords.height - currentCoords.height) <= 1
+
+    if (isSameCrop) {
+      // Already loaded, no need to show loading state
+      return
+    }
+  }
+
   loadingDesignId.value = design.id
   emit('load', design.state)
 }

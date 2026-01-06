@@ -94,6 +94,24 @@ export interface CropCoordinates {
   height: number
 }
 
+// CropperJS instance type (minimal interface for what we need)
+export interface CropperInstance {
+  getCroppedCanvas(options?: {
+    maxWidth?: number
+    maxHeight?: number
+    imageSmoothingEnabled?: boolean
+    imageSmoothingQuality?: ImageSmoothingQuality
+  }): HTMLCanvasElement
+}
+
+// High-res crop settings
+const HIGH_RES_CROP_OPTIONS = {
+  maxWidth: 4000,
+  maxHeight: 4000,
+  imageSmoothingEnabled: true,
+  imageSmoothingQuality: 'high' as ImageSmoothingQuality,
+}
+
 // ==========================================================================
 // State Interface
 // ==========================================================================
@@ -222,6 +240,45 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
   sizeWarningAcknowledged: false,
   isImageReady: false,
 })
+
+// ==========================================================================
+// Cropper Instance Registry (outside Pinia for non-serializable data)
+// ==========================================================================
+
+let _cropperInstance: CropperInstance | null = null
+
+export function registerCropper(cropper: CropperInstance) {
+  _cropperInstance = cropper
+}
+
+export function unregisterCropper() {
+  _cropperInstance = null
+}
+
+export function getCropperInstance(): CropperInstance | null {
+  return _cropperInstance
+}
+
+/**
+ * Generate a high-resolution cropped image from the current cropper state.
+ * Returns a blob URL that can be used in the canvas for rendering.
+ * This should be called before generating the final poster image.
+ */
+export async function generateHighResCrop(): Promise<Blob | null> {
+  if (!_cropperInstance) {
+    console.error('[Personaliza] No cropper instance registered')
+    return null
+  }
+
+  return new Promise((resolve) => {
+    const canvas = _cropperInstance!.getCroppedCanvas(HIGH_RES_CROP_OPTIONS)
+    canvas.toBlob(
+      (blob) => resolve(blob),
+      'image/png',
+      1 // Max quality
+    )
+  })
+}
 
 // ==========================================================================
 // Store Definition

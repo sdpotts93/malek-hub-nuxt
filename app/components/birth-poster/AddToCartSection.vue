@@ -67,7 +67,7 @@ const { formatPrice } = useShopifyCart()
           </div>
           <span class="add-to-cart__review-text">
             <span class="add-to-cart__review-prefix">Más de</span>
-            <span class="add-to-cart__review-count">6000 reseñas</span>
+            <span class="add-to-cart__review-count">6,000 reseñas</span>
           </span>
         </div>
       </div>
