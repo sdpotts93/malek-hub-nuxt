@@ -273,6 +273,11 @@ async function handleAddToCart() {
       await nextTick()
       isMobileSheetOpen.value = true
     }
+    // Wait for panel transition then scroll to warning
+    await nextTick()
+    setTimeout(() => {
+      personalizaStore.triggerScrollToWarning()
+    }, 250) // Wait for panel transition animation
     return
   }
 

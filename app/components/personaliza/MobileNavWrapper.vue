@@ -586,7 +586,7 @@ function handleDelete(e: Event, id: string) {
     &--active {
       background: $color-brand-hover;
       border-color: $color-brand-light;
-      color: #fff8f2;
+      color: $color-brand-light;
 
       .mobile-nav-wrapper__nav-card-header svg {
         color: $color-brand-light; // Cream arrow for active state

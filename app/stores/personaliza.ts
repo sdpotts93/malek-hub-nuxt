@@ -205,6 +205,7 @@ export interface PersonalizaState {
   showSizeWarning: boolean
   sizeWarningAcknowledged: boolean
   isImageReady: boolean // True after image is uploaded and cropped
+  scrollToWarningTrigger: number // Increment to trigger scroll to warning
 }
 
 // ==========================================================================
@@ -294,6 +295,7 @@ export const createDefaultPersonalizaState = (): PersonalizaState => ({
   showSizeWarning: false,
   sizeWarningAcknowledged: false,
   isImageReady: false,
+  scrollToWarningTrigger: 0,
 })
 
 // ==========================================================================
@@ -838,6 +840,16 @@ export const usePersonalizaStore = defineStore('personaliza', {
     // Acknowledge size warning
     acknowledgeSizeWarning() {
       this.sizeWarningAcknowledged = true
+    },
+
+    // Set size warning acknowledged state (for checkbox toggle)
+    setSizeWarningAcknowledged(acknowledged: boolean) {
+      this.sizeWarningAcknowledged = acknowledged
+    },
+
+    // Trigger scroll to warning (increments trigger to cause watch to fire)
+    triggerScrollToWarning() {
+      this.scrollToWarningTrigger++
     },
 
     // Reset to default state

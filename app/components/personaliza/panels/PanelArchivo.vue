@@ -14,6 +14,7 @@ const { uploadDesignImage } = useS3Upload()
 // Refs
 const fileInput = ref<HTMLInputElement | null>(null)
 const imageRef = ref<HTMLImageElement | null>(null)
+const warningRef = ref<HTMLDivElement | null>(null)
 let cropper: CropperJS | null = null
 
 // Drag state
@@ -349,9 +350,10 @@ function selectFormat(format: ImageFormat) {
   }
 }
 
-// Acknowledge size warning
-function acknowledgeWarning() {
-  store.acknowledgeSizeWarning()
+// Acknowledge size warning (toggle based on checkbox state)
+function acknowledgeWarning(event: Event) {
+  const checkbox = event.target as HTMLInputElement
+  store.setSizeWarningAcknowledged(checkbox.checked)
 }
 
 // Watch for image source changes
@@ -408,6 +410,18 @@ watch(
       destroyCropper()
       nextTick(() => {
         initCropper()
+      })
+    }
+  }
+)
+
+// Watch for scroll to warning trigger
+watch(
+  () => store.scrollToWarningTrigger,
+  () => {
+    if (warningRef.value) {
+      nextTick(() => {
+        warningRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
     }
   }
@@ -512,6 +526,36 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
+      <!-- Size warning (below cropper) -->
+      <div
+        v-if="store.showSizeWarning"
+        ref="warningRef"
+        class="panel-archivo__warning"
+      >
+        <div class="panel-archivo__warning-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+          </svg>
+        </div>
+        <div class="panel-archivo__warning-content">
+          <p class="panel-archivo__warning-title">Resolucion baja</p>
+          <p class="panel-archivo__warning-text">
+            Tu imagen tiene una resolucion menor a la recomendada para el tamano seleccionado.
+            El resultado podria verse pixelado.
+          </p>
+          <label class="panel-archivo__warning-checkbox">
+            <input
+              type="checkbox"
+              :checked="store.sizeWarningAcknowledged"
+              @change="acknowledgeWarning"
+            >
+            <span>Entiendo y quiero continuar</span>
+          </label>
+        </div>
+      </div>
+
       <div class="panel-archivo__separator" />
 
       <!-- Format selector -->
@@ -563,35 +607,6 @@ onBeforeUnmount(() => {
         >
           Cambiar imagen
         </button>
-      </div>
-
-      <!-- Size warning -->
-      <div
-        v-if="store.showSizeWarning"
-        class="panel-archivo__warning"
-      >
-        <div class="panel-archivo__warning-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
-            <path d="M12 9v4"/>
-            <path d="M12 17h.01"/>
-          </svg>
-        </div>
-        <div class="panel-archivo__warning-content">
-          <p class="panel-archivo__warning-title">Resolucion baja</p>
-          <p class="panel-archivo__warning-text">
-            Tu imagen tiene una resolucion menor a la recomendada para el tamano seleccionado.
-            El resultado podria verse pixelado.
-          </p>
-          <label class="panel-archivo__warning-checkbox">
-            <input
-              type="checkbox"
-              :checked="store.sizeWarningAcknowledged"
-              @change="acknowledgeWarning"
-            >
-            <span>Entiendo y quiero continuar</span>
-          </label>
-        </div>
       </div>
     </template>
   </div>
@@ -1001,7 +1016,7 @@ onBeforeUnmount(() => {
     transition: background-color $transition-fast;
 
     @include hover {
-      background: #fff8f2;
+      background: $color-brand-light;
     }
   }
 
