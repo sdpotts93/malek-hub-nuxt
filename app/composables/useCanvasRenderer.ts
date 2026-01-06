@@ -252,7 +252,7 @@ export function useCanvasRenderer() {
    */
   async function generateThumbnail(
     element: HTMLElement,
-    maxSize = 150 // Reduced from 300 to save storage
+    maxSize = 200 // Match cart thumbnail size
   ): Promise<string> {
     // Use scale 2 for standalone thumbnails (faster, less memory)
     const result = await renderElement(element, { scale: 2 })
