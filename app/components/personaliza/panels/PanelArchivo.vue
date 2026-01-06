@@ -142,26 +142,57 @@ async function resizeStencil() {
 
   // If we have saved crop coordinates, restore them instead of resetting
   if (store.cropCoordinates) {
+    isRestoringCrop.value = true
     await new Promise(resolve => setTimeout(resolve, 100))
-    restoreCropFromCoordinates()
+    cropper.setCoordinates(store.cropCoordinates)
+    await new Promise(resolve => setTimeout(resolve, 50))
+    // Call refresh to ensure the cropper recalculates visible area
+    cropper.refresh()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    // Generate preview after restore
+    const result = cropper.getResult()
+    if (result?.canvas) {
+      result.canvas.toBlob((blob: Blob | null) => {
+        if (blob) {
+          store.setCroppedImage(blob)
+        }
+        isRestoringCrop.value = false
+      }, 'image/jpeg', 0.95)
+    } else {
+      isRestoringCrop.value = false
+    }
     return
   }
 
   cropper.reset()
   await new Promise(resolve => setTimeout(resolve, 100))
 
-  cropper.setCoordinates(({ imageSize }: any) => {
-    let width = imageSize.width
-    let height = width / store.aspectRatio
+  cropper.setCoordinates(({ imageSize, visibleArea }: any) => {
+    // Use visibleArea to calculate the stencil size to fill available space
+    const area = visibleArea || imageSize
+    const aspectRatio = store.aspectRatio
 
-    if (height > imageSize.height) {
-      height = imageSize.height
-      width = height * store.aspectRatio
+    let width: number
+    let height: number
+
+    // Calculate dimensions to fill the visible area while maintaining aspect ratio
+    if (area.width / area.height > aspectRatio) {
+      // Visible area is wider than aspect ratio - constrain by height
+      height = area.height
+      width = height * aspectRatio
+    } else {
+      // Visible area is taller than aspect ratio - constrain by width
+      width = area.width
+      height = width / aspectRatio
     }
 
+    // Center the stencil in the visible area
+    const left = visibleArea ? visibleArea.left + (area.width - width) / 2 : (imageSize.width - width) / 2
+    const top = visibleArea ? visibleArea.top + (area.height - height) / 2 : (imageSize.height - height) / 2
+
     return {
-      left: (imageSize.width - width) / 2,
-      top: (imageSize.height - height) / 2,
+      left,
+      top,
       width,
       height,
     }
@@ -171,6 +202,8 @@ async function resizeStencil() {
 // Handle crop change to generate preview and save coordinates
 function handleCropChange() {
   if (!cropperRef.value) return
+  // Skip saving coordinates during restoration to prevent overwriting good values
+  if (isRestoringCrop.value) return
 
   const result = cropperRef.value.getResult()
   if (!result.canvas || !result.coordinates) return
@@ -192,26 +225,29 @@ function handleCropChange() {
 }
 
 // Restore crop coordinates when loading a saved design
-function restoreCropFromCoordinates() {
+async function restoreCropFromCoordinates() {
   if (!cropperRef.value || !store.cropCoordinates) return
 
   isRestoringCrop.value = true
   cropperRef.value.setCoordinates(store.cropCoordinates)
 
+  await new Promise(resolve => setTimeout(resolve, 50))
+  // Call refresh to ensure the cropper recalculates visible area
+  cropperRef.value.refresh()
+  await new Promise(resolve => setTimeout(resolve, 50))
+
   // Generate the cropped preview after restoring
-  nextTick(() => {
-    const result = cropperRef.value?.getResult()
-    if (result?.canvas) {
-      result.canvas.toBlob((blob: Blob | null) => {
-        if (blob) {
-          store.setCroppedImage(blob)
-        }
-        isRestoringCrop.value = false
-      }, 'image/jpeg', 0.95)
-    } else {
+  const result = cropperRef.value?.getResult()
+  if (result?.canvas) {
+    result.canvas.toBlob((blob: Blob | null) => {
+      if (blob) {
+        store.setCroppedImage(blob)
+      }
       isRestoringCrop.value = false
-    }
-  })
+    }, 'image/jpeg', 0.95)
+  } else {
+    isRestoringCrop.value = false
+  }
 }
 
 // Acknowledge size warning
@@ -390,6 +426,30 @@ function acknowledgeWarning() {
 </template>
 
 <style lang="scss" scoped>
+
+::v-deep(.vue-preview__image.transition) {
+  transition: transform 0.5s ease; /* tweak here */
+}
+
+::v-deep(.vue-advanced-cropper__background) {
+  background-color: #383838;
+}
+
+::v-deep(.vue-rectangle-stencil::before) {
+  content: '';
+  position: absolute;
+
+  /* “inset” is shorthand for 
+     top/right/bottom/left: offset */
+  inset: 0px;                /* 👈 distance from the real edge */
+  z-index: 2;
+  border: 2px dashed white;    /* 👈 border colour & thickness   */
+  border-radius: inherit;    /* follow the knob’s roundness    */
+
+  pointer-events: none;      /* knob still gets the clicks      */
+  box-sizing: border-box;    /* default, keeps math predictable */
+}
+
 .panel-archivo {
   display: flex;
   flex-direction: column;
