@@ -431,6 +431,10 @@ onBeforeUnmount(() => {
           class="panel-archivo__cropper-container"
           :class="{ 'panel-archivo__cropper-container--ready': isCropperReady }"
         >
+          <!-- Skeleton loading while cropper initializes -->
+          <div v-if="!isCropperReady" class="panel-archivo__cropper-skeleton">
+            <div class="panel-archivo__cropper-skeleton-shimmer" />
+          </div>
           <img
             ref="imageRef"
             :src="cropperImageSrc"
@@ -861,6 +865,35 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  &__cropper-skeleton {
+    position: absolute;
+    inset: 0;
+    background: #2a2a2a;
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  &__cropper-skeleton-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    animation: cropper-shimmer 1.5s infinite;
+  }
+
+  @keyframes cropper-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   &__delete-btn {

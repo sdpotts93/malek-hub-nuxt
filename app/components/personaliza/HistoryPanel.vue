@@ -100,7 +100,7 @@ function handleDelete(e: Event, id: string) {
             <div v-else class="history-panel__placeholder" />
             <!-- Loading overlay -->
             <div v-if="loadingDesignId === design.id" class="history-panel__loading">
-              <div class="history-panel__loading-shimmer" />
+              <div class="history-panel__spinner" />
             </div>
           </div>
 
@@ -141,7 +141,7 @@ function handleDelete(e: Event, id: string) {
         <div v-else class="history-panel__placeholder" />
         <!-- Loading overlay -->
         <div v-if="loadingDesignId === design.id" class="history-panel__loading">
-          <div class="history-panel__loading-shimmer" />
+          <div class="history-panel__spinner" />
         </div>
       </button>
     </div>
@@ -291,28 +291,24 @@ function handleDelete(e: Event, id: string) {
   &__loading {
     position: absolute;
     inset: 0;
-    background: rgba(200, 200, 200, 0.9);
-    overflow: hidden;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  &__loading-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.7) 50%,
-      transparent 100%
-    );
-    animation: shimmer 1.5s infinite;
+  &__spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid $color-border;
+    border-top-color: $color-brand;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 
