@@ -381,6 +381,7 @@ $padding-bottom-with-text: 12.143%;
     font-size: 3cqi;
     line-height: 1.3;
     color: #1a1a1a;
+    text-transform: uppercase;
   }
 
   &__subtitle {
@@ -388,6 +389,11 @@ $padding-bottom-with-text: 12.143%;
     font-size: 2cqi;
     line-height: 1.3;
     color: #666666;
+    // Subtitle is ALWAYS Avenir 300 uppercase (matching malekcustomposter)
+    font-family: $font-minimal;
+    font-weight: $font-weight-light;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   // ==========================================================================
@@ -398,18 +404,16 @@ $padding-bottom-with-text: 12.143%;
       // No extra height/padding when no margin - text floats at bottom of image
       height: auto;
       padding: 3% $padding-side;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
     }
 
     .personaliza-canvas__title,
     .personaliza-canvas__subtitle {
       color: #ffffff;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
   }
 
   // ==========================================================================
-  // Text Style Variants
+  // Text Style Variants (only affects title - subtitle is always Avenir 300)
   // ==========================================================================
 
   // Moderno - DM Sans, font-weight 600
@@ -417,14 +421,7 @@ $padding-bottom-with-text: 12.143%;
     .personaliza-canvas__title {
       font-family: $font-primary;
       font-weight: $font-weight-semibold;
-      text-transform: uppercase;
       letter-spacing: 0.15em;
-    }
-
-    .personaliza-canvas__subtitle {
-      font-family: $font-primary;
-      font-weight: $font-weight-semibold;
-      letter-spacing: 0.1em;
     }
   }
 
@@ -435,12 +432,6 @@ $padding-bottom-with-text: 12.143%;
       font-weight: $font-weight-normal;
       letter-spacing: 0.05em;
     }
-
-    .personaliza-canvas__subtitle {
-      font-family: $font-serif;
-      font-weight: $font-weight-normal;
-      letter-spacing: 0.08em;
-    }
   }
 
   // Minimalista - Avenir, font-weight 300
@@ -450,14 +441,6 @@ $padding-bottom-with-text: 12.143%;
       font-weight: $font-weight-light;
       font-size: 2.5cqi;
       letter-spacing: 0.2em;
-      text-transform: uppercase;
-    }
-
-    .personaliza-canvas__subtitle {
-      font-family: $font-minimal;
-      font-weight: $font-weight-light;
-      font-size: 1.5cqi;
-      letter-spacing: 0.15em;
     }
   }
 
