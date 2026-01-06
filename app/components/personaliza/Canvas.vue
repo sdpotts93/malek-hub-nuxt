@@ -9,10 +9,16 @@ const isImageLoading = computed(() => {
 // Get the correct frame image based on orientation
 const currentFrameImage = computed(() => {
   if (!store.frameStyle) return null
-  // Use horizontal frame for horizontal orientation, vertical for others
-  return store.orientation === 'horizontal'
-    ? store.frameStyle.frameImageHorizontal
-    : store.frameStyle.frameImage
+  // Use appropriate frame based on orientation
+  switch (store.orientation) {
+    case 'horizontal':
+      return store.frameStyle.frameImageHorizontal
+    case 'square':
+      return store.frameStyle.frameImageSquare
+    case 'vertical':
+    default:
+      return store.frameStyle.frameImage
+  }
 })
 
 // Compute aspect ratio class based on format
@@ -183,6 +189,11 @@ $padding-bottom-with-text: 12.143%;
       height: auto;
       width: 70%;
     }
+
+    .personaliza-canvas__frame {
+      inset: -21%;
+      transform: translate(0.3%, 0.8%);
+    }
   }
 
   // Horizontal (7:5)
@@ -223,6 +234,8 @@ $padding-bottom-with-text: 12.143%;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    // Animate padding changes when margin is toggled
+    transition: padding 0.3s ease-out;
   }
 
   // ==========================================================================
@@ -374,6 +387,8 @@ $padding-bottom-with-text: 12.143%;
     padding: 0 $padding-side;
     // Default height when no orientation-specific override
     height: $padding-bottom-with-text;
+    // Animate height changes
+    transition: height 0.3s ease-out, padding 0.3s ease-out;
   }
 
   &__title {

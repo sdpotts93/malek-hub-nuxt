@@ -21,6 +21,7 @@ export interface FrameStyle {
   image: string // Thumbnail for selection panel
   frameImage: string // Actual frame image for canvas overlay (vertical)
   frameImageHorizontal: string // Horizontal frame image for 3-4 babies
+  frameImageSquare: string // Square frame image for 1:1 aspect ratio
   price: number
 }
 
