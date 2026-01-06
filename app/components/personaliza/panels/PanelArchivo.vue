@@ -167,28 +167,26 @@ async function resizeStencil() {
   cropper.reset()
   await new Promise(resolve => setTimeout(resolve, 100))
 
-  cropper.setCoordinates(({ imageSize, visibleArea }: any) => {
-    // Use visibleArea to calculate the stencil size to fill available space
-    const area = visibleArea || imageSize
+  cropper.setCoordinates(({ imageSize }: any) => {
     const aspectRatio = store.aspectRatio
 
     let width: number
     let height: number
 
-    // Calculate dimensions to fill the visible area while maintaining aspect ratio
-    if (area.width / area.height > aspectRatio) {
-      // Visible area is wider than aspect ratio - constrain by height
-      height = area.height
+    // Calculate dimensions to fill the image while maintaining aspect ratio
+    if (imageSize.width / imageSize.height > aspectRatio) {
+      // Image is wider than aspect ratio - constrain by height
+      height = imageSize.height
       width = height * aspectRatio
     } else {
-      // Visible area is taller than aspect ratio - constrain by width
-      width = area.width
+      // Image is taller than aspect ratio - constrain by width
+      width = imageSize.width
       height = width / aspectRatio
     }
 
-    // Center the stencil in the visible area
-    const left = visibleArea ? visibleArea.left + (area.width - width) / 2 : (imageSize.width - width) / 2
-    const top = visibleArea ? visibleArea.top + (area.height - height) / 2 : (imageSize.height - height) / 2
+    // Center the stencil in the full image
+    const left = (imageSize.width - width) / 2
+    const top = (imageSize.height - height) / 2
 
     return {
       left,
