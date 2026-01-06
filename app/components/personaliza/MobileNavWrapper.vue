@@ -308,7 +308,7 @@ function handleDelete(e: Event, id: string) {
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 85vh;
+  max-height: 85svh;
   background: $color-bg-secondary;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
@@ -643,8 +643,8 @@ function handleDelete(e: Event, id: string) {
   }
 
   &__nav-card-icon {
-    width: 113px;
-    height: 113px;
+    width: auto;
+    height: 105%;
     flex-shrink: 0;
     opacity: 0.5;
     color: $color-brand-lightosh;
