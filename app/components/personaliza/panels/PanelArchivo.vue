@@ -19,6 +19,22 @@ const isRestoringCrop = ref(false)
 // Image source for cropper - use blob URL if available, fall back to S3 URL
 const cropperImageSrc = computed(() => store.imageUrl || store.imageS3Url)
 
+// Watch for when cropperImageSrc changes to an S3 URL (loading from history)
+// The @ready event may not re-fire when src changes on an already-mounted Cropper
+watch(cropperImageSrc, (newSrc, oldSrc) => {
+  // Only trigger when src changes to a new S3 URL (not blob)
+  // This indicates loading from history or autosave
+  if (newSrc && !newSrc.startsWith('blob:') && newSrc !== oldSrc) {
+    // Wait for the image to load in the Cropper before restoring crop
+    // The Cropper needs time to load the new image
+    setTimeout(() => {
+      if (cropperRef.value && store.cropCoordinates) {
+        restoreCropFromCoordinates()
+      }
+    }, 500)
+  }
+})
+
 // Format options with visual preview dimensions (5:7, 7:5, 1:1)
 const formatOptions: { id: ImageFormat; label: string; width: number; height: number }[] = [
   { id: '5:7', label: '5:7', width: 25, height: 35 },

@@ -70,6 +70,17 @@ function getDesignName(): string {
   return 'Mi Poster'
 }
 
+// Handle loading a design from history
+// Navigate to archivo panel to ensure Cropper regenerates the cropped image
+function handleLoadDesign(state: Partial<PersonalizaState>) {
+  personalizaStore.loadState(state)
+
+  // If the design has an image, navigate to archivo panel so Cropper can regenerate
+  if (state.imageS3Url || state.imageUrl) {
+    personalizaStore.setActivePanel('archivo')
+  }
+}
+
 // Prepare state for persistence
 // We save: imageS3Url (original) + cropCoordinates + all settings
 // Cropped image is regenerated on load from original + coordinates
@@ -124,6 +135,12 @@ onMounted(async () => {
       const savedState = JSON.parse(autosaved)
       personalizaStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
+
+      // Navigate to archivo panel if there's an image to restore
+      // This ensures the Cropper mounts and regenerates the cropped preview
+      if (savedState.imageS3Url || savedState.imageUrl) {
+        personalizaStore.setActivePanel('archivo')
+      }
     }
   } catch (e) {
     console.error('[Personaliza] Failed to restore autosave:', e)
@@ -274,7 +291,7 @@ async function handleAddToCart() {
           :designs="designs"
           :is-open="uiStore.isHistoryOpen"
           @toggle="uiStore.toggleHistory"
-          @load="personalizaStore.loadState"
+          @load="handleLoadDesign"
           @delete="deleteDesign"
         />
       </aside>
