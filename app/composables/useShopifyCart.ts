@@ -223,6 +223,11 @@ export function useShopifyCart() {
     compareAtPrice: number | null
     variant: ShopifyVariant | null
   } {
+    // No image uploaded yet - show $0
+    if (!state.imageUrl && !state.imageS3Url) {
+      return { price: 0, compareAtPrice: null, variant: null }
+    }
+
     const orientation = getOrientationFromFormat(state.imageFormat)
     const variant = getPersonalizaVariant(
       orientation,
