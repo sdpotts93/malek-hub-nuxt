@@ -562,7 +562,32 @@ export const usePersonalizaStore = defineStore('personaliza', {
       if (this.imageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.imageUrl)
       if (this.croppedImageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.croppedImageUrl)
 
-      this.$patch(state)
+      // Use explicit property assignment to ensure all fields are set correctly,
+      // especially frameStyle and nested objects which can have reactivity issues with $patch
+      this.$patch({
+        imageFile: state.imageFile ?? null,
+        imageUrl: state.imageUrl ?? null,
+        imageS3Url: state.imageS3Url ?? null,
+        imageDimensions: state.imageDimensions ? { ...state.imageDimensions } : null,
+        imageFormat: state.imageFormat ?? this.imageFormat,
+        zoomLevel: state.zoomLevel ?? this.zoomLevel,
+        isUploadingToS3: state.isUploadingToS3 ?? false,
+        croppedImageUrl: state.croppedImageUrl ?? null,
+        croppedBlob: state.croppedBlob ?? null,
+        cropCoordinates: state.cropCoordinates ? { ...state.cropCoordinates } : null,
+        textStyle: state.textStyle ?? this.textStyle,
+        title: state.title ?? this.title,
+        subtitle: state.subtitle ?? this.subtitle,
+        hasMargin: state.hasMargin ?? this.hasMargin,
+        marginColor: state.marginColor ?? this.marginColor,
+        posterSize: state.posterSize ?? this.posterSize,
+        frameStyle: state.frameStyle ? { ...state.frameStyle } : null, // Explicitly handle frameStyle
+        hasFrame: state.hasFrame ?? this.hasFrame,
+        activePanel: state.activePanel ?? this.activePanel,
+        showSizeWarning: state.showSizeWarning ?? false,
+        sizeWarningAcknowledged: state.sizeWarningAcknowledged ?? false,
+        isImageReady: state.isImageReady ?? false,
+      })
     },
 
     // Get state snapshot for saving (excluding File, Blob, and transient state)

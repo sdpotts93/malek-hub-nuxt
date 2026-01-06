@@ -295,7 +295,17 @@ export const useBirthPosterStore = defineStore('birthPoster', {
 
     // Load state from saved design
     loadState(state: BirthPosterState) {
-      this.$patch(state)
+      // Use explicit property assignment to ensure all fields are set correctly,
+      // especially frameStyle which can be null or an object
+      this.$patch({
+        babyCount: state.babyCount,
+        backgroundColor: state.backgroundColor,
+        babies: JSON.parse(JSON.stringify(state.babies)), // Deep clone babies array
+        posterSize: state.posterSize,
+        frameStyle: state.frameStyle ? { ...state.frameStyle } : null, // Explicitly handle frameStyle
+        activePanel: state.activePanel,
+        activeBabyTab: state.activeBabyTab,
+      })
     },
 
     // Reset to default state

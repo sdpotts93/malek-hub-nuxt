@@ -36,7 +36,7 @@ function formatDate(date: Date): string {
 }
 
 function handleLoad(design: SavedDesign<PersonalizaState>) {
-  // Check if this design is already loaded (same image and crop coordinates)
+  // Check if this design uses the same image and crop
   const currentImageUrl = store.imageS3Url || store.imageUrl
   const designImageUrl = design.state.imageS3Url || design.state.imageUrl
   const isSameImage = currentImageUrl === designImageUrl
@@ -51,8 +51,19 @@ function handleLoad(design: SavedDesign<PersonalizaState>) {
       Math.abs(coords.width - currentCoords.width) <= 1 &&
       Math.abs(coords.height - currentCoords.height) <= 1
 
-    if (isSameCrop) {
-      // Already loaded, no need to show loading state
+    // Check if format is the same (affects cropper aspect ratio)
+    const isSameFormat = store.imageFormat === design.state.imageFormat
+
+    if (isSameCrop && isSameFormat) {
+      // Same image and crop - just update the settings without reloading image
+      // This keeps the existing croppedImageUrl intact
+      store.setFrameStyle(design.state.frameStyle)
+      store.setPosterSize(design.state.posterSize)
+      store.setTitle(design.state.title)
+      store.setSubtitle(design.state.subtitle)
+      store.setTextStyle(design.state.textStyle)
+      store.setHasMargin(design.state.hasMargin)
+      store.setMarginColor(design.state.marginColor)
       return
     }
   }

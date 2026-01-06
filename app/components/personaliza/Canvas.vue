@@ -453,11 +453,12 @@ $padding-bottom-with-text: 12.143%;
   // Horizontal orientation - font sizes
   &--horizontal {
     .personaliza-canvas__title {
-      font-size: 1.5cqi;
+      font-size: 1.75cqi;
+      line-height: 1.75;
     }
 
     .personaliza-canvas__subtitle {
-      font-size: 1cqi;
+      font-size: 1.25cqi;
     }
   }
 

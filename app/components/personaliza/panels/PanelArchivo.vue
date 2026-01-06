@@ -397,6 +397,22 @@ watch(
   { deep: true }
 )
 
+// Watch for image format changes from loading saved state
+// This handles when user loads a history item with different aspect ratio
+watch(
+  () => store.imageFormat,
+  (newFormat, oldFormat) => {
+    // Only act if cropper exists and format actually changed
+    if (cropper && isCropperReady.value && newFormat !== oldFormat && imageRef.value) {
+      // Destroy and recreate cropper with new aspect ratio
+      destroyCropper()
+      nextTick(() => {
+        initCropper()
+      })
+    }
+  }
+)
+
 // Cleanup on unmount
 onBeforeUnmount(() => {
   destroyCropper()
