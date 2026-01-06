@@ -12,7 +12,7 @@ const navigation = [
 const isActive = (href: string) => route.path === href
 
 // Check if on a tool page (for showing history button on mobile)
-const isToolPage = computed(() => route.path === '/birth-poster')
+const isToolPage = computed(() => route.path === '/birth-poster' || route.path === '/personaliza')
 </script>
 
 <template>

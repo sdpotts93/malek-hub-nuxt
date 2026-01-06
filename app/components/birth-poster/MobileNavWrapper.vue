@@ -566,7 +566,7 @@ function handleDelete(e: Event, id: string) {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    height: 143px;
+    height: 111px;
     padding: $space-2xl;
     border-radius: $radius-xl;
     overflow: hidden;
@@ -615,6 +615,7 @@ function handleDelete(e: Event, id: string) {
     justify-content: space-between;
     height: 100%;
     max-width: 209px;
+    row-gap: $space-xs;
   }
 
   &__nav-card-header {
@@ -662,7 +663,7 @@ function handleDelete(e: Event, id: string) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: $space-xl;
+    gap: $space-md;
     padding-top: $space-xl;
   }
 
@@ -690,7 +691,7 @@ function handleDelete(e: Event, id: string) {
 
   &__footer-link {
     font-family: $font-primary;
-    font-size: $font-size-base;
+    font-size: $font-size-xs;
     font-weight: $font-weight-medium;
     line-height: 24px;
     color: inherit;
