@@ -213,7 +213,7 @@ const textStyleClass = computed(() => {
   &__skeleton {
     width: 100%;
     height: 100%;
-    background: #f0f0f0;
+    background: #e0e0e0;
     position: relative;
     overflow: hidden;
   }
@@ -224,7 +224,7 @@ const textStyleClass = computed(() => {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0.6) 50%,
       transparent 100%
     );
     animation: shimmer 1.5s infinite;

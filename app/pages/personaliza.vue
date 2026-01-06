@@ -120,6 +120,40 @@ async function saveCurrentDesign() {
 // Auto-save settings
 const AUTOSAVE_KEY = 'studiomalek_autosave_personaliza'
 
+// Track if we restored from autosave (needs thumbnail generation)
+const restoredFromAutosave = ref(false)
+
+// Watch for cropped image to become available after autosave restore
+// Once ready, generate thumbnail and save to history
+watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
+  if (!newUrl || !restoredFromAutosave.value) return
+
+  // Clear flag immediately to prevent double execution
+  // (croppedImageUrl may update multiple times during restore)
+  restoredFromAutosave.value = false
+
+  // Wait for next tick to ensure canvas is rendered
+  await nextTick()
+
+  const canvasElement = canvasRef.value?.$el
+  if (!canvasElement) return
+
+  // Only save if we have an S3 URL (persistent image)
+  if (!personalizaStore.imageS3Url) return
+
+  try {
+    const thumbnail = await generateThumbnail(canvasElement)
+    const persistentState = prepareStateForPersistence()
+    if (persistentState) {
+      saveDesign(persistentState, thumbnail, getDesignName())
+      lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
+      console.log('[Personaliza] Saved restored design to history with thumbnail')
+    }
+  } catch (error) {
+    console.error('[Personaliza] Failed to save restored design:', error)
+  }
+})
+
 // Check mobile on mount and initialize cart
 onMounted(async () => {
   // Initialize Shopify cart and fetch personaliza product variants
@@ -140,6 +174,8 @@ onMounted(async () => {
       // This ensures the Cropper mounts and regenerates the cropped preview
       if (savedState.imageS3Url || savedState.imageUrl) {
         personalizaStore.setActivePanel('archivo')
+        // Mark that we need to generate thumbnail once image is ready
+        restoredFromAutosave.value = true
       }
     }
   } catch (e) {
