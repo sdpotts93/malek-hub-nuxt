@@ -24,6 +24,10 @@ const isRestoringCrop = ref(false)
 // Track when cropper is ready (to avoid flash of unstyled image)
 const isCropperReady = ref(false)
 
+// Debounce timer for preview generation
+let previewDebounceTimer: ReturnType<typeof setTimeout> | null = null
+const PREVIEW_DEBOUNCE_MS = 200
+
 // Image source for cropper - use blob URL if available, fall back to S3 URL
 const cropperImageSrc = computed(() => store.imageUrl || store.imageS3Url)
 
@@ -77,7 +81,7 @@ function initCropper() {
     cropend() {
       if (!isRestoringCrop.value) {
         saveCropState()
-        generatePreview()
+        generatePreviewDebounced()
       }
     },
     zoom(event) {
@@ -93,7 +97,7 @@ function initCropper() {
         const zoomPercent = Math.round(((newRatio - minZoom) / (maxZoom - minZoom)) * 100)
         store.setZoomLevel(Math.max(0, Math.min(100, zoomPercent)))
         saveCropState()
-        generatePreview()
+        generatePreviewDebounced()
       }
     },
   })
@@ -194,7 +198,7 @@ function restoreCropState() {
   }
 }
 
-// Generate cropped preview
+// Generate cropped preview (immediate - for initial load)
 function generatePreview() {
   if (!cropper) return
 
@@ -214,9 +218,25 @@ function generatePreview() {
   }
 }
 
+// Debounced preview generation - waits until user stops editing
+function generatePreviewDebounced() {
+  if (previewDebounceTimer) {
+    clearTimeout(previewDebounceTimer)
+  }
+  previewDebounceTimer = setTimeout(() => {
+    generatePreview()
+    previewDebounceTimer = null
+  }, PREVIEW_DEBOUNCE_MS)
+}
+
 // Destroy cropper
 function destroyCropper() {
   isCropperReady.value = false
+  // Clear any pending debounced preview
+  if (previewDebounceTimer) {
+    clearTimeout(previewDebounceTimer)
+    previewDebounceTimer = null
+  }
   if (cropper) {
     cropper.destroy()
     cropper = null
@@ -711,7 +731,7 @@ onBeforeUnmount(() => {
       }
 
       .panel-archivo__format-label {
-        color: #b75700;
+        color: $color-brand-hover;
       }
     }
 
