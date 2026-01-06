@@ -389,6 +389,7 @@ $padding-bottom-with-text: 12.143%;
     letter-spacing: 0.12em;
     color: #1a1a1a;
     text-transform: uppercase;
+    white-space: nowrap; // Prevent text wrapping in high-res export
   }
 
   &__subtitle {
@@ -401,6 +402,7 @@ $padding-bottom-with-text: 12.143%;
     font-weight: $font-weight-light;
     letter-spacing: 0.28em;
     text-transform: uppercase;
+    white-space: nowrap; // Prevent text wrapping in high-res export
   }
 
   // ==========================================================================

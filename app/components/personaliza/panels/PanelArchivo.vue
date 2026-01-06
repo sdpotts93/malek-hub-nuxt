@@ -74,8 +74,8 @@ function initCropper() {
       if (cropper) {
         registerCropper(cropper)
       }
-      // Restore saved state if available
-      if (store.cropCoordinates && store.zoomLevel > 0) {
+      // Restore saved state if available (check coordinates exist, zoom can be 0 if user only panned)
+      if (store.cropCoordinates) {
         restoreCropState()
       } else {
         // Set initial zoom to fit
