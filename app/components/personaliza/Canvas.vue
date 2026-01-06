@@ -125,15 +125,6 @@ const paddingMultiplierType = computed(() => {
       </div>
     </div>
 
-    <!-- Watermark signature -->
-    <div class="personaliza-canvas__watermark">
-      <img
-        src="/watermark-dark.png"
-        alt="Studio Malek"
-        class="personaliza-canvas__watermark-img"
-        crossorigin="anonymous"
-      >
-    </div>
   </div>
 </template>
 
@@ -459,20 +450,5 @@ $padding-bottom-with-text: 12.143%;
     }
   }
 
-  // ==========================================================================
-  // Watermark
-  // ==========================================================================
-  &__watermark {
-    position: absolute;
-    bottom: 2%;
-    right: 2%;
-    z-index: 5;
-  }
-
-  &__watermark-img {
-    width: 3cqi;
-    height: auto;
-    opacity: 0.6;
-  }
 }
 </style>
