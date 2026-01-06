@@ -124,7 +124,7 @@ const AUTOSAVE_KEY = 'studiomalek_autosave_personaliza'
 const restoredFromAutosave = ref(false)
 
 // Watch for cropped image to become available after autosave restore
-// Once ready, generate thumbnail and save to history
+// Once ready, generate thumbnail and save to history (if not already saved)
 watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
   if (!newUrl || !restoredFromAutosave.value) return
 
@@ -140,6 +140,20 @@ watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
 
   // Only save if we have an S3 URL (persistent image)
   if (!personalizaStore.imageS3Url) return
+
+  // Check if this design already exists in history (compare state)
+  const currentStateJson = JSON.stringify(prepareStateForPersistence())
+  const existingDesign = designs.value.find((d) => {
+    // Compare the persistent state (excluding thumbnail and dates)
+    return JSON.stringify(d.state) === currentStateJson
+  })
+
+  if (existingDesign) {
+    // Design already exists in history, no need to save again
+    console.log('[Personaliza] Design already exists in history, skipping save')
+    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
+    return
+  }
 
   try {
     const thumbnail = await generateThumbnail(canvasElement)
