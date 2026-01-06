@@ -295,42 +295,41 @@ const textStyleClass = computed(() => {
   // Text Style Variants
   // ==========================================================================
 
-  // Moderno - clean sans-serif
+  // Moderno - DM Sans, font-weight 600
   &--text-moderno {
     .personaliza-canvas__title {
       font-family: $font-primary;
-      font-weight: $font-weight-bold;
+      font-weight: $font-weight-semibold;
       text-transform: uppercase;
       letter-spacing: 0.15em;
     }
 
     .personaliza-canvas__subtitle {
       font-family: $font-primary;
-      font-weight: $font-weight-normal;
+      font-weight: $font-weight-semibold;
       letter-spacing: 0.1em;
     }
   }
 
-  // Clasico - elegant serif
+  // Clasico - Merriweather, font-weight 400
   &--text-clasico {
     .personaliza-canvas__title {
-      font-family: $font-secondary;
-      font-weight: $font-weight-semibold;
-      font-style: italic;
+      font-family: $font-serif;
+      font-weight: $font-weight-normal;
       letter-spacing: 0.05em;
     }
 
     .personaliza-canvas__subtitle {
-      font-family: $font-secondary;
+      font-family: $font-serif;
       font-weight: $font-weight-normal;
       letter-spacing: 0.08em;
     }
   }
 
-  // Minimalista - light and subtle
+  // Minimalista - Avenir, font-weight 300
   &--text-minimalista {
     .personaliza-canvas__title {
-      font-family: $font-primary;
+      font-family: $font-minimal;
       font-weight: $font-weight-light;
       font-size: 2.5cqi;
       letter-spacing: 0.2em;
@@ -338,7 +337,7 @@ const textStyleClass = computed(() => {
     }
 
     .personaliza-canvas__subtitle {
-      font-family: $font-primary;
+      font-family: $font-minimal;
       font-weight: $font-weight-light;
       font-size: 1.5cqi;
       letter-spacing: 0.15em;

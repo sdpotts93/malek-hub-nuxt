@@ -4,10 +4,10 @@ import { MARGIN_COLORS } from '~/stores/personaliza'
 
 const store = usePersonalizaStore()
 
-// Text style options
+// Text style options with font info for button preview
 const textStyles: { id: TextStyle; label: string }[] = [
   { id: 'moderno', label: 'Moderno' },
-  { id: 'clasico', label: 'Clasico' },
+  { id: 'clasico', label: 'Clásico' },
   { id: 'minimalista', label: 'Minimalista' },
 ]
 
@@ -47,6 +47,7 @@ function scrollColors(direction: 'left' | 'right') {
           :key="style.id"
           :class="[
             'panel-texto__style-btn',
+            `panel-texto__style-btn--${style.id}`,
             { 'panel-texto__style-btn--active': store.textStyle === style.id }
           ]"
           @click="store.setTextStyle(style.id)"
@@ -85,23 +86,36 @@ function scrollColors(direction: 'left' | 'right') {
     <!-- Separator -->
     <div class="panel-texto__separator" />
 
-    <!-- Margin toggle -->
+    <!-- Margin selector -->
     <div class="panel-texto__section">
-      <div class="panel-texto__toggle-row">
-        <label class="panel-texto__label">Margen blanco</label>
+      <label class="panel-texto__label panel-texto__label--with-icon">
+        <svg class="panel-texto__label-icon" width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.4583 3.39583L9.625 7.22917L5.79167 3.39583" fill="currentColor" fill-opacity="0.2"/>
+          <path d="M13.4583 17.7708L9.625 13.9375L5.79167 17.7708" fill="currentColor" fill-opacity="0.2"/>
+          <path d="M1 10.5833H18.25M9.625 1V7.22917M9.625 7.22917L13.4583 3.39583M9.625 7.22917L5.79167 3.39583M9.625 20.1667V13.9375M9.625 13.9375L13.4583 17.7708M9.625 13.9375L5.79167 17.7708" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Margen
+      </label>
+      <div class="panel-texto__margin-buttons">
         <button
           :class="[
-            'panel-texto__toggle',
-            { 'panel-texto__toggle--active': store.hasMargin }
+            'panel-texto__margin-btn',
+            { 'panel-texto__margin-btn--active': store.hasMargin }
           ]"
-          @click="store.setHasMargin(!store.hasMargin)"
+          @click="store.setHasMargin(true)"
         >
-          <span class="panel-texto__toggle-knob" />
+          Con margen
+        </button>
+        <button
+          :class="[
+            'panel-texto__margin-btn',
+            { 'panel-texto__margin-btn--active': !store.hasMargin }
+          ]"
+          @click="store.setHasMargin(false)"
+        >
+          Sin margen
         </button>
       </div>
-      <p class="panel-texto__hint">
-        Anade un margen alrededor de tu imagen
-      </p>
     </div>
 
     <!-- Margin color (only if margin is enabled) -->
@@ -211,6 +225,19 @@ function scrollColors(direction: 'left' | 'right') {
     font-size: 14px;
     font-weight: $font-weight-medium;
     color: #414651;
+
+    &--with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  &__label-icon {
+    color: $color-brand;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
   }
 
   &__hint {
@@ -230,18 +257,54 @@ function scrollColors(direction: 'left' | 'right') {
 
   &__style-btn {
     @include button-reset;
+    @include flex-center;
     flex: 1;
-    padding: 10px 16px;
-    font-family: $font-primary;
+    min-height: 40px;
+    padding: 8px 16px;
     font-size: 14px;
-    font-weight: $font-weight-semibold;
     background: #f5f5f5;
     color: #414651;
     transition: background-color $transition-fast, color $transition-fast;
 
+    // Font-specific styles for each button
+    &--moderno {
+      font-family: $font-primary;
+      font-weight: $font-weight-semibold;
+    }
+
+    &--clasico {
+      font-family: $font-serif;
+      font-weight: $font-weight-normal;
+    }
+
+    &--minimalista {
+      font-family: $font-minimal;
+      font-weight: $font-weight-light;
+    }
+
     &--active {
       background: $color-brand-light;
       color: $color-brand;
+      border-right: 1px solid #dedede;
+      border-left: 1px solid #dedede;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &:first-child {
+        border-left: none;
+      }
+    }
+
+    &:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    &:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
     }
 
     @include hover {
@@ -274,39 +337,43 @@ function scrollColors(direction: 'left' | 'right') {
     }
   }
 
-  // Toggle
-  &__toggle-row {
+  // Margin buttons
+  &__margin-buttons {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
-  &__toggle {
+  &__margin-btn {
     @include button-reset;
-    width: 44px;
-    height: 24px;
-    background: #e5e7eb;
-    border-radius: 12px;
-    padding: 2px;
-    transition: background-color $transition-fast;
-    cursor: pointer;
+    @include flex-center;
+    flex: 1;
+    min-height: 40px;
+    padding: 8px 16px;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    background: #f5f5f5;
+    color: #414651;
+    transition: background-color $transition-fast, color $transition-fast;
+    border-right: 1px solid #d5d7da;
+
+    &:last-child {
+      border-right: none;
+    }
 
     &--active {
-      background: $color-brand;
+      background: $color-brand-light;
+      color: $color-brand;
+      border-right-color: $color-border;
     }
-  }
 
-  &__toggle-knob {
-    display: block;
-    width: 20px;
-    height: 20px;
-    background: #ffffff;
-    border-radius: 50%;
-    transition: transform $transition-fast;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    @include hover {
+      background: #ebebeb;
 
-    .panel-texto__toggle--active & {
-      transform: translateX(20px);
+      &.panel-texto__margin-btn--active {
+        background: $color-brand-light;
+      }
     }
   }
 
