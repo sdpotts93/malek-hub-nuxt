@@ -340,11 +340,12 @@ function selectFormat(format: ImageFormat) {
   store.setCropCoordinates(null)
   store.setZoomLevel(0)
 
-  // Update cropper aspect ratio
-  if (cropper) {
-    cropper.setAspectRatio(store.aspectRatio)
-    resetToInitialState()
-    generatePreview()
+  // Destroy and recreate cropper with new aspect ratio to properly recenter
+  if (cropper && imageRef.value) {
+    destroyCropper()
+    nextTick(() => {
+      initCropper()
+    })
   }
 }
 
