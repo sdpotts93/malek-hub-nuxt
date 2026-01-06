@@ -102,10 +102,13 @@ export interface Cart {
 // Design History Types
 // ==========================================================================
 
-export type ToolType = 'birth-poster' | 'moments' | 'personaliza'
+export type ToolType = 'birth-poster' | 'momentos' | 'personaliza'
+
+// Import MomentosState for type union
+import type { MomentosState } from '~/stores/momentos'
 
 // Union type for all possible design states
-export type DesignState = BirthPosterState | PersonalizaState
+export type DesignState = BirthPosterState | PersonalizaState | MomentosState
 
 // Personaliza types
 export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'

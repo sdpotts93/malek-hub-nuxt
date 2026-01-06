@@ -11,6 +11,7 @@ const PRESIGNED_URL_ENDPOINT = 'https://bs64vihq06.execute-api.us-west-1.amazona
 const S3_BUCKETS = {
   'birth-poster': 'birth-poster',
   'custom-prints': 'custom-prints',
+  'momentos-malek': 'momentos-malek',
 } as const
 
 type S3Bucket = keyof typeof S3_BUCKETS

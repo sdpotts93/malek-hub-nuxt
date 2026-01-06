@@ -33,7 +33,7 @@ const tools = [
   {
     name: 'Momentos',
     description: 'Captura tus momentos más especiales en diseños únicos',
-    href: '/moments',
+    href: '/momentos',
     available: false,
     icon: 'image',
   },

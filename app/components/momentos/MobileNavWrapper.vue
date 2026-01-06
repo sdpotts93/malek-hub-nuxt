@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { SavedDesign, BirthPosterState } from '~/types'
+import type { SavedDesign } from '~/types'
+import type { MomentosState } from '~/stores/momentos'
 
 interface Props {
   isOpen: boolean
@@ -11,8 +12,8 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const store = useBirthPosterStore()
-const { designs, deleteDesign } = useDesignHistory<BirthPosterState>('birth-poster')
+const store = useMomentosStore()
+const { designs, deleteDesign } = useDesignHistory<MomentosState>('momentos')
 
 // Navigation items for home
 const route = useRoute()
@@ -20,13 +21,13 @@ const navItems = [
   {
     name: 'Personaliza',
     href: '/personaliza',
-    description: 'Diseña una pieza única a partir de tus propias fotos.',
+    description: 'Disena una pieza unica a partir de tus propias fotos.',
     icon: 'image',
   },
   {
     name: 'Birth Poster',
     href: '/birth-poster',
-    description: 'El nacimiento de tu bebé convertido en una obra de arte a escala real.',
+    description: 'El nacimiento de tu bebe convertido en una obra de arte a escala real.',
     icon: 'baby',
   },
   {
@@ -75,7 +76,7 @@ function handleTouchEnd() {
   currentTranslateY.value = 0
 }
 
-function handleLoadDesign(design: SavedDesign<BirthPosterState>) {
+function handleLoadDesign(design: SavedDesign<MomentosState>) {
   store.loadState(design.state)
   emit('close')
 }
@@ -89,7 +90,7 @@ function formatDate(date: Date): string {
 
 function handleDelete(e: Event, id: string) {
   e.stopPropagation()
-  if (confirm('¿Eliminar este diseño?')) {
+  if (confirm('Eliminar este diseno?')) {
     deleteDesign(id)
   }
 }
@@ -148,7 +149,7 @@ function handleDelete(e: Event, id: string) {
           <div class="mobile-nav-wrapper__info">
             <div class="mobile-nav-wrapper__info-bar" />
             <p class="mobile-nav-wrapper__info-text">
-              Puedes seleccionar un diseño en tu historial para
+              Puedes seleccionar un diseno en tu historial para
               seguir editando.
             </p>
           </div>
@@ -274,7 +275,7 @@ function handleDelete(e: Event, id: string) {
                 Visita <a href="https://studiomalek.com" target="_blank" rel="noopener">StudioMalek.com</a>
               </p>
               <div class="mobile-nav-wrapper__footer-links">
-                <a href="#" class="mobile-nav-wrapper__footer-link">Términos y condiciones</a>
+                <a href="#" class="mobile-nav-wrapper__footer-link">Terminos y condiciones</a>
                 <span class="mobile-nav-wrapper__footer-copyright">Todos los derechos reservados 2026</span>
               </div>
             </div>
@@ -452,7 +453,7 @@ function handleDelete(e: Event, id: string) {
     gap: $space-md;
   }
 
-  // History item - matches .history-panel__item styling
+  // History item
   &__history-item {
     @include button-reset;
     display: flex;
@@ -481,9 +482,7 @@ function handleDelete(e: Event, id: string) {
     img {
       width: 100%;
       height: 100%;
-      object-fit: none;
-      object-position: 50% 16%;
-      transform: scale(1.1);
+      object-fit: cover;
     }
   }
 
@@ -523,7 +522,7 @@ function handleDelete(e: Event, id: string) {
     overflow: hidden;
     position: relative;
 
-    // Edit button - secondary-color/warning style
+    // Edit button
     &--edit {
       background: $color-bg-primary;
       border: 1px solid $color-brand;
@@ -584,18 +583,18 @@ function handleDelete(e: Event, id: string) {
       border-color: $color-brand-light;
     }
 
-    // Active state - dark orange (Birth Poster when active)
+    // Active state
     &--active {
       background: $color-brand-hover;
       border-color: $color-brand-light;
       color: $color-brand-light;
 
       .mobile-nav-wrapper__nav-card-header svg {
-        color: $color-brand-lighter; // Cream arrow for active state
+        color: $color-brand-light;
       }
 
       .mobile-nav-wrapper__nav-card-desc {
-        color: $color-brand-light;
+        color: $color-brand-lighter;
       }
 
       .mobile-nav-wrapper__nav-card-icon {
@@ -626,7 +625,7 @@ function handleDelete(e: Event, id: string) {
     svg {
       width: 20px;
       height: 20px;
-      color: #414651; // Gray arrow by default
+      color: #414651;
     }
   }
 

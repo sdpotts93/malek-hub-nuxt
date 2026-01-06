@@ -6,7 +6,7 @@ const cartStore = useCartStore()
 const navigation = [
   { name: 'Personaliza', href: '/personaliza', icon: 'image' },
   { name: 'Birth Poster', href: '/birth-poster', icon: 'birth-poster' },
-  { name: 'Momentos', href: '/moments', icon: 'moments' },
+  { name: 'Momentos', href: '/momentos', icon: 'moments' },
 ]
 
 const isActive = (href: string) => route.path === href

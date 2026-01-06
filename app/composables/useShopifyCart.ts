@@ -10,6 +10,8 @@ import { useBirthPosterStore } from '~/stores/birthPoster'
 import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
 import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, generateHighResComposite, isCropperReady, waitForCropper, getOrientationFromFormat } from '~/stores/personaliza'
+import type { MomentosState, MomentosSize } from '~/stores/momentos'
+import { MOMENTOS_PRODUCT_ID } from '~/stores/momentos'
 
 // Validation result
 interface ValidationResult {
@@ -60,6 +62,12 @@ export function useShopifyCart() {
   })
   const isLoadingPersonalizaProducts = ref(false)
   const personalizaProductError = ref<string | null>(null)
+
+  // Momentos product state
+  const momentosProduct = ref<ProductData | null>(null)
+  const momentosVariantLookup = ref<VariantLookup>(new Map())
+  const isLoadingMomentosProduct = ref(false)
+  const momentosProductError = ref<string | null>(null)
 
   // Add to cart state
   const isAddingToCart = ref(false)
@@ -410,6 +418,191 @@ export function useShopifyCart() {
     })
   }
 
+  // ==========================================================================
+  // Momentos Methods
+  // ==========================================================================
+
+  /**
+   * Fetch momentos product with all variants
+   */
+  async function fetchMomentosProduct() {
+    isLoadingMomentosProduct.value = true
+    momentosProductError.value = null
+
+    try {
+      const data = await $fetch<ProductData>(`/api/shopify/product/${MOMENTOS_PRODUCT_ID}`)
+
+      momentosProduct.value = data
+
+      // Build variant lookup map
+      const lookup = new Map<string, ShopifyVariant>()
+      for (const variant of data.variants) {
+        // Parse variant title like "50x70 / Sin marco" or "50x70 / Negro"
+        const [size, frame] = variant.title.split(' / ').map(s => s.trim())
+        if (size && frame) {
+          const key = `${size}_${frame.toLowerCase()}`
+          lookup.set(key, variant)
+        }
+      }
+      momentosVariantLookup.value = lookup
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load momentos product'
+      momentosProductError.value = message
+      console.error('[ShopifyCart] Fetch momentos product error:', err)
+    } finally {
+      isLoadingMomentosProduct.value = false
+    }
+  }
+
+  /**
+   * Get variant for a momentos size and frame combination
+   */
+  function getMomentosVariant(
+    size: MomentosSize,
+    frameId: string | null
+  ): ShopifyVariant | null {
+    const frameKey = frameId ? getFrameName(frameId) : 'sin marco'
+    const key = `${size}_${frameKey}`
+    return momentosVariantLookup.value.get(key) || null
+  }
+
+  /**
+   * Calculate price for momentos state
+   */
+  function calculateMomentosPrice(state: MomentosState): {
+    price: number
+    compareAtPrice: number | null
+    variant: ShopifyVariant | null
+  } {
+    const variant = getMomentosVariant(
+      state.posterSize,
+      state.frameStyle?.id || null
+    )
+
+    if (!variant) {
+      return { price: 0, compareAtPrice: null, variant: null }
+    }
+
+    return {
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      variant,
+    }
+  }
+
+  /**
+   * Validate momentos state before adding to cart
+   */
+  function validateMomentosForCart(state: MomentosState): ValidationResult {
+    // Check if all cells have images
+    const emptyCells = state.canvasCells.filter(c => c.imageId === null)
+    if (emptyCells.length > 0) {
+      return {
+        isValid: false,
+        message: `Faltan ${emptyCells.length} imagen${emptyCells.length > 1 ? 'es' : ''} por agregar`,
+        missingBabyIndex: null,
+      }
+    }
+
+    // Check if variant exists
+    const variant = getMomentosVariant(
+      state.posterSize,
+      state.frameStyle?.id || null
+    )
+    if (!variant) {
+      return {
+        isValid: false,
+        message: 'Combinación de tamaño y marco no disponible',
+        missingBabyIndex: null,
+      }
+    }
+
+    return {
+      isValid: true,
+      message: null,
+      missingBabyIndex: null,
+    }
+  }
+
+  /**
+   * Add momentos item to cart
+   * 1. Validate state
+   * 2. Generate high-res composite image from canvas
+   * 3. Upload to S3 (momentos-malek bucket)
+   * 4. Add to Shopify cart with image URL as attribute
+   */
+  async function addMomentosToCart(
+    canvasElement: HTMLElement,
+    state: MomentosState
+  ): Promise<ValidationResult | null> {
+    // Validate first
+    const validation = validateMomentosForCart(state)
+    if (!validation.isValid) {
+      addToCartError.value = validation.message
+      return validation
+    }
+
+    isAddingToCart.value = true
+    addToCartError.value = null
+
+    try {
+      // 1. Get variant (already validated above)
+      const { variant } = calculateMomentosPrice(state)
+      if (!variant) {
+        throw new Error('No se encontró la variante del producto')
+      }
+
+      // 2. Generate high-res image from canvas element
+      const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
+      const renderer = useCanvasRenderer()
+
+      // Generate high-res image
+      const renderResult = await renderer.generatePosterImage(canvasElement)
+
+      // Convert blob to data URL for thumbnail generation
+      const blobDataUrl = await blobToDataUrl(renderResult.blob)
+
+      // Resize for thumbnail
+      const thumbnailDataUrl = await renderer.resizeToThumbnail(blobDataUrl, 200)
+
+      // Convert thumbnail data URL to blob
+      const thumbnailResponse = await fetch(thumbnailDataUrl)
+      const thumbnailBlob = await thumbnailResponse.blob()
+
+      // 3. Upload both to S3 (momentos-malek bucket)
+      const { useS3Upload } = await import('~/composables/useS3Upload')
+      const uploader = useS3Upload()
+
+      const [uploadResult, thumbnailUpload] = await Promise.all([
+        uploader.uploadDesignImage(renderResult.blob, 'momentos', 'momentos-malek'),
+        uploader.uploadDesignImage(thumbnailBlob, 'momentos-thumb', 'momentos-malek'),
+      ])
+
+      // 4. Build description from state
+      const formatLabel = state.format === 'square' ? 'Cuadrado' : state.format === 'horizontal' ? 'Horizontal' : 'Vertical'
+
+      // 5. Add to Shopify cart with attributes
+      await cartStore.addItem(variant.id, 1, [
+        { key: '_imagen', value: uploadResult.url },
+        { key: '_thumbnail', value: thumbnailUpload.url },
+        { key: '_shop', value: 'Momentos' },
+        { key: 'Tamaño', value: state.posterSize },
+        { key: 'Formato', value: formatLabel },
+        { key: 'Imágenes', value: `${state.imageCount} fotos` },
+        { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
+      ])
+
+      return null // Success
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al agregar al carrito'
+      addToCartError.value = message
+      console.error('[ShopifyCart] Add momentos to cart error:', err)
+      throw err
+    } finally {
+      isAddingToCart.value = false
+    }
+  }
+
   /**
    * Validate birth poster state before adding to cart
    * Returns validation result with info about missing data
@@ -578,6 +771,16 @@ export function useShopifyCart() {
     calculatePersonalizaPrice,
     validatePersonalizaForCart,
     addPersonalizaToCart,
+
+    // Momentos Actions
+    momentosProduct: computed(() => momentosProduct.value),
+    isLoadingMomentosProduct,
+    momentosProductError,
+    fetchMomentosProduct,
+    getMomentosVariant,
+    calculateMomentosPrice,
+    validateMomentosForCart,
+    addMomentosToCart,
 
     // Cart actions (pass-through)
     updateQuantity: cartStore.updateQuantity.bind(cartStore),
