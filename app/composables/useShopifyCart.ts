@@ -109,15 +109,20 @@ export function useShopifyCart() {
 
   /**
    * Map frame ID to Shopify option value
+   * Frame IDs come as 'frame-negro', 'frame-blanco', etc.
+   * Shopify variants use 'Negro', 'Blanco', etc. (lowercase for lookup key)
    */
   function getFrameName(frameId: string): string {
+    // Strip 'frame-' prefix if present
+    const normalizedId = frameId.replace(/^frame-/, '')
+
     const frameMap: Record<string, string> = {
       'negro': 'negro',
       'blanco': 'blanco',
       'roble': 'roble',
       'nogal': 'nogal',
     }
-    return frameMap[frameId] || 'sin marco'
+    return frameMap[normalizedId] || 'sin marco'
   }
 
   /**
