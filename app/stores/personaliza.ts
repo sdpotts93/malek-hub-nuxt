@@ -115,12 +115,56 @@ export interface CropperInstance {
   }): HTMLCanvasElement
 }
 
-// High-res crop settings
+// High-res crop settings (5000px for best print quality)
 const HIGH_RES_CROP_OPTIONS = {
-  maxWidth: 4000,
-  maxHeight: 4000,
+  maxWidth: 5000,
+  maxHeight: 5000,
   imageSmoothingEnabled: true,
   imageSmoothingQuality: 'high' as ImageSmoothingQuality,
+}
+
+// Output dimensions for high-res composite (based on 5000px max dimension)
+const HIGH_RES_OUTPUT = {
+  maxDimension: 5000,
+  aspectRatios: {
+    square: 1,
+    horizontal: 7 / 5,
+    vertical: 5 / 7,
+  },
+}
+
+// Padding percentages (matching CSS from Canvas.vue)
+const PADDING = {
+  side: 0.05, // 5%
+  bottomWithText: 0.12143, // 12.143%
+}
+
+// Font configurations for text rendering
+const FONT_CONFIG = {
+  // Title fonts by style
+  title: {
+    moderno: { family: 'DM Sans', weight: '600' },
+    clasico: { family: 'Merriweather', weight: '400' },
+    minimalista: { family: 'Avenir', weight: '300' },
+  },
+  // Subtitle is always Avenir 300
+  subtitle: { family: 'Avenir', weight: '300' },
+  // Font sizes as percentage of canvas inline size (cqi equivalent)
+  sizes: {
+    vertical: { title: 0.03, subtitle: 0.02 },
+    horizontal: { title: 0.0175, subtitle: 0.0125 },
+    square: { title: 0.0214, subtitle: 0.0142 },
+  },
+  // Line heights matching CSS (multiplier of font size)
+  lineHeight: {
+    title: 1.5, // CSS: line-height: 1.5
+    titleHorizontal: 1.75, // CSS: line-height: 1.75 for horizontal
+    subtitle: 2.1, // CSS: line-height: 2.1em
+  },
+  letterSpacing: {
+    title: 0.12, // em
+    subtitle: 0.28, // em
+  },
 }
 
 // ==========================================================================
@@ -321,6 +365,225 @@ export async function generateHighResCrop(): Promise<Blob | null> {
       1 // Max quality
     )
   })
+}
+
+/**
+ * Composite options for generateHighResComposite
+ */
+export interface CompositeOptions {
+  orientation: ImageOrientation
+  hasMargin: boolean
+  marginColor: string
+  title: string
+  subtitle: string
+  textStyle: TextStyle
+}
+
+/**
+ * Generate a high-resolution composite image directly using Canvas API.
+ * This bypasses DOM rendering for maximum quality output.
+ *
+ * @param cropBlob - The high-res cropped image blob from generateHighResCrop()
+ * @param options - Composition options (margin, text, etc.)
+ * @returns Final composite image as PNG blob
+ */
+export async function generateHighResComposite(
+  cropBlob: Blob,
+  options: CompositeOptions
+): Promise<Blob> {
+  const { orientation, hasMargin, marginColor, title, subtitle, textStyle } = options
+  const hasText = !!(title || subtitle)
+
+  // Calculate output dimensions based on orientation
+  const aspectRatio = HIGH_RES_OUTPUT.aspectRatios[orientation]
+  let width: number
+  let height: number
+
+  if (aspectRatio >= 1) {
+    // Horizontal or square: width is the max dimension
+    width = HIGH_RES_OUTPUT.maxDimension
+    height = Math.round(width / aspectRatio)
+  } else {
+    // Vertical: height is the max dimension
+    height = HIGH_RES_OUTPUT.maxDimension
+    width = Math.round(height * aspectRatio)
+  }
+
+  // Create canvas
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Failed to get canvas context')
+
+  // Enable high-quality rendering
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+
+  // Calculate padding values
+  const paddingSide = hasMargin ? width * PADDING.side : 0
+  const paddingTop = hasMargin ? height * PADDING.side : 0
+  let paddingBottom = paddingSide
+
+  // Calculate bottom padding based on orientation (matching CSS logic)
+  if (hasMargin && hasText) {
+    switch (orientation) {
+      case 'vertical':
+        // 12.143% of height
+        paddingBottom = height * PADDING.bottomWithText
+        break
+      case 'horizontal':
+        // 12.143% of width
+        paddingBottom = width * PADDING.bottomWithText
+        break
+      case 'square':
+        // 12.143% of (width * 1.4) - matching CSS calc(92cqw * 1.4 * 0.12143)
+        paddingBottom = width * 0.92 * 1.4 * PADDING.bottomWithText
+        break
+    }
+  }
+
+  // Calculate image area
+  const imageX = paddingSide
+  const imageY = paddingTop
+  const imageWidth = width - paddingSide * 2
+  const imageHeight = height - paddingTop - paddingBottom
+
+  // Draw background (margin color or white)
+  ctx.fillStyle = hasMargin ? marginColor : '#ffffff'
+  ctx.fillRect(0, 0, width, height)
+
+  // Load and draw the cropped image
+  const img = await loadImageFromBlob(cropBlob)
+  ctx.drawImage(img, imageX, imageY, imageWidth, imageHeight)
+
+  // Draw text if present
+  if (hasText) {
+    const textColor = hasMargin ? (isColorDark(marginColor) ? '#ffffff' : '#1a1a1a') : '#ffffff'
+    const fontSizes = FONT_CONFIG.sizes[orientation]
+
+    // Calculate inline size for font scaling (cqi equivalent)
+    // cqi = container query inline = 1% of container WIDTH (always width in horizontal writing mode)
+    const inlineSize = width
+
+    // Text container area (matching CSS positioning)
+    const textAreaHeight = paddingBottom
+    const textAreaY = height - paddingBottom
+    const textCenterY = textAreaY + textAreaHeight / 2
+
+    // Calculate font sizes
+    const titleFontSize = Math.round(inlineSize * fontSizes.title)
+    const subtitleFontSize = Math.round(inlineSize * fontSizes.subtitle)
+
+    // Get line heights (CSS line-height creates a "line box" around text)
+    const titleLineHeight = orientation === 'horizontal'
+      ? FONT_CONFIG.lineHeight.titleHorizontal
+      : FONT_CONFIG.lineHeight.title
+    const subtitleLineHeight = FONT_CONFIG.lineHeight.subtitle
+
+    // Calculate line box heights (total vertical space each text element occupies)
+    const titleBoxHeight = titleFontSize * titleLineHeight
+    const subtitleBoxHeight = subtitleFontSize * subtitleLineHeight
+
+    // Calculate total text height to center vertically
+    let totalTextHeight = 0
+    if (title) totalTextHeight += titleBoxHeight
+    if (subtitle) totalTextHeight += subtitleBoxHeight
+
+    let currentY = textCenterY - totalTextHeight / 2
+
+    // Draw title
+    if (title) {
+      const titleFont = FONT_CONFIG.title[textStyle]
+      ctx.font = `${titleFont.weight} ${titleFontSize}px "${titleFont.family}", sans-serif`
+      ctx.fillStyle = textColor
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+
+      // Center text within its line box (line box adds padding above and below)
+      const titlePadding = (titleBoxHeight - titleFontSize) / 2
+      const titleTextY = currentY + titlePadding
+
+      // Apply letter spacing by drawing each character
+      drawTextWithLetterSpacing(ctx, title.toUpperCase(), width / 2, titleTextY, titleFontSize * FONT_CONFIG.letterSpacing.title)
+      currentY += titleBoxHeight
+    }
+
+    // Draw subtitle
+    if (subtitle) {
+      const subtitleFont = FONT_CONFIG.subtitle
+      ctx.font = `${subtitleFont.weight} ${subtitleFontSize}px "${subtitleFont.family}", sans-serif`
+      ctx.fillStyle = textColor
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+
+      // Center text within its line box
+      const subtitlePadding = (subtitleBoxHeight - subtitleFontSize) / 2
+      const subtitleTextY = currentY + subtitlePadding
+
+      drawTextWithLetterSpacing(ctx, subtitle.toUpperCase(), width / 2, subtitleTextY, subtitleFontSize * FONT_CONFIG.letterSpacing.subtitle)
+    }
+  }
+
+  // Convert to blob
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Failed to create blob from canvas'))
+      },
+      'image/png',
+      1 // Max quality
+    )
+  })
+}
+
+/**
+ * Load an image from a Blob
+ */
+async function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(blob)
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve(img)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    img.src = url
+  })
+}
+
+/**
+ * Draw text with letter spacing (Canvas API doesn't support letterSpacing in all browsers)
+ */
+function drawTextWithLetterSpacing(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  spacing: number
+): void {
+  // Measure total width with spacing
+  const chars = text.split('')
+  let totalWidth = 0
+  for (const char of chars) {
+    totalWidth += ctx.measureText(char).width + spacing
+  }
+  totalWidth -= spacing // Remove trailing spacing
+
+  // Start position (centered)
+  let currentX = x - totalWidth / 2
+
+  // Draw each character
+  ctx.textAlign = 'left'
+  for (const char of chars) {
+    ctx.fillText(char, currentX, y)
+    currentX += ctx.measureText(char).width + spacing
+  }
 }
 
 // ==========================================================================

@@ -7,6 +7,15 @@
 
 import { toPng, toBlob } from 'html-to-image'
 
+// DPI and print size configuration for high-quality output
+const PRINT_CONFIG = {
+  targetDpi: 150, // Target DPI for large format printing
+  // Largest poster: 70x100cm vertical OR 100x70cm horizontal
+  // Use 100cm for both dimensions to cover either orientation
+  largestPrintCm: { width: 100, height: 100 },
+  cmToInches: 0.393701,
+}
+
 interface RenderOptions {
   scale?: number // Scale factor for resolution (default: 2 for retina)
   backgroundColor?: string
@@ -309,7 +318,28 @@ export function useCanvasRenderer() {
   }
 
   /**
+   * Calculate dynamic scale factor based on target DPI and largest print size
+   * This ensures consistent print quality regardless of canvas element size
+   */
+  function calculateDynamicScale(elementWidth: number, elementHeight: number): number {
+    const { targetDpi, largestPrintCm, cmToInches } = PRINT_CONFIG
+
+    // Calculate required pixels for target DPI at largest print size
+    const requiredWidth = largestPrintCm.width * cmToInches * targetDpi
+    const requiredHeight = largestPrintCm.height * cmToInches * targetDpi
+
+    // Calculate scale needed for each dimension
+    const scaleX = requiredWidth / elementWidth
+    const scaleY = requiredHeight / elementHeight
+
+    // Use the larger scale to ensure both dimensions meet target DPI
+    // Round up to ensure we meet or exceed target quality
+    return Math.ceil(Math.max(scaleX, scaleY))
+  }
+
+  /**
    * Generate poster image for cart/preview
+   * Uses dynamic scale calculation to achieve target DPI (150) for 70x100cm prints
    * Note: This is for order reference, not print production.
    * Print-ready files should be generated server-side with proper dimensions.
    */
@@ -317,12 +347,16 @@ export function useCanvasRenderer() {
     element: HTMLElement,
     backgroundColor?: string
   ): Promise<RenderResult> {
-    // Use 6x scale for high quality image
-    // Higher scales (10+) can cause SVG filter rendering issues in some browsers
+    // Get current element dimensions
+    const rect = element.getBoundingClientRect()
+
+    // Calculate scale dynamically based on target DPI
+    const scale = calculateDynamicScale(rect.width, rect.height)
+
     // Use element's computed background color if not specified
     const computedBg = backgroundColor ?? window.getComputedStyle(element).backgroundColor
     return renderElement(element, {
-      scale: 6,
+      scale,
       backgroundColor: computedBg,
     })
   }

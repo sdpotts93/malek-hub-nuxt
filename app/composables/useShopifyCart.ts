@@ -9,7 +9,7 @@ import { useCartStore } from '~/stores/cart'
 import { useBirthPosterStore } from '~/stores/birthPoster'
 import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
-import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, isCropperReady, waitForCropper } from '~/stores/personaliza'
+import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, generateHighResComposite, isCropperReady, waitForCropper, getOrientationFromFormat } from '~/stores/personaliza'
 
 // Validation result
 interface ValidationResult {
@@ -288,12 +288,12 @@ export function useShopifyCart() {
   /**
    * Add personaliza item to cart
    * 1. Validate state
-   * 2. Generate high-res image from canvas
+   * 2. Generate high-res composite image directly (5000px, bypasses DOM)
    * 3. Upload to S3 (custom-prints bucket)
    * 4. Add to Shopify cart with image URL as attribute
    */
   async function addPersonalizaToCart(
-    canvasElement: HTMLElement,
+    _canvasElement: HTMLElement, // Kept for API compatibility, but no longer used
     state: PersonalizaState
   ): Promise<ValidationResult | null> {
     // Validate first
@@ -313,8 +313,7 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate high-res crop from CropperJS (4000x4000 max)
-      // This ensures we use the original image at full resolution
+      // 2. Generate high-res crop from CropperJS (5000x5000 max)
       const { usePersonalizaStore } = await import('~/stores/personaliza')
       const personalizaStore = usePersonalizaStore()
 
@@ -322,7 +321,6 @@ export function useShopifyCart() {
       if (!isCropperReady()) {
         console.log('[ShopifyCart] Cropper not ready, switching to archivo panel...')
         personalizaStore.setActivePanel('archivo')
-        // Wait for Vue to update and cropper to initialize
         await nextTick()
         try {
           await waitForCropper(5000)
@@ -336,54 +334,44 @@ export function useShopifyCart() {
         throw new Error('No se pudo generar la imagen de alta resolución. Asegúrate de que la imagen esté cargada.')
       }
 
-      // 3. Temporarily swap the cropped image with high-res version
-      // Save current preview for restoration
-      const originalCroppedUrl = personalizaStore.croppedImageUrl
-      const originalCroppedBlob = personalizaStore.croppedBlob
+      // 3. Generate high-res composite directly using Canvas API (bypasses DOM)
+      // This gives us full 5000px quality without downsampling through the preview element
+      const orientation = getOrientationFromFormat(state.imageFormat)
+      const compositeBlob = await generateHighResComposite(highResCropBlob, {
+        orientation,
+        hasMargin: state.hasMargin,
+        marginColor: state.marginColor,
+        title: state.title,
+        subtitle: state.subtitle,
+        textStyle: state.textStyle,
+      })
 
-      // Set high-res version
-      personalizaStore.setCroppedImage(highResCropBlob)
-
-      // Wait for canvas to update with high-res image
-      await nextTick()
-      // Small delay to ensure image is loaded in canvas
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // 4. Generate images from the canvas element (now using high-res crop)
+      // 4. Generate thumbnail from the composite image
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image, then resize it for thumbnail (avoids re-rendering issues)
-      const renderResult = await renderer.generatePosterImage(canvasElement)
-      const thumbnailDataUrl = await renderer.resizeToThumbnail(renderResult.dataUrl, 200)
-
-      // 5. Restore original preview (don't leave high-res in memory)
-      if (originalCroppedBlob) {
-        personalizaStore.setCroppedImage(originalCroppedBlob)
-      } else if (originalCroppedUrl) {
-        // If we only had the URL, regenerate from the cropper
-        // This shouldn't happen in normal flow, but just in case
-        console.warn('[ShopifyCart] Restoring from URL, preview may be regenerated')
-      }
+      // Convert blob to data URL for thumbnail generation
+      const compositeDataUrl = await blobToDataUrl(compositeBlob)
+      const thumbnailDataUrl = await renderer.resizeToThumbnail(compositeDataUrl, 200)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
 
-      // 6. Upload both to S3 (custom-prints bucket)
+      // 5. Upload both to S3 (custom-prints bucket)
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
       const [uploadResult, thumbnailUpload] = await Promise.all([
-        uploader.uploadDesignImage(renderResult.blob, 'personaliza', 'custom-prints'),
+        uploader.uploadDesignImage(compositeBlob, 'personaliza', 'custom-prints'),
         uploader.uploadDesignImage(thumbnailBlob, 'personaliza-thumb', 'custom-prints'),
       ])
 
-      // 7. Build description from state
+      // 6. Build description from state
       const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = state.title ? `"${state.title}"` : 'Sin texto'
 
-      // 8. Add to Shopify cart with attributes
+      // 7. Add to Shopify cart with attributes
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
@@ -403,6 +391,18 @@ export function useShopifyCart() {
     } finally {
       isAddingToCart.value = false
     }
+  }
+
+  /**
+   * Convert blob to data URL
+   */
+  function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
   }
 
   /**
