@@ -16,6 +16,18 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
+const store = usePersonalizaStore()
+
+// Track which design is currently loading
+const loadingDesignId = ref<string | null>(null)
+
+// Clear loading state when image is ready
+watch(() => store.croppedImageUrl, (newUrl) => {
+  if (newUrl && loadingDesignId.value) {
+    loadingDesignId.value = null
+  }
+})
+
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -24,6 +36,7 @@ function formatDate(date: Date): string {
 }
 
 function handleLoad(design: SavedDesign<PersonalizaState>) {
+  loadingDesignId.value = design.id
   emit('load', design.state)
 }
 
@@ -85,6 +98,10 @@ function handleDelete(e: Event, id: string) {
               height="100"
             />
             <div v-else class="history-panel__placeholder" />
+            <!-- Loading overlay -->
+            <div v-if="loadingDesignId === design.id" class="history-panel__loading">
+              <div class="history-panel__loading-shimmer" />
+            </div>
           </div>
 
           <div class="history-panel__info">
@@ -122,6 +139,10 @@ function handleDelete(e: Event, id: string) {
           height="68"
         />
         <div v-else class="history-panel__placeholder" />
+        <!-- Loading overlay -->
+        <div v-if="loadingDesignId === design.id" class="history-panel__loading">
+          <div class="history-panel__loading-shimmer" />
+        </div>
       </button>
     </div>
   </div>
@@ -258,11 +279,40 @@ function handleDelete(e: Event, id: string) {
     overflow: hidden;
     flex-shrink: 0;
     background: $color-bg-primary;
+    position: relative;
 
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+  }
+
+  &__loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(240, 240, 240, 0.85);
+    overflow: hidden;
+  }
+
+  &__loading-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
     }
   }
 
@@ -330,6 +380,7 @@ function handleDelete(e: Event, id: string) {
     overflow: hidden;
     background: $color-bg-primary;
     flex-shrink: 0;
+    position: relative;
 
     img {
       width: 100%;
