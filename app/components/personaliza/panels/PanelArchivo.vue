@@ -322,8 +322,15 @@ function handleChangeImage() {
 function handleDeleteImage() {
   destroyCropper()
   store.clearImage()
+  // Reset text
   store.setTitle('')
   store.setSubtitle('')
+  // Reset margin color to default
+  store.setMarginColor('#fafafa')
+  store.setHasMargin(true)
+  // Reset frame selection
+  store.setFrameStyle(null)
+  store.setHasFrame(true)
   isChangingImage.value = false
 }
 
