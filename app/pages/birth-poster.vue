@@ -188,10 +188,11 @@ async function handleAddToCart() {
     uiStore.setLoading(true)
 
     // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
-    const validation = await cart.addBirthPosterToCart(canvasElement, birthPosterStore.$state)
+    const result = await cart.addBirthPosterToCart(canvasElement, birthPosterStore.$state)
 
     // If validation failed, navigate to the missing data and show error
-    if (validation) {
+    if ('validation' in result) {
+      const { validation } = result
       // Navigate to datos panel
       birthPosterStore.setActivePanel('datos')
 
@@ -212,9 +213,8 @@ async function handleAddToCart() {
       return
     }
 
-    // Success - save to history and open cart
-    const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
+    // Success - save to history using the thumbnail from cart (no re-render needed)
+    saveDesign(birthPosterStore.$state, result.thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(birthPosterStore.$state) // Mark as saved
 
     uiStore.openCart()

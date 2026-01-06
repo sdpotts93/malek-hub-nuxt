@@ -353,9 +353,9 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image first, then thumbnail (sequential to avoid SVG filter race conditions)
+      // Generate high-res image, then resize it for thumbnail (avoids re-rendering issues)
       const renderResult = await renderer.generatePosterImage(canvasElement)
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 200)
+      const thumbnailDataUrl = await renderer.resizeToThumbnail(renderResult.dataUrl, 200)
 
       // 5. Restore original preview (don't leave high-res in memory)
       if (originalCroppedBlob) {
@@ -446,17 +446,17 @@ export function useShopifyCart() {
    * 3. Upload to S3
    * 4. Add to Shopify cart with image URL as attribute
    *
-   * Returns validation result if invalid, or null if successful
+   * Returns object with validation error, or thumbnail on success
    */
   async function addBirthPosterToCart(
     canvasElement: HTMLElement,
     state: BirthPosterState
-  ): Promise<ValidationResult | null> {
+  ): Promise<{ validation: ValidationResult } | { thumbnail: string }> {
     // Validate first
     const validation = validateForCart(state)
     if (!validation.isValid) {
       addToCartError.value = validation.message
-      return validation
+      return { validation }
     }
 
     isAddingToCart.value = true
@@ -473,9 +473,18 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image first, then thumbnail (sequential to avoid SVG filter race conditions)
+      // Generate high-res image
       const renderResult = await renderer.generatePosterImage(canvasElement)
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 200)
+
+      // Convert blob to data URL (more reliable than using dataUrl from render for thumbnails)
+      const blobDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(renderResult.blob)
+      })
+
+      // Resize blob data URL for thumbnail
+      const thumbnailDataUrl = await renderer.resizeToThumbnail(blobDataUrl, 200)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
@@ -502,7 +511,8 @@ export function useShopifyCart() {
         { key: 'Bebés', value: babyNames },
       ])
 
-      return null // Success
+      // Return thumbnail for history saving (avoids re-rendering)
+      return { thumbnail: thumbnailDataUrl }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al agregar al carrito'
       addToCartError.value = message

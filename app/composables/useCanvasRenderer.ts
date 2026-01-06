@@ -248,14 +248,32 @@ export function useCanvasRenderer() {
   /**
    * Generate a thumbnail (smaller version for history/previews)
    * Uses JPEG format with compression to minimize storage size
+   * Used for standalone thumbnail generation (e.g., autosave on page exit)
    */
   async function generateThumbnail(
     element: HTMLElement,
     maxSize = 150 // Reduced from 300 to save storage
   ): Promise<string> {
-    // Use scale 2 instead of 1 to ensure SVG filters render correctly
-    // (SVG filter url(#id) references can break at scale 1 in html-to-image)
+    // Use scale 2 for standalone thumbnails (faster, less memory)
     const result = await renderElement(element, { scale: 2 })
+    return resizeToThumbnail(result.dataUrl, maxSize)
+  }
+
+  /**
+   * Resize an existing image (data URL) to a thumbnail
+   * Useful for generating thumbnail from high-res image without re-rendering
+   */
+  async function resizeToThumbnail(
+    imageDataUrl: string,
+    maxSize = 150
+  ): Promise<string> {
+    // Load the image to get dimensions
+    const img = new Image()
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = imageDataUrl
+    })
 
     // Create a smaller canvas for thumbnail
     const canvas = document.createElement('canvas')
@@ -263,7 +281,7 @@ export function useCanvasRenderer() {
     if (!ctx) throw new Error('Failed to get canvas context')
 
     // Calculate thumbnail dimensions
-    const aspectRatio = result.width / result.height
+    const aspectRatio = img.width / img.height
     let thumbWidth = maxSize
     let thumbHeight = maxSize
 
@@ -281,17 +299,9 @@ export function useCanvasRenderer() {
     ctx.fillRect(0, 0, thumbWidth, thumbHeight)
 
     // Draw resized image
-    const img = new Image()
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = reject
-      img.src = result.dataUrl
-    })
-
     ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight)
 
     // Use JPEG with 0.6 quality for much smaller file size
-    // A 150px JPEG at 0.6 quality is typically 5-15KB vs 50-200KB PNG
     return canvas.toDataURL('image/jpeg', 0.6)
   }
 
@@ -303,10 +313,10 @@ export function useCanvasRenderer() {
   async function generatePosterImage(
     element: HTMLElement
   ): Promise<RenderResult> {
-    // Use 10x scale for high quality image (~4000px for typical canvas size)
-    // True print-production files should be generated server-side with original assets
+    // Use 6x scale for high quality image
+    // Higher scales (10+) can cause SVG filter rendering issues in some browsers
     return renderElement(element, {
-      scale: 10,
+      scale: 6,
       backgroundColor: '#ffffff',
     })
   }
@@ -346,6 +356,7 @@ export function useCanvasRenderer() {
     // Actions
     renderElement,
     generateThumbnail,
+    resizeToThumbnail,
     generatePosterImage,
     downloadImage,
     copyToClipboard,
