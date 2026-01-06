@@ -31,6 +31,25 @@ const aspectClass = computed(() => {
 const textStyleClass = computed(() => {
   return `personaliza-canvas--text-${store.textStyle}`
 })
+
+// Check if text exists
+const hasText = computed(() => {
+  return !!(store.title || store.subtitle)
+})
+
+// Calculate padding multiplier based on orientation (matching malekcustomposter logic)
+// This is the base value used for calculating padding percentages
+const paddingMultiplierType = computed(() => {
+  switch (store.orientation) {
+    case 'horizontal':
+      return 'width'
+    case 'square':
+      return 'width-scaled' // width * 1.4
+    case 'vertical':
+    default:
+      return 'height'
+  }
+})
 </script>
 
 <template>
@@ -39,8 +58,14 @@ const textStyleClass = computed(() => {
       'personaliza-canvas',
       aspectClass,
       textStyleClass,
-      { 'personaliza-canvas--has-frame': store.frameStyle }
+      {
+        'personaliza-canvas--has-frame': store.frameStyle,
+        'personaliza-canvas--has-text': hasText,
+        'personaliza-canvas--has-margin': store.hasMargin,
+        [`personaliza-canvas--padding-${paddingMultiplierType}`]: store.hasMargin
+      }
     ]"
+    :style="store.hasMargin ? { backgroundColor: store.marginColor } : {}"
   >
     <!-- Frame overlay when selected (ignored in image export) -->
     <div v-if="store.frameStyle && currentFrameImage" class="personaliza-canvas__frame" data-html2canvas-ignore>
@@ -52,14 +77,10 @@ const textStyleClass = computed(() => {
       >
     </div>
 
-    <!-- Main canvas content -->
+    <!-- Main canvas content - this is the "pic" equivalent -->
     <div class="personaliza-canvas__content">
-      <!-- Image area with optional margin -->
-      <div
-        class="personaliza-canvas__image-wrapper"
-        :class="{ 'personaliza-canvas__image-wrapper--with-margin': store.hasMargin }"
-        :style="store.hasMargin ? { backgroundColor: store.marginColor } : {}"
-      >
+      <!-- Image wrapper - contains the actual image -->
+      <div class="personaliza-canvas__image-wrapper">
         <!-- Skeleton loading state -->
         <div v-if="isImageLoading" class="personaliza-canvas__skeleton">
           <div class="personaliza-canvas__skeleton-shimmer" />
@@ -84,11 +105,10 @@ const textStyleClass = computed(() => {
         >
       </div>
 
-      <!-- Text area (only shown if title or subtitle exists) -->
+      <!-- Text container - positioned absolutely in bottom margin area (like malekcustomposter) -->
       <div
-        v-if="store.title || store.subtitle"
-        class="personaliza-canvas__text-area"
-        :style="store.hasMargin ? { backgroundColor: store.marginColor } : {}"
+        v-if="hasText"
+        class="personaliza-canvas__text-container"
       >
         <p v-if="store.title" class="personaliza-canvas__title">
           {{ store.title }}
@@ -112,6 +132,13 @@ const textStyleClass = computed(() => {
 </template>
 
 <style lang="scss" scoped>
+// ==========================================================================
+// Padding values matching malekcustomposter
+// 5% on top/left/right, 12.143% on bottom when text exists
+// ==========================================================================
+$padding-side: 5%;
+$padding-bottom-with-text: 12.143%;
+
 .personaliza-canvas {
   position: relative;
   background: #ffffff;
@@ -119,7 +146,7 @@ const textStyleClass = computed(() => {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 0 20px -5px #adadad;
-  container-type: inline-size;
+  container-type: size; // Use size for both width and height queries
 
   // When frame is active, allow overflow and remove shadow
   &--has-frame {
@@ -188,15 +215,84 @@ const textStyleClass = computed(() => {
   }
 
   // ==========================================================================
-  // Content Layout
+  // Content Layout - matching malekcustomposter's ".pic" structure
   // ==========================================================================
   &__content {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
   }
 
+  // ==========================================================================
+  // Margin/Padding System - matching malekcustomposter
+  // When margin is enabled:
+  // - Without text: 5% uniform padding
+  // - With text: 5% top/left/right, 12.143% bottom (text sits in bottom margin)
+  // ==========================================================================
+  &--has-margin {
+    .personaliza-canvas__content {
+      // Default: uniform 5% padding when no text
+      padding: $padding-side;
+    }
+
+    // When text exists, use larger bottom padding
+    &.personaliza-canvas--has-text {
+      .personaliza-canvas__content {
+        padding: $padding-side $padding-side $padding-bottom-with-text $padding-side;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Orientation-specific padding multipliers
+  // malekcustomposter uses different base values:
+  // - Vertical: height-based
+  // - Horizontal: width-based
+  // - Square: width * 1.4
+  // We approximate this with CSS using cqh/cqw units
+  // ==========================================================================
+
+  // For vertical orientation, use height-based calculation
+  &--padding-height.personaliza-canvas--has-margin.personaliza-canvas--has-text {
+    .personaliza-canvas__content {
+      // 12.143% of height for bottom padding
+      padding-bottom: calc(100cqh * 0.12143);
+    }
+
+    .personaliza-canvas__text-container {
+      height: calc(100cqh * 0.12143);
+    }
+  }
+
+  // For horizontal orientation, use width-based calculation
+  &--padding-width.personaliza-canvas--has-margin.personaliza-canvas--has-text {
+    .personaliza-canvas__content {
+      // 12.143% of width for bottom padding
+      padding-bottom: calc(100cqw * 0.12143);
+    }
+
+    .personaliza-canvas__text-container {
+      height: calc(100cqw * 0.12143);
+    }
+  }
+
+  // For square orientation, use width * 1.4 calculation
+  &--padding-width-scaled.personaliza-canvas--has-margin.personaliza-canvas--has-text {
+    .personaliza-canvas__content {
+      // 12.143% of (width * 1.4) for bottom padding
+      padding-bottom: calc(100cqw * 1.4 * 0.12143);
+    }
+
+    .personaliza-canvas__text-container {
+      height: calc(100cqw * 1.4 * 0.12143);
+    }
+  }
+
+  // ==========================================================================
+  // Image Wrapper
+  // ==========================================================================
   &__image-wrapper {
     flex: 1;
     display: flex;
@@ -204,10 +300,6 @@ const textStyleClass = computed(() => {
     justify-content: center;
     min-height: 0;
     overflow: hidden;
-
-    &--with-margin {
-      padding: 6%;
-    }
   }
 
   &__skeleton {
@@ -266,15 +358,22 @@ const textStyleClass = computed(() => {
   }
 
   // ==========================================================================
-  // Text Area
+  // Text Container - positioned absolutely in bottom margin (like malekcustomposter)
+  // The text sits within the bottom padding area
   // ==========================================================================
-  &__text-area {
-    flex-shrink: 0;
-    text-align: center;
-    padding: 3% 6%;
+  &__text-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5cqi;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 $padding-side;
+    // Default height when no orientation-specific override
+    height: $padding-bottom-with-text;
   }
 
   &__title {
@@ -289,6 +388,24 @@ const textStyleClass = computed(() => {
     font-size: 2cqi;
     line-height: 1.3;
     color: #666666;
+  }
+
+  // ==========================================================================
+  // Text without margin - white text on image (like malekcustomposter "Sin Fondo")
+  // ==========================================================================
+  &:not(.personaliza-canvas--has-margin) {
+    .personaliza-canvas__text-container {
+      // No extra height/padding when no margin - text floats at bottom of image
+      height: auto;
+      padding: 3% $padding-side;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+    }
+
+    .personaliza-canvas__title,
+    .personaliza-canvas__subtitle {
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
   }
 
   // ==========================================================================

@@ -18,6 +18,9 @@ let cropper: CropperJS | null = null
 // Drag state
 const isDragging = ref(false)
 
+// Track if we're changing the image (to know when to reset text config)
+const isChangingImage = ref(false)
+
 // Track if we're loading from saved state
 const isRestoringCrop = ref(false)
 
@@ -278,6 +281,13 @@ async function processFile(file: File) {
     return
   }
 
+  // If we're changing the image, reset text configuration
+  if (isChangingImage.value) {
+    store.setTitle('')
+    store.setSubtitle('')
+    isChangingImage.value = false
+  }
+
   // Destroy existing cropper before setting new image
   destroyCropper()
 
@@ -295,13 +305,19 @@ async function processFile(file: File) {
   }
 }
 
-// Change image
+// Change image - marks that we're changing so text gets reset after new upload
 function handleChangeImage() {
+  isChangingImage.value = true
+  fileInput.value?.click()
+}
+
+// Delete image and all configuration
+function handleDeleteImage() {
   destroyCropper()
   store.clearImage()
-  nextTick(() => {
-    fileInput.value?.click()
-  })
+  store.setTitle('')
+  store.setSubtitle('')
+  isChangingImage.value = false
 }
 
 // Format selection
@@ -423,6 +439,17 @@ onBeforeUnmount(() => {
             crossorigin="anonymous"
             @load="initCropper"
           >
+          <!-- Delete button -->
+          <button
+            class="panel-archivo__delete-btn"
+            type="button"
+            aria-label="Eliminar imagen"
+            @click="handleDeleteImage"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -825,6 +852,7 @@ onBeforeUnmount(() => {
   }
 
   &__cropper-container {
+    position: relative;
     width: 100%;
     height: 170px;
     border-radius: 8px;
@@ -833,6 +861,30 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  &__delete-btn {
+    @include button-reset;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #414651;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+    transition: background-color $transition-fast, color $transition-fast;
+
+    @include hover {
+      background: #f5f5f5;
+      color: #181d27;
+    }
   }
 
   &__cropper-image {
