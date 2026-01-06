@@ -60,6 +60,26 @@ export function useCanvasRenderer() {
   }
 
   /**
+   * Convert an SVG filter element to an inline data URL
+   * This makes the filter self-contained and avoids ID conflicts when cloning
+   */
+  function svgFilterToDataUrl(filterElement: SVGFilterElement): string {
+    // Clone the filter and give it a simple ID
+    const filterClone = filterElement.cloneNode(true) as SVGFilterElement
+    filterClone.setAttribute('id', 'f')
+
+    // Create minimal SVG containing just this filter
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg"><defs>${filterClone.outerHTML}</defs></svg>`
+
+    // Encode for CSS url()
+    const encoded = encodeURIComponent(svgContent)
+      .replace(/'/g, '%27')
+      .replace(/"/g, '%22')
+
+    return `url("data:image/svg+xml,${encoded}#f")`
+  }
+
+  /**
    * Clone element and convert blob URLs to data URLs for reliable rendering
    */
   async function prepareElementForRender(element: HTMLElement): Promise<HTMLElement> {
@@ -92,6 +112,28 @@ export function useCanvasRenderer() {
 
     wrapper.appendChild(clone)
     document.body.appendChild(wrapper)
+
+    // Convert SVG filter url(#id) references to inline data URL filters
+    // This prevents ID conflicts when multiple clones exist in the DOM
+    const elementsWithFilters = clone.querySelectorAll('[style*="filter"]')
+    for (const el of Array.from(elementsWithFilters)) {
+      const htmlEl = el as HTMLElement
+      const filterStyle = htmlEl.style.filter
+
+      // Check if filter references a local SVG filter via url(#id)
+      const filterMatch = filterStyle.match(/url\(["']?#([^"')]+)["']?\)/)
+      if (filterMatch) {
+        const filterId = filterMatch[1]
+
+        // Find the filter in the ORIGINAL element (before cloning messed up IDs)
+        const originalFilter = element.querySelector(`#${filterId}`) as SVGFilterElement | null
+        if (originalFilter && originalFilter.tagName.toLowerCase() === 'filter') {
+          // Convert to inline data URL filter
+          const dataUrlFilter = svgFilterToDataUrl(originalFilter)
+          htmlEl.style.filter = dataUrlFilter
+        }
+      }
+    }
 
     // Convert blob URLs to data URLs in the clone
     const images = clone.querySelectorAll('img')
@@ -211,7 +253,9 @@ export function useCanvasRenderer() {
     element: HTMLElement,
     maxSize = 150 // Reduced from 300 to save storage
   ): Promise<string> {
-    const result = await renderElement(element, { scale: 1 })
+    // Use scale 2 instead of 1 to ensure SVG filters render correctly
+    // (SVG filter url(#id) references can break at scale 1 in html-to-image)
+    const result = await renderElement(element, { scale: 2 })
 
     // Create a smaller canvas for thumbnail
     const canvas = document.createElement('canvas')
@@ -259,10 +303,10 @@ export function useCanvasRenderer() {
   async function generatePosterImage(
     element: HTMLElement
   ): Promise<RenderResult> {
-    // Use 4x scale for high quality image
-    // The actual print file will be generated server-side based on the stored configuration
+    // Use 10x scale for high quality image (~4000px for typical canvas size)
+    // True print-production files should be generated server-side with original assets
     return renderElement(element, {
-      scale: 4,
+      scale: 10,
       backgroundColor: '#ffffff',
     })
   }

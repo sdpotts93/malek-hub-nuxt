@@ -260,6 +260,38 @@ export function getCropperInstance(): CropperInstance | null {
 }
 
 /**
+ * Check if the cropper instance is ready
+ */
+export function isCropperReady(): boolean {
+  return _cropperInstance !== null
+}
+
+/**
+ * Wait for the cropper instance to become available
+ * @param timeoutMs Maximum time to wait in milliseconds (default 5000ms)
+ * @returns Promise that resolves when cropper is ready, or rejects on timeout
+ */
+export function waitForCropper(timeoutMs = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (_cropperInstance) {
+      resolve()
+      return
+    }
+
+    const startTime = Date.now()
+    const checkInterval = setInterval(() => {
+      if (_cropperInstance) {
+        clearInterval(checkInterval)
+        resolve()
+      } else if (Date.now() - startTime > timeoutMs) {
+        clearInterval(checkInterval)
+        reject(new Error('Timeout waiting for cropper instance'))
+      }
+    }, 100)
+  })
+}
+
+/**
  * Generate a high-resolution cropped image from the current cropper state.
  * Returns a blob URL that can be used in the canvas for rendering.
  * This should be called before generating the final poster image.

@@ -9,7 +9,7 @@ import { useCartStore } from '~/stores/cart'
 import { useBirthPosterStore } from '~/stores/birthPoster'
 import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
-import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, getOrientationFromFormat, generateHighResCrop } from '~/stores/personaliza'
+import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, isCropperReady, waitForCropper } from '~/stores/personaliza'
 
 // Validation result
 interface ValidationResult {
@@ -318,6 +318,19 @@ export function useShopifyCart() {
       const { usePersonalizaStore } = await import('~/stores/personaliza')
       const personalizaStore = usePersonalizaStore()
 
+      // Ensure cropper is ready - if not, switch to archivo panel and wait
+      if (!isCropperReady()) {
+        console.log('[ShopifyCart] Cropper not ready, switching to archivo panel...')
+        personalizaStore.setActivePanel('archivo')
+        // Wait for Vue to update and cropper to initialize
+        await nextTick()
+        try {
+          await waitForCropper(5000)
+        } catch {
+          throw new Error('No se pudo inicializar el editor de imagen. Por favor, regresa al panel de Archivo y vuelve a intentar.')
+        }
+      }
+
       const highResCropBlob = await generateHighResCrop()
       if (!highResCropBlob) {
         throw new Error('No se pudo generar la imagen de alta resolución. Asegúrate de que la imagen esté cargada.')
@@ -340,11 +353,9 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image for production and low-res thumbnail for display
-      const [renderResult, thumbnailDataUrl] = await Promise.all([
-        renderer.generatePosterImage(canvasElement),
-        renderer.generateThumbnail(canvasElement, 200), // 200px max dimension
-      ])
+      // Generate high-res image first, then thumbnail (sequential to avoid SVG filter race conditions)
+      const renderResult = await renderer.generatePosterImage(canvasElement)
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 200)
 
       // 5. Restore original preview (don't leave high-res in memory)
       if (originalCroppedBlob) {
@@ -369,7 +380,6 @@ export function useShopifyCart() {
       ])
 
       // 7. Build description from state
-      const orientation = getOrientationFromFormat(state.imageFormat)
       const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = state.title ? `"${state.title}"` : 'Sin texto'
 
@@ -463,11 +473,9 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image for production and low-res thumbnail for display
-      const [renderResult, thumbnailDataUrl] = await Promise.all([
-        renderer.generatePosterImage(canvasElement),
-        renderer.generateThumbnail(canvasElement, 200), // 200px max dimension
-      ])
+      // Generate high-res image first, then thumbnail (sequential to avoid SVG filter race conditions)
+      const renderResult = await renderer.generatePosterImage(canvasElement)
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 200)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
