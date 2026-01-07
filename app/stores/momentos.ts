@@ -18,9 +18,9 @@ export type HorizontalImageCount = 12 | 35 | 88
 export type MomentosImageCount = SquareImageCount | VerticalImageCount | HorizontalImageCount
 
 // Size options by orientation
-export type SquareSize = '50x50'
-export type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
-export type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
+type SquareSize = '50x50'
+type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
+type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
 export type MomentosSize = SquareSize | HorizontalSize | VerticalSize
 
 // Image filter types
@@ -79,7 +79,7 @@ export interface HistoryAction {
 }
 
 // Size data structure
-export interface SizeData {
+interface SizeData {
   width: number
   height: number
   label: string
@@ -115,7 +115,7 @@ export const MOMENTOS_SIZES: Record<MomentosFormat, Record<string, SizeData>> = 
   },
 }
 
-// Background/margin colors (reuse from personaliza)
+// Background/margin colors
 export const MARGIN_COLORS = [
   { id: 'white', name: 'Blanco', hex: '#ffffff' },
   { id: 'black', name: 'Negro', hex: '#000000' },
@@ -149,7 +149,7 @@ export const MAX_IMAGE_SIZE_MB = 20
 // Helper Functions
 // ==========================================================================
 
-export const getDefaultSize = (format: MomentosFormat): MomentosSize => {
+const getDefaultSize = (format: MomentosFormat): MomentosSize => {
   switch (format) {
     case 'square':
       return '50x50'

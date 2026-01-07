@@ -17,13 +17,13 @@ export type ImageOrientation = 'square' | 'horizontal' | 'vertical'
 export type TextStyle = 'moderno' | 'clasico' | 'minimalista'
 
 // Poster sizes by orientation
-export type SquareSize = '50x50'
-export type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
-export type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
+type SquareSize = '50x50'
+type HorizontalSize = '40x30' | '50x40' | '70x50' | '100x70'
+type VerticalSize = '30x40' | '40x50' | '50x70' | '70x100'
 export type PersonalizaSize = SquareSize | HorizontalSize | VerticalSize
 
 // Size data structure
-export interface SizeData {
+interface SizeData {
   width: number
   height: number
   label: string
@@ -67,7 +67,7 @@ export const PERSONALIZA_SIZES: Record<ImageOrientation, Record<string, SizeData
   },
 }
 
-// Background/margin colors (reuse from birth poster)
+// Background/margin colors
 export const MARGIN_COLORS = [
   { id: 'white', name: 'Blanco', hex: '#ffffff' },
   { id: 'black', name: 'Negro', hex: '#000000' },
@@ -251,7 +251,7 @@ export const detectFormatFromDimensions = (width: number, height: number): Image
   return '5:7'
 }
 
-export const getDefaultSize = (orientation: ImageOrientation): PersonalizaSize => {
+const getDefaultSize = (orientation: ImageOrientation): PersonalizaSize => {
   switch (orientation) {
     case 'square':
       return '50x50'

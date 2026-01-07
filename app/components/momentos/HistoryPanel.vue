@@ -81,11 +81,15 @@ function handleDelete(e: Event, id: string) {
 
       <!-- Design thumbnails -->
       <div v-else class="history-panel__list">
-        <button
+        <div
           v-for="design in designs"
           :key="design.id"
           class="history-panel__item"
+          role="button"
+          tabindex="0"
           @click="handleLoad(design)"
+          @keydown.enter="handleLoad(design)"
+          @keydown.space.prevent="handleLoad(design)"
         >
           <div class="history-panel__thumbnail">
             <NuxtImg
@@ -117,7 +121,7 @@ function handleDelete(e: Event, id: string) {
               <path d="m6 6 12 12"/>
             </svg>
           </button>
-        </button>
+        </div>
       </div>
     </div>
 
