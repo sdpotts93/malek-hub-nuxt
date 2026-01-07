@@ -320,7 +320,7 @@ function scrollColors(direction: 'left' | 'right') {
   &__input {
     padding: 12px 14px;
     font-family: $font-primary;
-    font-size: 14px;
+    font-size: 16px;
     color: #181d27;
     background: #ffffff;
     border: 1px solid #d5d6d9;

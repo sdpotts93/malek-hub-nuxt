@@ -309,7 +309,7 @@ function handleDelete(e: Event, id: string) {
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 85svh;
+  max-height: 90svh;
   background: $color-bg-secondary;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
@@ -565,7 +565,7 @@ function handleDelete(e: Event, id: string) {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    height: 111px;
+    height: 120px;
     padding: $space-2xl;
     border-radius: $radius-xl;
     overflow: hidden;
