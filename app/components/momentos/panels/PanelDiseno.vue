@@ -3,6 +3,47 @@ import type { MomentosFormat, MomentosImageCount, DisenoTabType } from '~/stores
 import { IMAGE_COUNTS, MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId } from '~/stores/momentos'
 
 const store = useMomentosStore()
+
+// Library section ref for scrolling
+const librarySectionRef = ref<HTMLElement | null>(null)
+
+// Lightbox state
+const lightboxImage = ref<string | null>(null)
+const isLightboxOpen = computed(() => lightboxImage.value !== null)
+
+// Watch for empty cell selection to switch to imagenes tab and scroll to library
+watch(() => store.selectedCellId, (cellId) => {
+  if (cellId) {
+    const cell = store.getCellById(cellId)
+    if (cell && !cell.imageId) {
+      // Switch to imagenes tab if not already
+      if (store.activeDisenoTab !== 'imagenes') {
+        store.setActiveDisenoTab('imagenes')
+      }
+      // Scroll to library section after tab switch
+      nextTick(() => {
+        librarySectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }
+})
+
+// Check if we should show the "select image" indicator
+const showSelectImageIndicator = computed(() => {
+  if (!store.selectedCellId) return false
+  const cell = store.getCellById(store.selectedCellId)
+  return cell && !cell.imageId
+})
+
+// Open lightbox with high res image
+function openLightbox(imageUrl: string) {
+  lightboxImage.value = imageUrl
+}
+
+// Close lightbox
+function closeLightbox() {
+  lightboxImage.value = null
+}
 const { uploadDesignImage } = useS3Upload()
 
 // Tabs
@@ -209,6 +250,19 @@ function handleRemoveImage(imageId: string) {
   store.removeUploadedImage(imageId)
 }
 
+// Handle clicking on library image to assign to selected cell
+function handleImageClick(imageId: string) {
+  // Check if there's a selected cell waiting for an image
+  if (store.selectedCellId) {
+    const selectedCell = store.getCellById(store.selectedCellId)
+    // Only assign if the cell is empty (no image yet)
+    if (selectedCell && !selectedCell.imageId) {
+      store.setImageToCell(store.selectedCellId, imageId)
+      store.selectCell(null) // Deselect after assignment
+    }
+  }
+}
+
 // Color scroll container ref
 const colorScrollRef = ref<HTMLElement | null>(null)
 
@@ -280,11 +334,11 @@ function scrollColors(direction: 'left' | 'right') {
       <!-- Separator -->
       <div class="panel-diseno__separator" />
 
-      <!-- Upload button -->
+      <!-- Upload button - opens images tab -->
       <div class="panel-diseno__section">
         <button
           class="panel-diseno__change-btn"
-          @click="handleFileSelect"
+          @click="store.setActiveDisenoTab('imagenes')"
         >
           Cargar Archivos
           <svg width="20" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -426,7 +480,7 @@ function scrollColors(direction: 'left' | 'right') {
       </div>
 
       <!-- Image library -->
-      <div class="panel-diseno__section">
+      <div ref="librarySectionRef" class="panel-diseno__section">
         <div class="panel-diseno__library-header">
           <h3 class="panel-diseno__title">
             <svg width="20" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -438,6 +492,14 @@ function scrollColors(direction: 'left' | 'right') {
           <span class="panel-diseno__count">{{ store.uploadedImages.length }}</span>
         </div>
 
+        <!-- Select image indicator -->
+        <div v-if="showSelectImageIndicator && store.uploadedImages.length > 0" class="panel-diseno__select-hint">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5.33333V8M8 10.6667H8.00667M14.6667 8C14.6667 11.6819 11.6819 14.6667 8 14.6667C4.3181 14.6667 1.33333 11.6819 1.33333 8C1.33333 4.3181 4.3181 1.33333 8 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Selecciona una imagen para el espacio vacío</span>
+        </div>
+
         <div v-if="store.uploadedImages.length === 0" class="panel-diseno__empty">
           <p>No hay imágenes subidas</p>
           <p class="panel-diseno__empty-hint">Sube imágenes para empezar a crear tu collage</p>
@@ -447,9 +509,13 @@ function scrollColors(direction: 'left' | 'right') {
           <div
             v-for="img in store.uploadedImages"
             :key="img.id"
-            class="panel-diseno__library-item"
+            :class="[
+              'panel-diseno__library-item',
+              { 'panel-diseno__library-item--selectable': store.selectedCellId && store.getCellById(store.selectedCellId)?.imageId === null }
+            ]"
             draggable="true"
             @dragstart="handleImageDragStart($event, img.id)"
+            @click="handleImageClick(img.id)"
           >
             <img
               :src="img.lowResUrl"
@@ -459,10 +525,20 @@ function scrollColors(direction: 'left' | 'right') {
             <div v-if="img.isUploading" class="panel-diseno__library-loading">
               <div class="panel-diseno__library-progress" :style="{ width: img.uploadProgress + '%' }" />
             </div>
+            <!-- Magnifying glass button -->
+            <button
+              class="panel-diseno__library-zoom"
+              aria-label="Ver imagen en grande"
+              @click.stop="openLightbox(img.highResUrl || img.mediumResUrl)"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 13L10.1 10.1M11.6667 6.33333C11.6667 9.27885 9.27885 11.6667 6.33333 11.6667C3.38781 11.6667 1 9.27885 1 6.33333C1 3.38781 3.38781 1 6.33333 1C9.27885 1 11.6667 3.38781 11.6667 6.33333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
             <button
               class="panel-diseno__library-delete"
               aria-label="Eliminar imagen"
-              @click="handleRemoveImage(img.id)"
+              @click.stop="handleRemoveImage(img.id)"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -482,6 +558,33 @@ function scrollColors(direction: 'left' | 'right') {
       class="panel-diseno__file-input"
       @change="handleFileChange"
     >
+
+    <!-- Lightbox -->
+    <Teleport to="body">
+      <Transition name="lightbox">
+        <div
+          v-if="isLightboxOpen"
+          class="panel-diseno__lightbox"
+          @click="closeLightbox"
+        >
+          <button
+            class="panel-diseno__lightbox-close"
+            aria-label="Cerrar"
+            @click="closeLightbox"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <img
+            :src="lightboxImage!"
+            alt="Imagen ampliada"
+            class="panel-diseno__lightbox-image"
+            @click.stop
+          >
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -493,7 +596,7 @@ function scrollColors(direction: 'left' | 'right') {
   &__tabs {
     display: flex;
     border-bottom: 1px solid #e5e7eb;
-    padding: 0 20px;
+    margin: 0 20px;
   }
 
   &__tab {
@@ -984,9 +1087,21 @@ function scrollColors(direction: 'left' | 'right') {
     overflow: hidden;
     cursor: grab;
     background: #f5f5f5;
+    transition: outline $transition-fast, box-shadow $transition-fast;
 
     &:active {
       cursor: grabbing;
+    }
+
+    // When a cell is selected and waiting for an image
+    &--selectable {
+      cursor: pointer;
+      outline: 2px solid transparent;
+
+      @include hover {
+        outline: 2px solid $color-brand;
+        box-shadow: 0 2px 8px rgba($color-brand, 0.25);
+      }
     }
   }
 
@@ -1037,5 +1152,115 @@ function scrollColors(direction: 'left' | 'right') {
       color: #181d27;
     }
   }
+
+  // Select image indicator
+  &__select-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: $color-brand-light;
+    border: 1px solid $color-brand;
+    border-radius: 8px;
+    color: $color-brand;
+    font-family: $font-primary;
+    font-size: 13px;
+    font-weight: $font-weight-medium;
+    animation: pulse-hint 2s ease-in-out infinite;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  @keyframes pulse-hint {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  // Magnifying glass zoom button
+  &__library-zoom {
+    @include button-reset;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #414651;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity $transition-fast, background-color $transition-fast;
+
+    .panel-diseno__library-item:hover & {
+      opacity: 1;
+    }
+
+    @include hover {
+      background: $color-brand-light;
+      color: $color-brand;
+    }
+  }
+
+  // Lightbox
+  &__lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: $z-modal + 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    cursor: zoom-out;
+  }
+
+  &__lightbox-close {
+    @include button-reset;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    @include hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__lightbox-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: default;
+  }
+}
+
+// Lightbox transition
+.lightbox-enter-active,
+.lightbox-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.lightbox-enter-from,
+.lightbox-leave-to {
+  opacity: 0;
 }
 </style>

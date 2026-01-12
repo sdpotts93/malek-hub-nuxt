@@ -109,6 +109,48 @@ function handleCanvasClick(e: MouseEvent) {
     store.selectCell(null)
   }
 }
+
+// Global click listener to deselect when clicking outside canvas
+function handleGlobalClick(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  // Don't deselect if clicking on canvas, edit menu, panel library items, or lightbox
+  if (
+    target.closest('.momentos-canvas') ||
+    target.closest('.momentos-canvas__edit-menu') ||
+    target.closest('.panel-diseno__library-item') ||
+    target.closest('.panel-diseno__lightbox')
+  ) {
+    return
+  }
+  store.selectCell(null)
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleGlobalClick)
+})
+
+// Track cell element refs for positioning edit menu
+const cellRefs = ref<Map<string, HTMLElement>>(new Map())
+
+function setCellRef(el: HTMLElement | null, cellId: string) {
+  if (el) {
+    cellRefs.value.set(cellId, el)
+  } else {
+    cellRefs.value.delete(cellId)
+  }
+}
+
+// Get the selected cell with image for edit menu
+const selectedCellWithImage = computed(() => {
+  if (!store.selectedCellId) return null
+  const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+  if (!cell || !cell.imageId) return null
+  return cell
+})
 </script>
 
 <template>
@@ -147,6 +189,7 @@ function handleCanvasClick(e: MouseEvent) {
         <div
           v-for="cell in store.canvasCells"
           :key="cell.id"
+          :ref="(el) => setCellRef(el as HTMLElement, cell.id)"
           :class="[
             'momentos-canvas__cell',
             {
@@ -182,82 +225,90 @@ function handleCanvasClick(e: MouseEvent) {
               class="momentos-canvas__cell-image"
             >
           </div>
-
-          <!-- Edit menu (appears when cell is selected) -->
-          <Transition name="fade">
-            <div
-              v-if="store.selectedCellId === cell.id && cell.imageId"
-              class="momentos-canvas__edit-menu"
-              @click.stop
-            >
-              <button
-                class="momentos-canvas__edit-btn"
-                title="Rotar"
-                @click="handleRotate(cell.id)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
-                  <path d="M21 3v5h-5"/>
-                </svg>
-              </button>
-              <button
-                class="momentos-canvas__edit-btn"
-                title="Acercar"
-                :disabled="cell.zoom >= 3"
-                @click="handleZoomIn(cell.id)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.3-4.3"/>
-                  <path d="M11 8v6"/>
-                  <path d="M8 11h6"/>
-                </svg>
-              </button>
-              <button
-                class="momentos-canvas__edit-btn"
-                title="Alejar"
-                :disabled="cell.zoom <= 1"
-                @click="handleZoomOut(cell.id)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.3-4.3"/>
-                  <path d="M8 11h6"/>
-                </svg>
-              </button>
-
-              <!-- Filter dropdown -->
-              <div class="momentos-canvas__filter-dropdown">
-                <select
-                  :value="cell.filter"
-                  class="momentos-canvas__filter-select"
-                  @change="handleFilterChange(cell.id, ($event.target as HTMLSelectElement).value as ImageFilter)"
-                >
-                  <option
-                    v-for="opt in filterOptions"
-                    :key="opt.id"
-                    :value="opt.id"
-                  >
-                    {{ opt.label }}
-                  </option>
-                </select>
-              </div>
-
-              <button
-                class="momentos-canvas__edit-btn momentos-canvas__edit-btn--delete"
-                title="Eliminar"
-                @click="handleRemoveFromCell(cell.id)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h18"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          </Transition>
         </div>
       </div>
+
+      <!-- Edit menu (positioned at canvas level, outside grid) -->
+      <Teleport to="body">
+        <Transition name="fade">
+          <div
+            v-if="selectedCellWithImage && cellRefs.get(selectedCellWithImage.id)"
+            class="momentos-canvas__edit-menu"
+            :style="{
+              position: 'fixed',
+              top: `${(cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.bottom ?? 0) + 8}px`,
+              left: `${((cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.left ?? 0) + (cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.right ?? 0)) / 2}px`,
+              transform: 'translateX(-50%)',
+            }"
+            @click.stop
+          >
+            <button
+              class="momentos-canvas__edit-btn"
+              title="Rotar"
+              @click="handleRotate(selectedCellWithImage.id)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+              </svg>
+            </button>
+            <button
+              class="momentos-canvas__edit-btn"
+              title="Acercar"
+              :disabled="selectedCellWithImage.zoom >= 3"
+              @click="handleZoomIn(selectedCellWithImage.id)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+                <path d="M11 8v6"/>
+                <path d="M8 11h6"/>
+              </svg>
+            </button>
+            <button
+              class="momentos-canvas__edit-btn"
+              title="Alejar"
+              :disabled="selectedCellWithImage.zoom <= 1"
+              @click="handleZoomOut(selectedCellWithImage.id)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+                <path d="M8 11h6"/>
+              </svg>
+            </button>
+
+            <!-- Filter dropdown -->
+            <div class="momentos-canvas__filter-dropdown">
+              <select
+                :value="selectedCellWithImage.filter"
+                class="momentos-canvas__filter-select"
+                @change="handleFilterChange(selectedCellWithImage.id, ($event.target as HTMLSelectElement).value as ImageFilter)"
+              >
+                <option
+                  v-for="opt in filterOptions"
+                  :key="opt.id"
+                  :value="opt.id"
+                >
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+
+            <button
+              class="momentos-canvas__edit-btn momentos-canvas__edit-btn--delete"
+              title="Eliminar"
+              @click="handleRemoveFromCell(selectedCellWithImage.id)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
+        </Transition>
+      </Teleport>
     </div>
 
     <!-- Undo/Redo buttons -->
@@ -412,9 +463,27 @@ function handleCanvasClick(e: MouseEvent) {
     }
 
     &--selected {
-      outline: 2px solid $color-brand;
-      outline-offset: -2px;
       z-index: 5;
+
+      // Visible border overlay on top of image
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 3px solid $color-brand;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      // Subtle overlay tint
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: #ffffff69;
+        z-index: 9;
+        pointer-events: none;
+      }
     }
 
     &:hover:not(&--selected) {
@@ -430,18 +499,20 @@ function handleCanvasClick(e: MouseEvent) {
     align-items: center;
     justify-content: center;
     color: #ccc;
+    overflow: hidden;
 
     svg {
-      width: 20%;
-      height: 20%;
-      max-width: 32px;
-      max-height: 32px;
+      width: 40%;
+      height: 40%;
+      max-width: 40px;
+      max-height: 40px;
     }
   }
 
   &__cell-image-wrapper {
     position: absolute;
     inset: 0;
+    overflow: hidden; // Clip zoomed/rotated images
     transition: transform 0.2s ease, filter 0.2s ease;
   }
 
@@ -452,22 +523,17 @@ function handleCanvasClick(e: MouseEvent) {
   }
 
   // ==========================================================================
-  // Edit Menu
+  // Edit Menu - teleported to body, positioned below selected cell
   // ==========================================================================
   &__edit-menu {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 4px;
     padding: 6px 8px;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    z-index: 20;
-    margin-bottom: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 9999; // High z-index since it's in body
   }
 
   &__edit-btn {
@@ -509,7 +575,7 @@ function handleCanvasClick(e: MouseEvent) {
   &__filter-select {
     padding: 4px 8px;
     font-family: $font-primary;
-    font-size: 12px;
+    font-size: 16px;
     border: 1px solid #e5e7eb;
     border-radius: 4px;
     background: white;

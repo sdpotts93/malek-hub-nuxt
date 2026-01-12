@@ -769,6 +769,10 @@ export const useMomentosStore = defineStore('momentos', {
         this.activePanel = 'diseno'
         this.activeDisenoTab = 'imagenes'
       }
+      // If switching to diseno directly, switch to diseno tab
+      else if (panel === 'diseno') {
+        this.activeDisenoTab = 'diseno'
+      }
     },
 
     setActiveDisenoTab(tab: DisenoTabType) {

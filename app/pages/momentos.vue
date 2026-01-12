@@ -290,7 +290,6 @@ async function handleAddToCart() {
     flex: 1;
     display: grid;
     grid-template-columns: $sidebar-width $panel-width 1fr 106px;
-    grid-template-rows: auto 1fr;
     overflow: hidden;
     background-color: $color-canvas;
 

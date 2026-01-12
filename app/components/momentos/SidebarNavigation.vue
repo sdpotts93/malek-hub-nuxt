@@ -27,7 +27,15 @@ const store = useMomentosStore()
       :key="item.id"
       :class="[
         'sidebar-nav__item',
-        { 'sidebar-nav__item--active': activePanel === item.id || (activePanel === 'diseno' && item.id === 'archivos' && store.activeDisenoTab === 'imagenes') }
+        {
+          'sidebar-nav__item--active':
+            // Diseño: active only when activePanel is diseno AND tab is NOT imagenes
+            (item.id === 'diseno' && activePanel === 'diseno' && store.activeDisenoTab !== 'imagenes') ||
+            // Archivos: active when activePanel is diseno AND tab IS imagenes
+            (item.id === 'archivos' && activePanel === 'diseno' && store.activeDisenoTab === 'imagenes') ||
+            // Other panels: active when activePanel matches
+            (item.id !== 'diseno' && item.id !== 'archivos' && activePanel === item.id)
+        }
       ]"
       :aria-current="activePanel === item.id ? 'true' : undefined"
       @click="emit('select', item.id)"
