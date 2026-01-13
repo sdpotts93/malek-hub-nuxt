@@ -458,15 +458,63 @@ async function handleFilesFromDrop(files: File[]) {
   showAutofillModal.value = true
 }
 
+// Custom drag preview element
+const dragPreviewRef = ref<HTMLElement | null>(null)
+const dragPreviewImage = ref<string | null>(null)
+
 // Handle drag start for image library
 function handleImageDragStart(e: DragEvent, imageId: string) {
   e.dataTransfer?.setData('imageId', imageId)
   store.setDraggingImageId(imageId)
+
+  // Get the image URL for the preview
+  const image = store.uploadedImages.find(img => img.id === imageId)
+  if (image) {
+    dragPreviewImage.value = image.lowResUrl
+  }
+
+  // Hide the default drag ghost
+  const emptyImg = new Image()
+  emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+  e.dataTransfer?.setDragImage(emptyImg, 0, 0)
+
+  // Position the custom preview at cursor
+  nextTick(() => {
+    updateDragPreviewPosition(e.clientX, e.clientY)
+  })
+
+  // Add global drag listeners
+  document.addEventListener('drag', onGlobalDrag)
+  document.addEventListener('dragend', onGlobalDragEnd)
+}
+
+// Update preview position during drag
+function onGlobalDrag(e: DragEvent) {
+  // e.clientX/Y can be 0 at the end of drag
+  if (e.clientX !== 0 || e.clientY !== 0) {
+    updateDragPreviewPosition(e.clientX, e.clientY)
+  }
+}
+
+// Clean up on drag end
+function onGlobalDragEnd() {
+  document.removeEventListener('drag', onGlobalDrag)
+  document.removeEventListener('dragend', onGlobalDragEnd)
+  dragPreviewImage.value = null
+}
+
+// Position the drag preview element
+function updateDragPreviewPosition(x: number, y: number) {
+  if (dragPreviewRef.value) {
+    dragPreviewRef.value.style.left = `${x}px`
+    dragPreviewRef.value.style.top = `${y}px`
+  }
 }
 
 // Handle drag end for image library
 function handleImageDragEnd() {
   store.setDraggingImageId(null)
+  dragPreviewImage.value = null
 }
 
 // Remove image from library
@@ -886,6 +934,25 @@ function scrollColors(direction: 'left' | 'right') {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Custom Drag Preview -->
+    <Teleport to="body">
+      <div
+        v-if="dragPreviewImage"
+        ref="dragPreviewRef"
+        :class="[
+          'panel-diseno__drag-preview',
+          { 'panel-diseno__drag-preview--over-canvas': store.isDraggingOverCanvas }
+        ]"
+      >
+        <img :src="dragPreviewImage" alt="Drag preview" class="panel-diseno__drag-preview-image">
+        <div class="panel-diseno__drag-preview-indicator">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" d="m12 22l-4.25-4.25l1.425-1.425L11 18.15V13H5.875L7.7 14.8l-1.45 1.45L2 12l4.225-4.225L7.65 9.2L5.85 11H11V5.85L9.175 7.675L7.75 6.25L12 2l4.25 4.25l-1.425 1.425L13 5.85V11h5.125L16.3 9.2l1.45-1.45L22 12l-4.25 4.25l-1.425-1.425L18.15 13H13v5.125l1.8-1.825l1.45 1.45z"/>
+          </svg>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -954,9 +1021,6 @@ function scrollColors(direction: 'left' | 'right') {
     flex-direction: column;
     gap: 16px;
     padding-top: 20px;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
 
     @include mobile {
       padding-top: 16px;
@@ -1504,7 +1568,7 @@ function scrollColors(direction: 'left' | 'right') {
   }
 
   // Drag indicator icon in bottom-right corner
-  // Hidden when item is being dragged (shows on the drag ghost instead)
+  // Hidden by default - only visible on the drag ghost image
   &__library-drag-indicator {
     position: absolute;
     bottom: 4px;
@@ -1518,18 +1582,7 @@ function scrollColors(direction: 'left' | 'right') {
     justify-content: center;
     color: #888888;
     pointer-events: none;
-    transition: color $transition-fast, background-color $transition-fast, opacity $transition-fast;
-
-    // Hide when this item is being dragged (the ghost image will show it)
-    .panel-diseno__library-item--dragging & {
-      opacity: 0;
-    }
-
-    // Only turn green when over canvas
-    .panel-diseno__library-item--over-canvas & {
-      color: $color-brand;
-      background: rgba(255, 255, 255, 1);
-    }
+    opacity: 0; // Hidden by default - only shown on drag ghost via JS
   }
 
   &__library-image {
@@ -1813,5 +1866,52 @@ function scrollColors(direction: 'left' | 'right') {
   .panel-diseno__drop-zone {
     transform: scale(0.95);
   }
+}
+
+// Custom drag preview (teleported to body - needs :global for scoped styles)
+:global(.panel-diseno__drag-preview) {
+  position: fixed;
+  width: 80px;
+  height: 80px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10000;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 3px solid #9ca3af;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+// Green state when over canvas droppable area
+:global(.panel-diseno__drag-preview--over-canvas) {
+  border-color: #5bb98c;
+  box-shadow: 0 4px 16px rgba(91, 185, 140, 0.4);
+}
+
+:global(.panel-diseno__drag-preview--over-canvas .panel-diseno__drag-preview-indicator) {
+  color: #5bb98c;
+  background: rgba(255, 255, 255, 1);
+}
+
+:global(.panel-diseno__drag-preview-image) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:global(.panel-diseno__drag-preview-indicator) {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 </style>
