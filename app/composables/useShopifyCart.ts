@@ -9,7 +9,7 @@ import { useCartStore } from '~/stores/cart'
 import { useBirthPosterStore } from '~/stores/birthPoster'
 import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
-import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, generateHighResComposite, isCropperReady, waitForCropper, getOrientationFromFormat } from '~/stores/personaliza'
+import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, isCropperReady, waitForCropper, getOrientationFromFormat } from '~/stores/personaliza'
 import type { MomentosState, MomentosSize } from '~/stores/momentos'
 import { MOMENTOS_PRODUCT_ID } from '~/stores/momentos'
 
@@ -300,13 +300,18 @@ export function useShopifyCart() {
 
   /**
    * Add personaliza item to cart
+   *
+   * Server-side rendering approach (same as Momentos):
    * 1. Validate state
-   * 2. Generate high-res composite image directly (5000px, bypasses DOM)
-   * 3. Upload to S3 (custom-prints bucket)
-   * 4. Add to Shopify cart with image URL as attribute
+   * 2. Generate high-res cropped image from CropperJS
+   * 3. Upload cropped image + config JSON + thumbnail to S3
+   * 4. Add to Shopify cart with config URL
+   *
+   * The full high-res composite is rendered server-side via Browserless
+   * when the order is placed (see netlify/functions/render-order-background.ts)
    */
   async function addPersonalizaToCart(
-    _canvasElement: HTMLElement, // Kept for API compatibility, but no longer used
+    canvasElement: HTMLElement,
     state: PersonalizaState
   ): Promise<ValidationResult | null> {
     // IMPORTANT: Capture a snapshot of all values we need at the START
@@ -362,45 +367,53 @@ export function useShopifyCart() {
         throw new Error('No se pudo generar la imagen de alta resolución. Asegúrate de que la imagen esté cargada.')
       }
 
-      // 3. Generate high-res composite directly using Canvas API (bypasses DOM)
-      // This gives us full 5000px quality without downsampling through the preview element
-      const compositeBlob = await generateHighResComposite(highResCropBlob, {
-        orientation,
-        hasMargin: snapshot.hasMargin,
-        marginColor: snapshot.marginColor,
-        title: snapshot.title,
-        subtitle: snapshot.subtitle,
-        textStyle: snapshot.textStyle,
-      })
-
-      // 4. Generate thumbnail from the composite image
+      // 3. Generate thumbnail from the canvas (fast!)
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Convert blob to data URL for thumbnail generation
-      const compositeDataUrl = await blobToDataUrl(compositeBlob)
-      const thumbnailDataUrl = await renderer.resizeToThumbnail(compositeDataUrl, 200)
+      console.log('[ShopifyCart] Generating thumbnail for Personaliza...')
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
+      console.log(`[ShopifyCart] Thumbnail generated: ${(thumbnailBlob.size / 1024).toFixed(1)}KB`)
 
-      // 5. Upload both to S3 (custom-prints bucket)
+      // 4. Get design config snapshot from store
+      const designConfig = personalizaStore.getSnapshot()
+
+      // 5. Upload cropped image, config, and thumbnail to S3
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
-      const [uploadResult, thumbnailUpload] = await Promise.all([
-        uploader.uploadDesignImage(compositeBlob, 'personaliza', 'custom-prints'),
+      console.log('[ShopifyCart] Uploading cropped image, config + thumbnail to S3...')
+      const [croppedImageUpload, configUpload, thumbnailUpload] = await Promise.all([
+        uploader.uploadDesignImage(highResCropBlob, 'personaliza-crop', 'custom-prints'),
+        uploader.uploadConfig(designConfig as unknown as Record<string, unknown>, 'personaliza-config', 'custom-prints'),
         uploader.uploadDesignImage(thumbnailBlob, 'personaliza-thumb', 'custom-prints'),
       ])
+      console.log('[ShopifyCart] S3 upload complete:', configUpload.url)
 
-      // 6. Build description from snapshot (not reactive state)
+      // 6. Update config with the cropped image URL for server-side rendering
+      // We need to re-upload the config with the cropped image URL included
+      const configWithCroppedImage = {
+        ...designConfig,
+        croppedImageS3Url: croppedImageUpload.url,
+      }
+      const finalConfigUpload = await uploader.uploadConfig(
+        configWithCroppedImage as unknown as Record<string, unknown>,
+        'personaliza-config',
+        'custom-prints'
+      )
+
+      // 7. Build description from snapshot (not reactive state)
       const formatLabel = snapshot.imageFormat === '1:1' ? 'Cuadrado' : snapshot.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = snapshot.title ? `"${snapshot.title}"` : 'Sin texto'
 
-      // 7. Add to Shopify cart with attributes (using snapshot values)
+      // 8. Add to Shopify cart with config URL (server renders full image on order)
+      console.log('[ShopifyCart] Adding to Shopify cart...')
       await cartStore.addItem(variant.id, 1, [
-        { key: '_imagen', value: uploadResult.url },
+        { key: '_config', value: finalConfigUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Personaliza' },
         { key: 'Tamaño', value: snapshot.posterSize },
@@ -408,6 +421,7 @@ export function useShopifyCart() {
         { key: 'Marco', value: snapshot.frameStyleName },
         { key: 'Texto', value: textInfo },
       ])
+      console.log('[ShopifyCart] ✓ Successfully added to cart!')
 
       return null // Success
     } catch (err) {
@@ -418,18 +432,6 @@ export function useShopifyCart() {
     } finally {
       isAddingToCart.value = false
     }
-  }
-
-  /**
-   * Convert blob to data URL
-   */
-  function blobToDataUrl(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
   }
 
   // ==========================================================================
@@ -675,10 +677,15 @@ export function useShopifyCart() {
 
   /**
    * Add birth poster to cart
+   *
+   * Server-side rendering approach (same as Momentos):
    * 1. Validate state (names, variant)
-   * 2. Generate high-res image from canvas
-   * 3. Upload to S3
-   * 4. Add to Shopify cart with image URL as attribute
+   * 2. Generate thumbnail from canvas (fast, small)
+   * 3. Upload config JSON + thumbnail to S3
+   * 4. Add to Shopify cart with config URL
+   *
+   * The full high-res image is rendered server-side via Browserless
+   * when the order is placed (see netlify/functions/render-order-background.ts)
    *
    * Returns object with validation error, or thumbnail on success
    */
@@ -712,45 +719,44 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate images from the canvas element
+      // 2. Generate thumbnail only (fast!) - no full render needed
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image
-      const renderResult = await renderer.generatePosterImage(canvasElement)
-
-      // Convert blob to data URL (more reliable than using dataUrl from render for thumbnails)
-      const blobDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.readAsDataURL(renderResult.blob)
-      })
-
-      // Resize blob data URL for thumbnail
-      const thumbnailDataUrl = await renderer.resizeToThumbnail(blobDataUrl, 200)
+      console.log('[ShopifyCart] Generating thumbnail for Birth Poster...')
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
+      console.log(`[ShopifyCart] Thumbnail generated: ${(thumbnailBlob.size / 1024).toFixed(1)}KB`)
 
-      // 3. Upload both to S3
+      // 3. Get design config snapshot from store
+      const birthPosterStore = useBirthPosterStore()
+      const designConfig = birthPosterStore.getSnapshot()
+
+      // 4. Upload config + thumbnail to S3 (fast! ~100KB total vs 40MB before)
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
-      const [uploadResult, thumbnailUpload] = await Promise.all([
-        uploader.uploadDesignImage(renderResult.blob, 'birth-poster'),
-        uploader.uploadDesignImage(thumbnailBlob, 'birth-poster-thumb'),
+      console.log('[ShopifyCart] Uploading config + thumbnail to S3...')
+      const [configUpload, thumbnailUpload] = await Promise.all([
+        uploader.uploadConfig(designConfig as unknown as Record<string, unknown>, 'birth-poster-config', 'momentos-malek'),
+        uploader.uploadDesignImage(thumbnailBlob, 'birth-poster-thumb', 'momentos-malek'),
       ])
+      console.log('[ShopifyCart] S3 upload complete:', configUpload.url)
 
-      // 4. Add to Shopify cart with attributes (using snapshot values)
+      // 5. Add to Shopify cart with config URL (server renders full image on order)
+      console.log('[ShopifyCart] Adding to Shopify cart...')
       await cartStore.addItem(variant.id, 1, [
-        { key: '_imagen', value: uploadResult.url },
+        { key: '_config', value: configUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'BirthPoster' },
         { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Marco', value: snapshot.frameStyleName },
         { key: 'Bebés', value: snapshot.babyNames },
       ])
+      console.log('[ShopifyCart] ✓ Successfully added to cart!')
 
       // Return thumbnail for history saving (avoids re-rendering)
       return { thumbnail: thumbnailDataUrl }

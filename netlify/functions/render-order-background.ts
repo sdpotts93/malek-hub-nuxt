@@ -1,15 +1,21 @@
 /**
- * Server-side Render Function for Momentos Orders
+ * Server-side Render Function for All Shop Orders
  *
  * This is a Netlify Background Function that runs when a Shopify order is created.
  * It uses Browserless.io to render high-res images from design configs.
  *
+ * Supports:
+ * - Momentos: Photo collage posters
+ * - BirthPoster: Baby birth announcement posters
+ * - Personaliza: Custom image posters with text
+ *
  * Flow:
  * 1. Shopify sends order webhook
- * 2. For each line item with _config attribute (Momentos orders)
- * 3. Call Browserless to screenshot the /render/momentos page
- * 4. Upload the screenshot to S3
- * 5. Update order notes with final image URLs (visible in Shopify admin "Notas")
+ * 2. For each line item with _config attribute
+ * 3. Detect shop type from _shop property
+ * 4. Call Browserless to screenshot the appropriate /render/{shop} page
+ * 5. Upload the screenshot to S3
+ * 6. Update order notes with final image URLs (visible in Shopify admin "Notas")
  *
  * Environment Variables Required:
  * - BROWSERLESS_API_KEY: Your Browserless.io API key
@@ -23,6 +29,8 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions'
 
 // Types
+type ShopType = 'Momentos' | 'BirthPoster' | 'Personaliza'
+
 interface ShopifyLineItem {
   id: number
   title: string
@@ -38,6 +46,7 @@ interface ShopifyOrder {
 
 interface RenderResult {
   lineItemId: number
+  shopType: ShopType
   configUrl: string
   imageUrl: string | null
   error: string | null
@@ -55,23 +64,44 @@ const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
 const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'studiomalek.myshopify.com'
 
 // Viewport sizes for different formats (150 DPI for 70x100cm)
+// Used by Momentos and Personaliza
 const VIEWPORT_SIZES = {
   square: { width: 2953, height: 2953 }, // 50x50cm at 150 DPI
   horizontal: { width: 5906, height: 4134 }, // 100x70cm at 150 DPI
   vertical: { width: 4134, height: 5906 }, // 70x100cm at 150 DPI
 }
 
+// Birth Poster viewport sizes (aspect ratio 5:7 for 1-2 babies, 7:5 for 3-4)
+const BIRTH_POSTER_VIEWPORT_SIZES = {
+  vertical: { width: 4134, height: 5906 }, // 70x100cm at 150 DPI (1-2 babies)
+  horizontal: { width: 5906, height: 4134 }, // 100x70cm at 150 DPI (3-4 babies)
+}
+
+// Map shop type to render page path
+const SHOP_RENDER_PATHS: Record<ShopType, string> = {
+  Momentos: '/render/momentos',
+  BirthPoster: '/render/birth-poster',
+  Personaliza: '/render/personaliza',
+}
+
+// Map shop type to S3 bucket
+const SHOP_S3_BUCKETS: Record<ShopType, string> = {
+  Momentos: 'momentos-malek',
+  BirthPoster: 'momentos-malek',
+  Personaliza: 'custom-prints',
+}
+
 /**
  * Get presigned URL from Lambda for S3 upload
  */
-async function getPresignedUrl(filename: string, contentType: string): Promise<string> {
+async function getPresignedUrl(filename: string, contentType: string, bucket: string = S3_BUCKET): Promise<string> {
   const response = await fetch(PRESIGNED_URL_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       fileName: filename,
       contentType: contentType,
-      bucket: S3_BUCKET,
+      bucket: bucket,
     }),
   })
 
@@ -86,8 +116,8 @@ async function getPresignedUrl(filename: string, contentType: string): Promise<s
 /**
  * Upload buffer to S3 using presigned URL
  */
-async function uploadToS3(buffer: ArrayBuffer, filename: string): Promise<string> {
-  const presignedUrl = await getPresignedUrl(filename, 'image/png')
+async function uploadToS3(buffer: ArrayBuffer, filename: string, bucket: string = S3_BUCKET): Promise<string> {
+  const presignedUrl = await getPresignedUrl(filename, 'image/png', bucket)
 
   const response = await fetch(presignedUrl, {
     method: 'PUT',
@@ -99,7 +129,8 @@ async function uploadToS3(buffer: ArrayBuffer, filename: string): Promise<string
     throw new Error('Failed to upload to S3')
   }
 
-  return `${S3_BASE_URL}/${filename}`
+  const baseUrl = `https://${bucket}.s3.us-west-1.amazonaws.com`
+  return `${baseUrl}/${filename}`
 }
 
 /**
@@ -140,8 +171,19 @@ async function updateOrderWithImages(orderId: number, results: RenderResult[]): 
   const existingNote = orderData.order?.note || ''
 
   // Build note with image URLs (extra spacing between items)
-  const imageLines = successfulResults.map((r, i) => `${i + 1}. ${r.imageUrl}`).join('\n\n')
-  const newNote = `MOMENTOS - Imágenes renderizadas:\n\n${imageLines}`
+  // Group by shop type for clearer organization
+  const shopGroups = successfulResults.reduce((acc, r) => {
+    if (!acc[r.shopType]) acc[r.shopType] = []
+    acc[r.shopType].push(r.imageUrl!)
+    return acc
+  }, {} as Record<ShopType, string[]>)
+
+  const shopLines = Object.entries(shopGroups).map(([shop, urls]) => {
+    const urlList = urls.map((url, i) => `${i + 1}. ${url}`).join('\n\n')
+    return `${shop}:\n${urlList}`
+  }).join('\n\n---\n\n')
+
+  const newNote = `Imágenes renderizadas:\n\n${shopLines}`
 
   // Append to existing notes (preserve customer notes)
   const finalNote = existingNote ? `${existingNote}\n\n---\n${newNote}` : newNote
@@ -172,19 +214,41 @@ async function updateOrderWithImages(orderId: number, results: RenderResult[]): 
 }
 
 /**
+ * Get viewport size for a shop type and format
+ */
+function getViewportSize(shopType: ShopType, format: string, babyCount?: number): { width: number; height: number } {
+  if (shopType === 'BirthPoster') {
+    // Birth poster: vertical for 1-2 babies, horizontal for 3-4
+    const orientation = (babyCount && babyCount > 2) ? 'horizontal' : 'vertical'
+    return BIRTH_POSTER_VIEWPORT_SIZES[orientation]
+  }
+
+  // Momentos and Personaliza use the same viewport sizes based on format
+  return VIEWPORT_SIZES[format as keyof typeof VIEWPORT_SIZES] || VIEWPORT_SIZES.vertical
+}
+
+/**
  * Render a design using Browserless
  */
-async function renderWithBrowserless(configUrl: string, format: string): Promise<ArrayBuffer> {
+async function renderWithBrowserless(
+  configUrl: string,
+  shopType: ShopType,
+  format: string,
+  babyCount?: number
+): Promise<ArrayBuffer> {
   if (!BROWSERLESS_API_KEY) {
     throw new Error('BROWSERLESS_API_KEY not configured')
   }
 
-  // Determine viewport size based on format
-  const viewport = VIEWPORT_SIZES[format as keyof typeof VIEWPORT_SIZES] || VIEWPORT_SIZES.vertical
+  // Get render page path for this shop
+  const renderPath = SHOP_RENDER_PATHS[shopType]
 
-  const renderUrl = `${SITE_URL}/render/momentos?configUrl=${encodeURIComponent(configUrl)}`
+  // Determine viewport size based on shop type and format
+  const viewport = getViewportSize(shopType, format, babyCount)
 
-  console.log(`[RenderOrder] Rendering: ${renderUrl}`)
+  const renderUrl = `${SITE_URL}${renderPath}?configUrl=${encodeURIComponent(configUrl)}`
+
+  console.log(`[RenderOrder] Rendering ${shopType}: ${renderUrl}`)
   console.log(`[RenderOrder] Viewport: ${viewport.width}x${viewport.height}`)
 
   // Browserless API - token in URL query parameter
@@ -222,6 +286,39 @@ async function renderWithBrowserless(configUrl: string, format: string): Promise
 }
 
 /**
+ * Detect shop type from line item properties
+ */
+function detectShopType(item: ShopifyLineItem): ShopType {
+  const shopProp = item.properties.find(p => p.name === '_shop')
+  if (shopProp) {
+    const value = shopProp.value as ShopType
+    if (['Momentos', 'BirthPoster', 'Personaliza'].includes(value)) {
+      return value
+    }
+  }
+  // Default to Momentos for backwards compatibility
+  return 'Momentos'
+}
+
+/**
+ * Get format from config based on shop type
+ */
+function getFormatFromConfig(config: Record<string, unknown>, shopType: ShopType): string {
+  if (shopType === 'Momentos') {
+    return (config.format as string) || 'vertical'
+  }
+  if (shopType === 'Personaliza') {
+    // Personaliza uses imageFormat like '5:7', '7:5', '1:1'
+    const imageFormat = config.imageFormat as string
+    if (imageFormat === '1:1') return 'square'
+    if (imageFormat === '7:5') return 'horizontal'
+    return 'vertical'
+  }
+  // BirthPoster - format is determined by babyCount
+  return 'vertical'
+}
+
+/**
  * Process a single line item
  */
 async function processLineItem(item: ShopifyLineItem, orderNumber: number): Promise<RenderResult> {
@@ -230,6 +327,7 @@ async function processLineItem(item: ShopifyLineItem, orderNumber: number): Prom
   if (!configProp) {
     return {
       lineItemId: item.id,
+      shopType: 'Momentos',
       configUrl: '',
       imageUrl: null,
       error: 'No _config property found',
@@ -237,41 +335,47 @@ async function processLineItem(item: ShopifyLineItem, orderNumber: number): Prom
   }
 
   const configUrl = configProp.value
+  const shopType = detectShopType(item)
 
   try {
-    // Fetch config to get format
+    // Fetch config to get format and other details
     const configResponse = await fetch(configUrl)
     if (!configResponse.ok) {
       throw new Error(`Failed to fetch config: ${configResponse.status}`)
     }
-    const config = await configResponse.json()
-    const format = config.format || 'vertical'
+    const config = await configResponse.json() as Record<string, unknown>
+    const format = getFormatFromConfig(config, shopType)
+    const babyCount = shopType === 'BirthPoster' ? (config.babyCount as number) : undefined
 
-    console.log(`[RenderOrder] Processing order ${orderNumber}, item ${item.id}, format: ${format}`)
+    console.log(`[RenderOrder] Processing ${shopType} order ${orderNumber}, item ${item.id}, format: ${format}${babyCount ? `, babies: ${babyCount}` : ''}`)
 
     // Render with Browserless
-    const imageBuffer = await renderWithBrowserless(configUrl, format)
+    const imageBuffer = await renderWithBrowserless(configUrl, shopType, format, babyCount)
     console.log(`[RenderOrder] Rendered image: ${(imageBuffer.byteLength / 1024 / 1024).toFixed(2)}MB`)
 
-    // Upload to S3
+    // Upload to S3 (use appropriate bucket for each shop)
+    const bucket = SHOP_S3_BUCKETS[shopType]
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
-    const filename = `momentos-final-${orderNumber}-${item.id}-${timestamp}-${random}.png`
+    const shopPrefix = shopType.toLowerCase().replace('poster', '-poster')
+    const filename = `${shopPrefix}-final-${orderNumber}-${item.id}-${timestamp}-${random}.png`
 
-    const imageUrl = await uploadToS3(imageBuffer, filename)
+    const imageUrl = await uploadToS3(imageBuffer, filename, bucket)
     console.log(`[RenderOrder] Uploaded to S3: ${imageUrl}`)
 
     return {
       lineItemId: item.id,
+      shopType,
       configUrl,
       imageUrl,
       error: null,
     }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    console.error(`[RenderOrder] Error processing item ${item.id}:`, errorMessage)
+    console.error(`[RenderOrder] Error processing ${shopType} item ${item.id}:`, errorMessage)
     return {
       lineItemId: item.id,
+      shopType,
       configUrl,
       imageUrl: null,
       error: errorMessage,
