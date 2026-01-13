@@ -722,6 +722,7 @@ function confirmRellenar() {
   }
 
   closeRellenarModal()
+  emit('image-assigned') // Close mobile slider after autofill
 }
 </script>
 
