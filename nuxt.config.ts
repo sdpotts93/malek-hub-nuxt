@@ -73,9 +73,11 @@ export default defineNuxtConfig({
 
   // Image configuration
   image: {
-    quality: 80,
-    format: ['webp', 'avif', 'png', 'jpg'],
-    domains: ['birth-poster.s3.us-west-1.amazonaws.com'],
+    netlify: {
+      modifiers: { 
+        format: ['webp', 'avif', 'jpeg', 'png'] 
+      }
+    }
   },
 
   // App configuration
