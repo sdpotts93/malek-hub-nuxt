@@ -5,7 +5,7 @@
  * This library handles modern CSS features better than html2canvas.
  */
 
-import { toPng, toBlob } from 'html-to-image'
+import { toBlob } from 'html-to-image'
 
 // DPI and print size configuration for large format printing
 const PRINT_CONFIG = {
@@ -47,6 +47,28 @@ export function useCanvasRenderer() {
       reader.onerror = reject
       reader.readAsDataURL(blob)
     })
+  }
+
+  /**
+   * Extract data URL from an already-loaded image element by drawing to canvas
+   * This works for same-origin images (including blob URLs) without taint issues
+   */
+  function imageToDataUrl(img: HTMLImageElement): string | null {
+    if (!img.complete || img.naturalWidth === 0) {
+      return null
+    }
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return null
+      ctx.drawImage(img, 0, 0)
+      return canvas.toDataURL('image/png')
+    } catch (e) {
+      console.warn('[CanvasRenderer] Failed to extract image via canvas:', e)
+      return null
+    }
   }
 
   /**
@@ -190,10 +212,15 @@ export function useCanvasRenderer() {
 
     // Convert all image URLs to data URLs for reliable rendering
     // This handles both blob URLs and S3/remote URLs
-    const images = clone.querySelectorAll('img')
-    console.log(`[CanvasRenderer] Processing ${images.length} images in clone`)
+    const clonedImages = clone.querySelectorAll('img')
+    const originalImages = element.querySelectorAll('img')
+    console.log(`[CanvasRenderer] Processing ${clonedImages.length} images in clone`)
 
-    for (const img of Array.from(images)) {
+    for (let i = 0; i < clonedImages.length; i++) {
+      const img = clonedImages[i]
+      if (!img) continue // TypeScript guard
+
+      const originalImg = originalImages[i] // Corresponding original image (already loaded)
       let originalSrc = img.src
 
       // Skip empty or placeholder images
@@ -226,7 +253,14 @@ export function useCanvasRenderer() {
             dataUrl = await blobUrlToDataUrl(originalSrc)
             console.log('[CanvasRenderer] ✓ Blob URL converted successfully')
           } catch (e) {
-            console.warn('[CanvasRenderer] ✗ Blob URL failed (may be revoked):', e)
+            console.warn('[CanvasRenderer] ✗ Blob URL fetch failed, trying canvas extraction...', e)
+            // Fallback: Extract from original loaded image via canvas
+            if (originalImg) {
+              dataUrl = imageToDataUrl(originalImg)
+              if (dataUrl) {
+                console.log('[CanvasRenderer] ✓ Blob URL extracted via canvas from original')
+              }
+            }
           }
         }
         // Handle S3/remote URLs - try multiple approaches
@@ -267,25 +301,31 @@ export function useCanvasRenderer() {
             }
           })
         } else if (originalSrc.startsWith('blob:')) {
-          // Blob URL conversion failed but browser may still have it cached
-          // Keep original src and let html-to-image try to render it
-          console.log('[CanvasRenderer] Keeping original blob URL (browser may have it cached)')
-          // Wait a moment for the image to be ready
-          await new Promise<void>((resolve) => {
-            if (img.complete && img.naturalWidth > 0) {
-              resolve()
+          // Blob URL conversion failed and canvas extraction failed
+          // Try one more time with the original image if available
+          if (originalImg && originalImg.complete && originalImg.naturalWidth > 0) {
+            console.log('[CanvasRenderer] Trying final canvas extraction from original...')
+            dataUrl = imageToDataUrl(originalImg)
+            if (dataUrl) {
+              img.src = dataUrl
+              img.removeAttribute('crossorigin')
+              console.log('[CanvasRenderer] ✓ Final canvas extraction succeeded')
             } else {
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-              setTimeout(resolve, 500)
+              console.warn('[CanvasRenderer] ✗ All blob URL conversion methods failed - removing image')
+              // Remove the image from DOM to prevent html-to-image from failing
+              img.remove()
             }
-          })
+          } else {
+            console.warn('[CanvasRenderer] ✗ Original image not loaded - removing image')
+            // Remove the image from DOM to prevent html-to-image from failing
+            img.remove()
+          }
         } else if (!originalSrc.startsWith('http')) {
           // Local path or already a data URL - keep as is
         } else {
-          // Remote URL failed to convert - this shouldn't happen often
-          // Keep the original src and let html-to-image try
-          console.warn('[CanvasRenderer] Keeping original remote URL:', originalSrc.substring(0, 50))
+          // Remote URL failed to convert - remove to prevent errors
+          console.warn('[CanvasRenderer] ✗ Remote URL conversion failed - removing image:', originalSrc.substring(0, 50))
+          img.remove()
         }
       } catch (err) {
         // Error processing image - keep original src and let html-to-image try
@@ -348,12 +388,20 @@ export function useCanvasRenderer() {
         },
       }
 
-      // Generate PNG data URL from clone
-      const dataUrl = await toPng(clone, renderOptions)
-
-      // Generate blob from clone
+      // Generate blob from clone (single call to avoid race conditions)
+      console.log('[CanvasRenderer] Starting toBlob render...')
       const blob = await toBlob(clone, renderOptions)
       if (!blob) throw new Error('Failed to create blob')
+      console.log('[CanvasRenderer] toBlob succeeded, converting to data URL...')
+
+      // Convert blob to data URL
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      console.log('[CanvasRenderer] Render complete!')
 
       return {
         dataUrl,
@@ -366,10 +414,17 @@ export function useCanvasRenderer() {
       let message: string
       if (err instanceof Error) {
         message = err.message
+        console.error('[CanvasRenderer] Error (Error):', err.message, err.stack)
       } else if (err instanceof Event) {
         message = 'Error loading image - possible CORS issue or invalid image URL'
+        // Log more details about the Event
+        const target = (err as any).target
+        if (target) {
+          console.error('[CanvasRenderer] Event target:', target.tagName, target.src || target.href)
+        }
       } else {
         message = 'Error al generar imagen'
+        console.error('[CanvasRenderer] Unknown error type:', typeof err, err)
       }
       error.value = message
       console.error('[CanvasRenderer] Error:', err)

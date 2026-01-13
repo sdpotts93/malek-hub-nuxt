@@ -242,6 +242,9 @@ async function handleAddToCart() {
     uiStore.openCart()
   } catch (error) {
     console.error('Error adding to cart:', error)
+    // Show user-friendly error message
+    const message = error instanceof Error ? error.message : 'Error al agregar al carrito'
+    alert(`No se pudo agregar al carrito: ${message}`)
   } finally {
     uiStore.setLoading(false)
   }

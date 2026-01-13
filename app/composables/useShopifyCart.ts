@@ -494,12 +494,13 @@ export function useShopifyCart() {
    * Validate momentos state before adding to cart
    */
   function validateMomentosForCart(state: MomentosState): ValidationResult {
-    // Check if all cells have images
-    const emptyCells = state.canvasCells.filter(c => c.imageId === null)
-    if (emptyCells.length > 0) {
+    // Check if at least one cell has an image (empty cells are allowed - they appear white)
+    // The UI already warns about empty cells via the warning modal
+    const filledCells = state.canvasCells.filter(c => c.imageId !== null)
+    if (filledCells.length === 0) {
       return {
         isValid: false,
-        message: `Faltan ${emptyCells.length} imagen${emptyCells.length > 1 ? 'es' : ''} por agregar`,
+        message: 'Agrega al menos una imagen al collage',
         missingBabyIndex: null,
       }
     }
@@ -538,8 +539,9 @@ export function useShopifyCart() {
     // Validate first
     const validation = validateMomentosForCart(state)
     if (!validation.isValid) {
+      console.warn('[ShopifyCart] Validation failed:', validation.message)
       addToCartError.value = validation.message
-      return validation
+      throw new Error(validation.message) // Throw so the error is visible to the user
     }
 
     isAddingToCart.value = true
@@ -564,14 +566,18 @@ export function useShopifyCart() {
       console.log(`[ShopifyCart] Momentos render: ${renderResult.width}x${renderResult.height}px (${(renderResult.blob.size / 1024 / 1024).toFixed(2)}MB)`)
 
       // Convert blob to data URL for thumbnail generation
+      console.log('[ShopifyCart] Converting blob to data URL...')
       const blobDataUrl = await blobToDataUrl(renderResult.blob)
+      console.log('[ShopifyCart] Blob converted, resizing for thumbnail...')
 
       // Resize for thumbnail
       const thumbnailDataUrl = await renderer.resizeToThumbnail(blobDataUrl, 200)
+      console.log('[ShopifyCart] Thumbnail resized, converting to blob...')
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
+      console.log('[ShopifyCart] Uploading to S3...')
 
       // 3. Upload both to S3 (momentos-malek bucket)
       const { useS3Upload } = await import('~/composables/useS3Upload')
@@ -581,11 +587,13 @@ export function useShopifyCart() {
         uploader.uploadDesignImage(renderResult.blob, 'momentos', 'momentos-malek'),
         uploader.uploadDesignImage(thumbnailBlob, 'momentos-thumb', 'momentos-malek'),
       ])
+      console.log('[ShopifyCart] S3 upload complete:', uploadResult.url)
 
       // 4. Build description from state
       const formatLabel = state.format === 'square' ? 'Cuadrado' : state.format === 'horizontal' ? 'Horizontal' : 'Vertical'
 
       // 5. Add to Shopify cart with attributes
+      console.log('[ShopifyCart] Adding to Shopify cart...')
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
@@ -595,6 +603,7 @@ export function useShopifyCart() {
         { key: 'Imágenes', value: `${state.imageCount} fotos` },
         { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
       ])
+      console.log('[ShopifyCart] ✓ Successfully added to cart!')
 
       return null // Success
     } catch (err) {
