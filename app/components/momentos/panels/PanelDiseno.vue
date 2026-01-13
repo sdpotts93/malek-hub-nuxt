@@ -452,15 +452,17 @@ async function handleFilesFromDrop(files: File[]) {
     return
   }
 
-  // Multiple images: show autofill modal
-  pendingAutofillImages.value = uploadedIds
-  if (store.selectedCellId) {
-    const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
-    autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
-  } else {
-    autofillStartIndex.value = 0
+  // Multiple images: show autofill modal only if there are empty cells
+  if (store.emptyCellCount > 0) {
+    pendingAutofillImages.value = uploadedIds
+    if (store.selectedCellId) {
+      const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
+      autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
+    } else {
+      autofillStartIndex.value = 0
+    }
+    showAutofillModal.value = true
   }
-  showAutofillModal.value = true
 }
 
 // Custom drag preview element
