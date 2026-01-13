@@ -407,9 +407,8 @@ export function useCanvasRenderer() {
       }
 
       // Generate blob from clone (single call to avoid race conditions)
-      // Use JPEG at 90% quality - visually identical to PNG but 5-10x smaller
-      console.log('[CanvasRenderer] Starting toBlob render (JPEG 90%)...')
-      const blob = await toBlob(clone, { ...renderOptions, type: 'image/jpeg', quality: 0.9 })
+      console.log('[CanvasRenderer] Starting toBlob render...')
+      const blob = await toBlob(clone, renderOptions)
       if (!blob) throw new Error('Failed to create blob')
       console.log('[CanvasRenderer] toBlob succeeded, converting to data URL...')
 

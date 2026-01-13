@@ -71,7 +71,7 @@ export function useS3Upload() {
   function generateFilename(prefix: string = 'design'): string {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
-    return `${prefix}-${timestamp}-${random}.jpg`
+    return `${prefix}-${timestamp}-${random}.png`
   }
 
   /**
@@ -92,7 +92,7 @@ export function useS3Upload() {
 
     try {
       const filename = generateFilename(prefix)
-      const contentType = 'image/jpeg'
+      const contentType = 'image/png'
 
       // Get presigned URL
       uploadProgress.value = 20
