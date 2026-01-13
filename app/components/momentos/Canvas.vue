@@ -29,6 +29,24 @@ const aspectClass = computed(() => {
   }
 })
 
+// Compute gap class based on format and image count
+const gapClass = computed(() => {
+  const count = store.imageCount
+  const format = store.format
+
+  if (format === 'square') {
+    if (count === 4) return 'momentos-canvas--gap-small'
+    if (count === 25) return 'momentos-canvas--gap-medium'
+    if (count === 64) return 'momentos-canvas--gap-large'
+  } else {
+    // Horizontal and vertical formats
+    if (count === 12) return 'momentos-canvas--gap-small'
+    if (count === 35) return 'momentos-canvas--gap-medium'
+    if (count === 88) return 'momentos-canvas--gap-large'
+  }
+  return null
+})
+
 // Get grid dimensions
 const gridDimensions = computed(() => store.gridDimensions)
 
@@ -125,12 +143,147 @@ function handleGlobalClick(e: MouseEvent) {
   store.selectCell(null)
 }
 
+// Keyboard shortcuts for undo/redo
+function handleKeyDown(e: KeyboardEvent) {
+  // Ctrl+Z or Cmd+Z for undo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    if (store.canUndo) {
+      store.undo()
+    }
+  }
+  // Ctrl+Shift+Z or Cmd+Shift+Z for redo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+    e.preventDefault()
+    if (store.canRedo) {
+      store.redo()
+    }
+  }
+  // Also support Ctrl+Y for redo (Windows convention)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+    e.preventDefault()
+    if (store.canRedo) {
+      store.redo()
+    }
+  }
+}
+
+// Pan/drag state
+const isPanning = ref(false)
+const panStartX = ref(0)
+const panStartY = ref(0)
+const initialPanX = ref(0)
+const initialPanY = ref(0)
+const panCellElement = ref<HTMLElement | null>(null)
+const panImageData = ref<{ width: number; height: number } | null>(null)
+
+// Calculate which axes can be panned based on image vs cell aspect ratio
+function getPanLimits(cellElement: HTMLElement, imageWidth: number, imageHeight: number) {
+  const cellRect = cellElement.getBoundingClientRect()
+  const cellAspect = cellRect.width / cellRect.height
+  const imageAspect = imageWidth / imageHeight
+
+  // With object-fit: cover:
+  // - If image is wider than cell (relative to aspect): can pan horizontally (0-100%)
+  // - If image is taller than cell (relative to aspect): can pan vertically (0-100%)
+  // The axis that "fits" should stay at 50%
+
+  const canPanX = imageAspect > cellAspect
+  const canPanY = imageAspect < cellAspect
+
+  return {
+    minX: canPanX ? 0 : 50,
+    maxX: canPanX ? 100 : 50,
+    minY: canPanY ? 0 : 50,
+    maxY: canPanY ? 100 : 50,
+  }
+}
+
+// Start panning
+function handlePanStart(e: MouseEvent, cellId: string) {
+  e.preventDefault()
+  e.stopPropagation()
+  const cell = store.canvasCells.find(c => c.id === cellId)
+  if (!cell || !cell.imageId) return
+
+  // Get image dimensions
+  const image = store.getImageById(cell.imageId)
+  if (!image) return
+
+  // Get cell element
+  const cellEl = cellRefs.value.get(cellId)
+  if (!cellEl) return
+
+  isPanning.value = true
+  panStartX.value = e.clientX
+  panStartY.value = e.clientY
+  initialPanX.value = cell.panX
+  initialPanY.value = cell.panY
+  panCellElement.value = cellEl
+  panImageData.value = { width: image.width, height: image.height }
+
+  document.addEventListener('mousemove', handlePanMove)
+  document.addEventListener('mouseup', handlePanEnd)
+}
+
+// Handle pan movement
+function handlePanMove(e: MouseEvent) {
+  if (!isPanning.value || !store.selectedCellId || !panCellElement.value || !panImageData.value) return
+
+  const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+  if (!cell) return
+
+  const cellRect = panCellElement.value.getBoundingClientRect()
+  const deltaX = e.clientX - panStartX.value
+  const deltaY = e.clientY - panStartY.value
+
+  // Convert pixel movement to percentage
+  // Moving the mouse left should increase object-position (show more of the right side)
+  const percentDeltaX = -(deltaX / cellRect.width) * 100
+  const percentDeltaY = -(deltaY / cellRect.height) * 100
+
+  // Get pan limits
+  const limits = getPanLimits(panCellElement.value, panImageData.value.width, panImageData.value.height)
+
+  // Calculate new pan values and clamp to limits
+  const newPanX = Math.max(limits.minX, Math.min(limits.maxX, initialPanX.value + percentDeltaX))
+  const newPanY = Math.max(limits.minY, Math.min(limits.maxY, initialPanY.value + percentDeltaY))
+
+  // Use live pan (no history) during drag for smooth performance
+  store.panCellLive(store.selectedCellId, newPanX, newPanY)
+}
+
+// End panning
+function handlePanEnd() {
+  if (isPanning.value && store.selectedCellId) {
+    const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+    if (cell && (cell.panX !== initialPanX.value || cell.panY !== initialPanY.value)) {
+      // Push to history only at the end of drag
+      store.panCell(store.selectedCellId, cell.panX, cell.panY, initialPanX.value, initialPanY.value)
+    }
+  }
+  isPanning.value = false
+  panCellElement.value = null
+  panImageData.value = null
+  document.removeEventListener('mousemove', handlePanMove)
+  document.removeEventListener('mouseup', handlePanEnd)
+}
+
+// Get object-position style for a cell's image
+function getCellObjectPosition(cell: CanvasCell): string {
+  return `${cell.panX}% ${cell.panY}%`
+}
+
 onMounted(() => {
   document.addEventListener('click', handleGlobalClick)
+  document.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick)
+  document.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('mousemove', handlePanMove)
+  document.removeEventListener('mouseup', handlePanEnd)
 })
 
 // Track cell element refs for positioning edit menu
@@ -158,6 +311,7 @@ const selectedCellWithImage = computed(() => {
     :class="[
       'momentos-canvas',
       aspectClass,
+      gapClass,
       {
         'momentos-canvas--has-frame': store.frameStyle,
         'momentos-canvas--has-margin': store.hasMargin,
@@ -215,7 +369,7 @@ const selectedCellWithImage = computed(() => {
             v-else
             class="momentos-canvas__cell-image-wrapper"
             :style="{
-              transform: `rotate(${cell.rotation}deg) scale(${cell.zoom}) translate(${cell.panX}px, ${cell.panY}px)`,
+              transform: `rotate(${cell.rotation}deg) scale(${cell.zoom})`,
               filter: getCellFilter(cell),
             }"
           >
@@ -223,6 +377,21 @@ const selectedCellWithImage = computed(() => {
               :src="getCellImageUrl(cell) || ''"
               alt=""
               class="momentos-canvas__cell-image"
+              :style="{ objectPosition: getCellObjectPosition(cell) }"
+            >
+          </div>
+
+          <!-- Pan handle overlay for selected cells with images -->
+          <div
+            v-if="cell.imageId && store.selectedCellId === cell.id"
+            class="momentos-canvas__pan-overlay"
+            :class="{ 'momentos-canvas__pan-overlay--panning': isPanning }"
+            @mousedown="handlePanStart($event, cell.id)"
+          >
+            <img
+              src="/momentos-icons/hand.svg"
+              alt="Mover imagen"
+              class="momentos-canvas__pan-icon"
             >
           </div>
         </div>
@@ -421,19 +590,38 @@ const selectedCellWithImage = computed(() => {
   }
 
   // ==========================================================================
-  // Content Layout
+  // Content Layout - using container units for consistency across formats
+  // Always use the smaller dimension unit for visual consistency:
+  // - Square: cqw (width = height)
+  // - Horizontal: cqh (height is smaller)
+  // - Vertical: cqw (width is smaller)
   // ==========================================================================
+  $padding-base: 5; // Base padding value (applied with appropriate unit per format)
+
   &__content {
     position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding: 2%;
+    padding: 0;
+    // Animate padding changes when margin is toggled
+    transition: padding 0.3s ease-out;
   }
 
-  &--has-margin &__content {
-    padding: 4%;
+  // Square format - use cqw (width = height)
+  &--square.momentos-canvas--has-margin &__content {
+    padding: #{$padding-base}cqw;
+  }
+
+  // Horizontal format - use cqh (height is the smaller dimension)
+  &--horizontal.momentos-canvas--has-margin &__content {
+    padding: #{$padding-base}cqh;
+  }
+
+  // Vertical format - use cqw (width is the smaller dimension)
+  &--vertical.momentos-canvas--has-margin &__content {
+    padding: #{$padding-base}cqw;
   }
 
   // ==========================================================================
@@ -442,13 +630,77 @@ const selectedCellWithImage = computed(() => {
   &__grid {
     flex: 1;
     display: grid;
-    gap: 2px;
+    gap: 0;
     width: 100%;
     height: 100%;
+    transition: gap 0.3s ease-out;
   }
 
-  &--has-margin &__grid {
-    gap: 4px;
+  // Base gap when margin is enabled (before gap class overrides)
+  // Using container units for consistency
+  &--square.momentos-canvas--has-margin &__grid {
+    gap: 1.5cqw;
+  }
+
+  &--horizontal.momentos-canvas--has-margin &__grid {
+    gap: 1.5cqh;
+  }
+
+  &--vertical.momentos-canvas--has-margin &__grid {
+    gap: 1.5cqw;
+  }
+
+  // ==========================================================================
+  // Dynamic gap based on image count (consistent across all formats)
+  // Uses the smaller dimension for each format to ensure visual consistency:
+  // - Square: cqw (width = height)
+  // - Horizontal: cqh (height is smaller)
+  // - Vertical: cqw (width is smaller)
+  // ==========================================================================
+
+  // Square format - use cqw (width = height, doesn't matter)
+  &--square {
+    &.momentos-canvas--gap-small .momentos-canvas__grid {
+      gap: 3.5cqw;
+    }
+
+    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+      gap: 2.5cqw;
+    }
+
+    &.momentos-canvas--gap-large .momentos-canvas__grid {
+      gap: 1.75cqw;
+    }
+  }
+
+  // Horizontal format - use cqh (height is the smaller dimension)
+  &--horizontal {
+    &.momentos-canvas--gap-small .momentos-canvas__grid {
+      gap: 3.5cqh;
+    }
+
+    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+      gap: 2.5cqh;
+    }
+
+    &.momentos-canvas--gap-large .momentos-canvas__grid {
+      gap: 1.75cqh;
+    }
+  }
+
+  // Vertical format - use cqw (width is the smaller dimension)
+  &--vertical {
+    &.momentos-canvas--gap-small .momentos-canvas__grid {
+      gap: 3.5cqw;
+    }
+
+    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+      gap: 2.5cqw;
+    }
+
+    &.momentos-canvas--gap-large .momentos-canvas__grid {
+      gap: 1.75cqw;
+    }
   }
 
   &__cell {
@@ -480,7 +732,6 @@ const selectedCellWithImage = computed(() => {
         content: '';
         position: absolute;
         inset: 0;
-        background: #ffffff69;
         z-index: 9;
         pointer-events: none;
       }
@@ -513,13 +764,47 @@ const selectedCellWithImage = computed(() => {
     position: absolute;
     inset: 0;
     overflow: hidden; // Clip zoomed/rotated images
-    transition: transform 0.2s ease, filter 0.2s ease;
+    // Only animate filter changes, not transform (for smooth panning)
+    transition: filter 0.2s ease;
   }
 
   &__cell-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    // No transition on object-position for responsive panning
+  }
+
+  // ==========================================================================
+  // Pan Overlay - shown on selected cells to allow dragging
+  // ==========================================================================
+  &__pan-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    background: rgba(0, 0, 0, 0.1);
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    &--panning {
+      cursor: grabbing;
+      background: rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  &__pan-icon {
+    width: 32px;
+    height: 32px;
+    opacity: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   }
 
   // ==========================================================================
@@ -606,7 +891,7 @@ const selectedCellWithImage = computed(() => {
     height: 32px;
     background: white;
     border-radius: 6px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     color: #414651;
     transition: background-color $transition-fast, color $transition-fast;
 

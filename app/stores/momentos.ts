@@ -182,8 +182,8 @@ export const createEmptyCell = (id?: string): CanvasCell => ({
   rotation: 0,
   zoom: 1,
   filter: 'none',
-  panX: 0,
-  panY: 0,
+  panX: 50, // object-position percentage (0-100)
+  panY: 50, // object-position percentage (0-100)
 })
 
 // Calculate grid dimensions based on image count and format
@@ -378,8 +378,8 @@ export const useMomentosStore = defineStore('momentos', {
 
     // Check if design is ready for cart
     isReadyForCart(state): boolean {
-      // At least one cell must have an image
-      return state.canvasCells.some(c => c.imageId !== null)
+      // All cells must have an image
+      return state.canvasCells.every(c => c.imageId !== null)
     },
 
     // Get aspect ratio based on format
@@ -521,8 +521,8 @@ export const useMomentosStore = defineStore('momentos', {
           cell.rotation = 0
           cell.zoom = 1
           cell.filter = 'none'
-          cell.panX = 0
-          cell.panY = 0
+          cell.panX = 50
+          cell.panY = 50
         }
       })
     },
@@ -561,14 +561,12 @@ export const useMomentosStore = defineStore('momentos', {
 
       // Update cell
       cell.imageId = imageId
-      if (imageId === null) {
-        // Reset adjustments when removing image
-        cell.rotation = 0
-        cell.zoom = 1
-        cell.filter = 'none'
-        cell.panX = 0
-        cell.panY = 0
-      }
+      // Reset adjustments when setting or removing image
+      cell.rotation = 0
+      cell.zoom = 1
+      cell.filter = 'none'
+      cell.panX = 50
+      cell.panY = 50
 
       this._pushUndoAction({
         type: imageId ? 'SET_IMAGE' : 'REMOVE_IMAGE',
@@ -611,8 +609,8 @@ export const useMomentosStore = defineStore('momentos', {
 
       // Reset pan if zoom goes back to 1
       if (cell.zoom === 1) {
-        cell.panX = 0
-        cell.panY = 0
+        cell.panX = 50
+        cell.panY = 50
       }
 
       this._pushUndoAction({
@@ -638,18 +636,26 @@ export const useMomentosStore = defineStore('momentos', {
       })
     },
 
-    panCell(cellId: string, panX: number, panY: number) {
+    // Live pan without history (used during drag)
+    panCellLive(cellId: string, panX: number, panY: number) {
       const cell = this.canvasCells.find(c => c.id === cellId)
-      if (!cell || !cell.imageId || cell.zoom <= 1) return
+      if (!cell || !cell.imageId) return
+      cell.panX = panX
+      cell.panY = panY
+    },
 
-      const previousPan = { panX: cell.panX, panY: cell.panY }
+    // Pan with history (used when drag ends)
+    panCell(cellId: string, panX: number, panY: number, previousPanX: number, previousPanY: number) {
+      const cell = this.canvasCells.find(c => c.id === cellId)
+      if (!cell || !cell.imageId) return
+
       cell.panX = panX
       cell.panY = panY
 
       this._pushUndoAction({
         type: 'PAN_IMAGE',
         cellId,
-        previousState: previousPan,
+        previousState: { panX: previousPanX, panY: previousPanY },
         newState: { panX, panY },
       })
     },
@@ -695,8 +701,8 @@ export const useMomentosStore = defineStore('momentos', {
         cell.rotation = 0
         cell.zoom = 1
         cell.filter = 'none'
-        cell.panX = 0
-        cell.panY = 0
+        cell.panX = 50
+        cell.panY = 50
       })
 
       this._pushUndoAction({

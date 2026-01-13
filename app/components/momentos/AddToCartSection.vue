@@ -6,7 +6,7 @@ interface Props {
   compact?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   isLoading: false,
   compact: false,
 })
@@ -16,20 +16,6 @@ const emit = defineEmits<{
 }>()
 
 const { formatPrice } = useShopifyCart()
-const store = useMomentosStore()
-
-// Check if canvas has all images filled
-const canAddToCart = computed(() => {
-  return store.emptyCellCount === 0
-})
-
-// Warning message when not all cells are filled
-const warningMessage = computed(() => {
-  if (store.emptyCellCount > 0) {
-    return `Faltan ${store.emptyCellCount} imagen${store.emptyCellCount > 1 ? 'es' : ''} por agregar`
-  }
-  return null
-})
 </script>
 
 <template>
@@ -48,20 +34,20 @@ const warningMessage = computed(() => {
     </div>
 
     <!-- Warning when images missing -->
-    <div v-if="warningMessage && !compact" class="add-to-cart__warning">
+    <!-- <div v-if="warningMessage && !compact" class="add-to-cart__warning">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
         <path d="M12 9v4"/>
         <path d="M12 17h.01"/>
       </svg>
       <span>{{ warningMessage }}</span>
-    </div>
+    </div> -->
 
     <!-- Add to Cart Button + Info -->
     <div class="add-to-cart__action-group">
       <button
         class="add-to-cart__button"
-        :disabled="isLoading || !canAddToCart"
+        :disabled="isLoading"
         @click="emit('add-to-cart')"
       >
         <span class="add-to-cart__button-text" :class="{ 'add-to-cart__button-text--hidden': isLoading }">

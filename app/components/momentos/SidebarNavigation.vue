@@ -40,9 +40,9 @@ const store = useMomentosStore()
       :aria-current="activePanel === item.id ? 'true' : undefined"
       @click="emit('select', item.id)"
     >
-      <!-- Badge for empty canvas -->
+      <!-- Badge for empty cells - show on archivos/images when any cells need images -->
       <span
-        v-if="item.id === 'diseno' && store.emptyCellCount === store.canvasCells.length"
+        v-if="item.id === 'archivos' && store.emptyCellCount > 0"
         class="sidebar-nav__badge"
       >!</span>
       <span class="sidebar-nav__icon">

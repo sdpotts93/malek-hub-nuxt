@@ -41,9 +41,9 @@ const store = useMomentosStore()
       ]"
       @click="emit('select', item.id)"
     >
-      <!-- Warning badge for design when no images -->
+      <!-- Warning badge for archivos/images when any cells need images -->
       <span
-        v-if="item.id === 'diseno' && store.emptyCellCount === store.canvasCells.length"
+        v-if="item.id === 'archivos' && store.emptyCellCount > 0"
         class="bottom-navbar__badge"
       >!</span>
       <span class="bottom-navbar__icon">

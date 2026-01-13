@@ -65,8 +65,17 @@ const availableImageCounts = computed(() => IMAGE_COUNTS[store.format])
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
 
-// Drag state
+// Drag state for upload zone
 const isDragging = ref(false)
+
+// Drag state for content area overlay (when dragging files from outside)
+const isDraggingOverContent = ref(false)
+const dragCounter = ref(0) // Counter to handle nested elements
+
+// Autofill modal state
+const showAutofillModal = ref(false)
+const pendingAutofillImages = ref<string[]>([])
+const autofillStartIndex = ref(0)
 
 // Upload a single file
 async function uploadFile(file: File) {
@@ -206,17 +215,164 @@ function handleFileSelect() {
   fileInput.value?.click()
 }
 
-function handleFileChange(e: Event) {
+async function handleFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
-  if (files) {
-    Array.from(files).forEach(uploadFile)
+  if (!files || files.length === 0) {
+    input.value = ''
+    return
   }
+
+  const fileArray = Array.from(files)
+
+  // Upload all files first
+  const uploadedIds: string[] = []
+  for (const file of fileArray) {
+    const id = await uploadFileAndGetId(file)
+    if (id) uploadedIds.push(id)
+  }
+
   // Reset input so the same file can be selected again
   input.value = ''
+
+  if (uploadedIds.length === 0) return
+
+  // Single image: auto-populate selected cell if empty
+  if (uploadedIds.length === 1) {
+    const imageId = uploadedIds[0]
+    if (imageId && store.selectedCellId) {
+      const selectedCell = store.getCellById(store.selectedCellId)
+      if (selectedCell && !selectedCell.imageId) {
+        store.setImageToCell(store.selectedCellId, imageId)
+        store.selectCell(null)
+      }
+    }
+    return
+  }
+
+  // Multiple images: show autofill modal
+  pendingAutofillImages.value = uploadedIds
+  // Determine start index based on selected cell
+  if (store.selectedCellId) {
+    const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
+    autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
+  } else {
+    autofillStartIndex.value = 0
+  }
+  showAutofillModal.value = true
 }
 
-// Drag and drop handlers
+// Upload file and return the generated ID
+async function uploadFileAndGetId(file: File): Promise<string | null> {
+  if (!file.type.startsWith('image/')) {
+    console.warn('[PanelDiseno] Invalid file type:', file.type)
+    return null
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    console.warn('[PanelDiseno] File too large:', file.size)
+    alert(`El archivo es demasiado grande. Tamaño máximo: ${MAX_IMAGE_SIZE_MB}MB`)
+    return null
+  }
+
+  if (store.uploadedImages.length >= MAX_IMAGES) {
+    alert(`Has alcanzado el límite de ${MAX_IMAGES} imágenes`)
+    return null
+  }
+
+  const id = generateId()
+
+  // Create blob URL for immediate preview
+  const blobUrl = URL.createObjectURL(file)
+
+  // Get image dimensions
+  const dimensions = await getImageDimensions(blobUrl)
+
+  // Create uploaded image entry
+  const uploadedImage = {
+    id,
+    file,
+    lowResUrl: blobUrl,
+    mediumResUrl: blobUrl,
+    highResUrl: blobUrl,
+    width: dimensions.width,
+    height: dimensions.height,
+    uploadProgress: 0,
+    isUploading: true,
+  }
+
+  store.addUploadedImage(uploadedImage)
+
+  // Start S3 upload in background (don't await)
+  uploadToS3InBackground(id, file, blobUrl)
+
+  return id
+}
+
+// Handle S3 upload in background
+async function uploadToS3InBackground(id: string, file: File, blobUrl: string) {
+  try {
+    const [lowResBlob, mediumResBlob] = await Promise.all([
+      resizeImage(file, 200),
+      resizeImage(file, 2000),
+    ])
+
+    const [lowResResult, mediumResResult, highResResult] = await Promise.all([
+      uploadDesignImage(lowResBlob, 'momentos-low', 'momentos-malek'),
+      uploadDesignImage(mediumResBlob, 'momentos-med', 'momentos-malek'),
+      uploadDesignImage(file, 'momentos-high', 'momentos-malek'),
+    ])
+
+    store.updateUploadedImage(id, {
+      s3LowResUrl: lowResResult.url,
+      s3MediumResUrl: mediumResResult.url,
+      s3HighResUrl: highResResult.url,
+      lowResUrl: lowResResult.url,
+      mediumResUrl: mediumResResult.url,
+      highResUrl: highResResult.url,
+      uploadProgress: 100,
+      isUploading: false,
+    })
+
+    URL.revokeObjectURL(blobUrl)
+  } catch (error) {
+    console.error('[PanelDiseno] Upload failed:', error)
+    store.updateUploadedImage(id, {
+      uploadProgress: 100,
+      isUploading: false,
+    })
+  }
+}
+
+// Handle autofill confirmation
+function handleAutofillConfirm() {
+  const startIndex = autofillStartIndex.value
+  const imageIds = pendingAutofillImages.value
+
+  // Fill cells starting from startIndex
+  let imageIndex = 0
+  for (let i = startIndex; i < store.canvasCells.length && imageIndex < imageIds.length; i++) {
+    const cell = store.canvasCells[i]
+    const imageId = imageIds[imageIndex]
+    if (cell && imageId && !cell.imageId) {
+      store.setImageToCell(cell.id, imageId)
+      imageIndex++
+    }
+  }
+
+  // Close modal and reset
+  showAutofillModal.value = false
+  pendingAutofillImages.value = []
+  store.selectCell(null)
+}
+
+// Handle autofill cancel
+function handleAutofillCancel() {
+  showAutofillModal.value = false
+  pendingAutofillImages.value = []
+}
+
+// Drag and drop handlers for upload zone
 function onDragOver(e: DragEvent) {
   e.preventDefault()
   isDragging.value = true
@@ -235,14 +391,76 @@ function onDrop(e: DragEvent) {
   }
 }
 
+// Panel-level drag handlers (for showing overlay when dragging files)
+function onPanelDragEnter(e: DragEvent) {
+  // Only show overlay if on imagenes tab and dragging files
+  if (store.activeDisenoTab !== 'imagenes') return
+  if (!e.dataTransfer?.types.includes('Files')) return
+
+  dragCounter.value++
+  isDraggingOverContent.value = true
+}
+
+function onPanelDragLeave(e: DragEvent) {
+  if (store.activeDisenoTab !== 'imagenes') return
+
+  // Only hide if leaving the panel entirely
+  const relatedTarget = e.relatedTarget as HTMLElement | null
+  const panel = e.currentTarget as HTMLElement
+  if (!relatedTarget || !panel.contains(relatedTarget)) {
+    isDraggingOverContent.value = false
+    dragCounter.value = 0
+  }
+}
+
+function onPanelDrop(e: DragEvent) {
+  if (store.activeDisenoTab !== 'imagenes') return
+
+  isDraggingOverContent.value = false
+  dragCounter.value = 0
+  const files = e.dataTransfer?.files
+  if (files && files.length > 0) {
+    handleFilesFromDrop(Array.from(files))
+  }
+}
+
+// Handle files dropped on content area
+async function handleFilesFromDrop(files: File[]) {
+  const uploadedIds: string[] = []
+  for (const file of files) {
+    const id = await uploadFileAndGetId(file)
+    if (id) uploadedIds.push(id)
+  }
+
+  if (uploadedIds.length === 0) return
+
+  // Single image: auto-populate selected cell if empty
+  if (uploadedIds.length === 1) {
+    const imageId = uploadedIds[0]
+    if (imageId && store.selectedCellId) {
+      const selectedCell = store.getCellById(store.selectedCellId)
+      if (selectedCell && !selectedCell.imageId) {
+        store.setImageToCell(store.selectedCellId, imageId)
+        store.selectCell(null)
+      }
+    }
+    return
+  }
+
+  // Multiple images: show autofill modal
+  pendingAutofillImages.value = uploadedIds
+  if (store.selectedCellId) {
+    const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
+    autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
+  } else {
+    autofillStartIndex.value = 0
+  }
+  showAutofillModal.value = true
+}
+
 // Handle drag start for image library
 function handleImageDragStart(e: DragEvent, imageId: string) {
   e.dataTransfer?.setData('imageId', imageId)
-}
-
-// Auto-fill empty cells
-function handleAutoFill() {
-  store.autoFillCells()
 }
 
 // Remove image from library
@@ -277,7 +495,37 @@ function scrollColors(direction: 'left' | 'right') {
 </script>
 
 <template>
-  <div class="panel-diseno">
+  <div
+    class="panel-diseno"
+    @dragenter="onPanelDragEnter"
+    @dragover.prevent
+    @dragleave="onPanelDragLeave"
+    @drop.prevent="onPanelDrop"
+  >
+    <!-- Drop overlay (at panel level to cover visible area only) -->
+    <Transition name="drop-overlay">
+      <div
+        v-if="isDraggingOverContent && store.activeDisenoTab === 'imagenes'"
+        class="panel-diseno__drop-overlay"
+      >
+        <div class="panel-diseno__drop-zone">
+          <div class="panel-diseno__drop-icon">
+            <img
+              src="/personaliza-icons/icon/image-add.svg"
+              alt="Upload"
+              width="43"
+              height="43"
+            >
+          </div>
+          <p class="panel-diseno__drop-text">Suelta tus archivos aquí</p>
+          <p class="panel-diseno__drop-hint">
+            <span class="panel-diseno__drop-formats">PNG, JPEG, GIF </span>
+            <span class="panel-diseno__drop-size">hasta {{ MAX_IMAGE_SIZE_MB }}MB</span>
+          </p>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Tabs -->
     <div class="panel-diseno__tabs">
       <button
@@ -290,6 +538,11 @@ function scrollColors(direction: 'left' | 'right') {
         @click="store.setActiveDisenoTab(tab.id)"
       >
         {{ tab.label }}
+        <!-- Warning badge for imagenes tab when cells are empty -->
+        <span
+          v-if="tab.id === 'imagenes' && store.emptyCellCount > 0"
+          class="panel-diseno__tab-warning"
+        >!</span>
       </button>
     </div>
 
@@ -386,7 +639,7 @@ function scrollColors(direction: 'left' | 'right') {
       <!-- Margin color (only if margin is enabled) -->
       <div v-if="store.hasMargin" class="panel-diseno__section panel-diseno__section--pr0">
         <div class="panel-diseno__color-header">
-          <label class="panel-diseno__label">Color del margen</label>
+          <label class="panel-diseno__label">Color del fondo</label>
           <div class="panel-diseno__color-nav">
             <button
               class="panel-diseno__nav-btn"
@@ -428,9 +681,12 @@ function scrollColors(direction: 'left' | 'right') {
     </div>
 
     <!-- Tab: Imágenes -->
-    <div v-if="store.activeDisenoTab === 'imagenes'" class="panel-diseno__content">
-      <!-- Upload zone -->
-      <div class="panel-diseno__upload-section">
+    <div
+      v-if="store.activeDisenoTab === 'imagenes'"
+      class="panel-diseno__content"
+    >
+      <!-- Upload zone (only show if no images uploaded) -->
+      <div v-if="store.uploadedImages.length === 0" class="panel-diseno__upload-section">
         <div
           class="panel-diseno__upload-zone"
           :class="{ 'panel-diseno__upload-zone--dragging': isDragging }"
@@ -455,6 +711,10 @@ function scrollColors(direction: 'left' | 'right') {
             <span class="panel-diseno__upload-size">hasta {{ MAX_IMAGE_SIZE_MB }}MB</span>
           </p>
         </div>
+      </div>
+
+      <!-- Upload button (when images exist) -->
+      <div v-else class="panel-diseno__upload-section panel-diseno__upload-section--compact">
         <button
           class="panel-diseno__upload-btn"
           @click="handleFileSelect"
@@ -468,16 +728,6 @@ function scrollColors(direction: 'left' | 'right') {
 
       <!-- Separator -->
       <div class="panel-diseno__separator" />
-
-      <!-- Auto-fill button -->
-      <div v-if="store.uploadedImages.length > 0 && store.emptyCellCount > 0" class="panel-diseno__section">
-        <button
-          class="panel-diseno__autofill-btn"
-          @click="handleAutoFill"
-        >
-          Rellenar automáticamente
-        </button>
-      </div>
 
       <!-- Image library -->
       <div ref="librarySectionRef" class="panel-diseno__section">
@@ -501,8 +751,7 @@ function scrollColors(direction: 'left' | 'right') {
         </div>
 
         <div v-if="store.uploadedImages.length === 0" class="panel-diseno__empty">
-          <p>No hay imágenes subidas</p>
-          <p class="panel-diseno__empty-hint">Sube imágenes para empezar a crear tu collage</p>
+          <p>No hay imágenes subidas, sube imágenes para empezar a crear tu collage.</p>
         </div>
 
         <div v-else class="panel-diseno__library-grid">
@@ -585,13 +834,53 @@ function scrollColors(direction: 'left' | 'right') {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Autofill Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showAutofillModal"
+          class="panel-diseno__modal-overlay"
+          @click="handleAutofillCancel"
+        >
+          <div class="panel-diseno__modal" @click.stop>
+            <div class="panel-diseno__modal-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 16L4 17C4 18.6569 5.34315 20 7 20L17 20C18.6569 20 20 18.6569 20 17L20 16M16 8L12 4M12 4L8 8M12 4L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="panel-diseno__modal-title">Rellenar collage automáticamente</h3>
+            <p class="panel-diseno__modal-text">
+              Has subido {{ pendingAutofillImages.length }} imágenes. ¿Quieres rellenar automáticamente los espacios vacíos del collage?
+            </p>
+            <div class="panel-diseno__modal-actions">
+              <button
+                class="panel-diseno__modal-btn panel-diseno__modal-btn--secondary"
+                @click="handleAutofillCancel"
+              >
+                No, gracias
+              </button>
+              <button
+                class="panel-diseno__modal-btn panel-diseno__modal-btn--primary"
+                @click="handleAutofillConfirm"
+              >
+                Sí, rellenar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .panel-diseno {
+  position: relative;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
 
   &__tabs {
     display: flex;
@@ -611,7 +900,8 @@ function scrollColors(direction: 'left' | 'right') {
     transition: color $transition-fast;
 
     &--active {
-      color: $color-brand;
+      color: #252b37;
+      font-weight: 600;
 
       &::after {
         content: '';
@@ -629,11 +919,30 @@ function scrollColors(direction: 'left' | 'right') {
     }
   }
 
+  &__tab-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    background: #dc2626;
+    color: white;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+
   &__content {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 16px;
     padding-top: 20px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 
     @include mobile {
       padding-top: 16px;
@@ -927,6 +1236,67 @@ function scrollColors(direction: 'left' | 'right') {
     }
   }
 
+  // Drop overlay (shown when dragging files over content)
+  // Positioned at panel level to cover only visible area
+  &__drop-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.97);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  &__drop-zone {
+    width: 100%;
+    height: 100%;
+    background: $color-brand-light;
+    border: 2px dashed $color-brand;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  &__drop-icon {
+    width: 43px;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__drop-text {
+    font-family: $font-primary;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    color: $color-brand;
+    margin: 0;
+    text-align: center;
+  }
+
+  &__drop-hint {
+    font-family: $font-primary;
+    font-weight: 400;
+    color: #717680;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  &__drop-formats {
+    font-weight: 500;
+  }
+
   // Upload section
   &__upload-section {
     display: flex;
@@ -947,7 +1317,8 @@ function scrollColors(direction: 'left' | 'right') {
     gap: 8px;
     min-height: 140px;
     cursor: pointer;
-    transition: border-color $transition-fast, background-color $transition-fast;
+    transition: border-color $transition-fast, background-color $transition-fast, box-shadow $transition-fast;
+    box-shadow: 0px 4px 6px -1px rgba(10, 13, 18, 0.1), 0px 1px 10px -2px $color-brand-light;
 
     &:hover,
     &--dragging {
@@ -1153,16 +1524,16 @@ function scrollColors(direction: 'left' | 'right') {
     }
   }
 
-  // Select image indicator
+  // Select image indicator (info blue style)
   &__select-hint {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    background: $color-brand-light;
-    border: 1px solid $color-brand;
+    background: #eff6ff; // Info blue light
+    border: 1px solid #3b82f6; // Info blue
     border-radius: 8px;
-    color: $color-brand;
+    color: #1e40af; // Info blue dark text
     font-family: $font-primary;
     font-size: 13px;
     font-weight: $font-weight-medium;
@@ -1170,6 +1541,7 @@ function scrollColors(direction: 'left' | 'right') {
 
     svg {
       flex-shrink: 0;
+      color: #3b82f6; // Info blue for icon
     }
   }
 
@@ -1251,6 +1623,91 @@ function scrollColors(direction: 'left' | 'right') {
     border-radius: 8px;
     cursor: default;
   }
+
+  // Modal
+  &__modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: $z-modal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  &__modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  &__modal-icon {
+    width: 48px;
+    height: 48px;
+    background: $color-brand-light;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: $color-brand;
+  }
+
+  &__modal-title {
+    font-family: $font-primary;
+    font-size: 18px;
+    font-weight: $font-weight-semibold;
+    color: #181d27;
+    margin: 0 0 8px;
+  }
+
+  &__modal-text {
+    font-family: $font-primary;
+    font-size: 14px;
+    color: #535862;
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+
+  &__modal-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  &__modal-btn {
+    @include button-reset;
+    flex: 1;
+    padding: 12px 16px;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &--secondary {
+      background: #f5f5f5;
+      color: #414651;
+
+      @include hover {
+        background: #ebebeb;
+      }
+    }
+
+    &--primary {
+      background: $color-brand;
+      color: white;
+
+      @include hover {
+        background: darken($color-brand, 8%);
+      }
+    }
+  }
 }
 
 // Lightbox transition
@@ -1262,5 +1719,43 @@ function scrollColors(direction: 'left' | 'right') {
 .lightbox-enter-from,
 .lightbox-leave-to {
   opacity: 0;
+}
+
+// Modal transition
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+
+  .panel-diseno__modal {
+    transition: transform 0.2s ease;
+  }
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+
+  .panel-diseno__modal {
+    transform: scale(0.95);
+  }
+}
+
+// Drop overlay transition
+.drop-overlay-enter-active,
+.drop-overlay-leave-active {
+  transition: opacity 0.2s ease;
+
+  .panel-diseno__drop-zone {
+    transition: transform 0.2s ease;
+  }
+}
+
+.drop-overlay-enter-from,
+.drop-overlay-leave-to {
+  opacity: 0;
+
+  .panel-diseno__drop-zone {
+    transform: scale(0.95);
+  }
 }
 </style>

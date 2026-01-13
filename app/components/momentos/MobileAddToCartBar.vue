@@ -14,12 +14,6 @@ const emit = defineEmits<{
 }>()
 
 const { formatPrice } = useShopifyCart()
-const store = useMomentosStore()
-
-// Check if cart is ready
-const canAddToCart = computed(() => {
-  return store.emptyCellCount === 0
-})
 
 // Check if compare price should be shown
 const showComparePrice = computed(() => {
@@ -59,7 +53,7 @@ const discountPercent = computed(() => {
     <!-- Add to Cart Button -->
     <button
       class="mobile-add-to-cart-bar__button"
-      :disabled="isLoading || !canAddToCart"
+      :disabled="isLoading"
       @click="emit('add-to-cart')"
     >
       <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
