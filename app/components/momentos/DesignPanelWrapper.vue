@@ -6,12 +6,16 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'image-assigned'): void
+}>()
 </script>
 
 <template>
   <div class="design-panel-wrapper">
     <Transition name="fade" mode="out-in">
-      <MomentosPanelsPanelDiseno v-if="activePanel === 'diseno'" key="diseno" />
+      <MomentosPanelsPanelDiseno v-if="activePanel === 'diseno'" key="diseno" @image-assigned="emit('image-assigned')" />
       <MomentosPanelsPanelMedidas v-else-if="activePanel === 'medidas'" key="medidas" />
       <MomentosPanelsPanelMarco v-else-if="activePanel === 'marco'" key="marco" />
     </Transition>

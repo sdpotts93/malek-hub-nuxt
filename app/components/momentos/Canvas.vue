@@ -3,6 +3,11 @@ import { IMAGE_FILTERS, type ImageFilter, type CanvasCell } from '~/stores/momen
 
 const store = useMomentosStore()
 
+// Emit event when empty cell is clicked (for mobile to open bottom sheet)
+const emit = defineEmits<{
+  (e: 'empty-cell-click'): void
+}>()
+
 // Get the correct frame image based on format
 const currentFrameImage = computed(() => {
   if (!store.frameStyle) return null
@@ -129,6 +134,8 @@ function handleCellClick(cell: CanvasCell) {
     store.setActivePanel('diseno')
     store.setActiveDisenoTab('imagenes')
     store.selectCell(cell.id)
+    // Emit event for mobile to open bottom sheet
+    emit('empty-cell-click')
   }
 }
 

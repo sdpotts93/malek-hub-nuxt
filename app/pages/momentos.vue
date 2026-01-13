@@ -236,6 +236,21 @@ async function handleEditFromModal() {
   }
 }
 
+// Handle empty cell click from canvas - open archivos panel on mobile
+async function handleEmptyCellClick() {
+  if (isMobile.value) {
+    await nextTick()
+    isMobileSheetOpen.value = true
+  }
+}
+
+// Handle image assigned to cell - close mobile sheet
+function handleImageAssigned() {
+  if (isMobile.value) {
+    isMobileSheetOpen.value = false
+  }
+}
+
 // Handle add to cart
 async function handleAddToCart() {
   const canvasElement = canvasRef.value?.$el
@@ -331,7 +346,7 @@ async function handleAddToCart() {
         </div>
 
         <div class="momentos__canvas-container">
-          <MomentosCanvas ref="canvasRef" />
+          <MomentosCanvas ref="canvasRef" @empty-cell-click="handleEmptyCellClick" />
         </div>
       </div>
 
@@ -373,7 +388,7 @@ async function handleAddToCart() {
       :is-open="isMobileSheetOpen"
       @close="handleMobileSheetClose"
     >
-      <MomentosDesignPanelWrapper :active-panel="momentosStore.activePanel" />
+      <MomentosDesignPanelWrapper :active-panel="momentosStore.activePanel" @image-assigned="handleImageAssigned" />
     </MomentosMobileBottomSheet>
 
     <!-- Mobile Nav Wrapper (History/Home overlay) -->

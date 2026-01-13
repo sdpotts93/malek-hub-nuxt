@@ -4,6 +4,11 @@ import { IMAGE_COUNTS, MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId 
 
 const store = useMomentosStore()
 
+// Emit event when image is assigned to cell (for mobile to close bottom sheet)
+const emit = defineEmits<{
+  (e: 'image-assigned'): void
+}>()
+
 // Library section ref for scrolling
 const librarySectionRef = ref<HTMLElement | null>(null)
 
@@ -199,17 +204,19 @@ async function handleFileChange(e: Event) {
     return
   }
 
-  // Multiple images: show autofill modal
-  pendingAutofillImages.value = uploadedIds
-  // Determine start index based on selected cell
-  if (targetCellId) {
-    const cellIndex = store.canvasCells.findIndex(c => c.id === targetCellId)
-    autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
-  } else {
-    autofillStartIndex.value = 0
+  // Multiple images: show autofill modal only if there are empty cells
+  if (store.emptyCellCount > 0) {
+    pendingAutofillImages.value = uploadedIds
+    // Determine start index based on selected cell
+    if (targetCellId) {
+      const cellIndex = store.canvasCells.findIndex(c => c.id === targetCellId)
+      autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
+    } else {
+      autofillStartIndex.value = 0
+    }
+    showAutofillModal.value = true
   }
   savedSelectedCellId.value = null
-  showAutofillModal.value = true
 }
 
 // Upload file and return the generated ID
@@ -547,6 +554,7 @@ function handleImageClick(imageId: string) {
     if (selectedCell) {
       store.setImageToCell(store.selectedCellId, imageId)
       store.selectCell(null) // Deselect after assignment
+      emit('image-assigned') // Notify parent to close mobile sheet
     }
   }
 }
@@ -831,7 +839,7 @@ function scrollColors(direction: 'left' | 'right') {
               <path d="M6.75 8.66667C7.80855 8.66667 8.66667 7.80855 8.66667 6.75C8.66667 5.69145 7.80855 4.83333 6.75 4.83333C5.69145 4.83333 4.83333 5.69145 4.83333 6.75C4.83333 7.80855 5.69145 8.66667 6.75 8.66667Z" fill="currentColor"/>
               <path d="M3.17742 17.9892L9.4991 11.6676C9.87862 11.288 10.0684 11.0983 10.2872 11.0272C10.4797 10.9647 10.687 10.9647 10.8795 11.0272C11.0983 11.0983 11.2881 11.2881 11.6676 11.6676L17.9471 17.9471M12.5 12.5L15.2491 9.7509C15.6286 9.37138 15.8184 9.18162 16.0372 9.11053C16.2297 9.04799 16.437 9.04799 16.6295 9.11053C16.8483 9.18162 17.038 9.37138 17.4176 9.7509L20.1667 12.5M8.66667 6.75C8.66667 7.80855 7.80855 8.66667 6.75 8.66667C5.69145 8.66667 4.83333 7.80855 4.83333 6.75C4.83333 5.69145 5.69145 4.83333 6.75 4.83333C7.80855 4.83333 8.66667 5.69145 8.66667 6.75ZM5.6 18.25H15.5667C17.1768 18.25 17.9819 18.25 18.5969 17.9366C19.1379 17.661 19.5777 17.2212 19.8533 16.6802C20.1667 16.0652 20.1667 15.2602 20.1667 13.65V5.6C20.1667 3.98985 20.1667 3.18477 19.8533 2.56978C19.5777 2.02881 19.1379 1.58899 18.5969 1.31336C17.9819 1 17.1768 1 15.5667 1H5.6C3.98985 1 3.18477 1 2.56978 1.31336C2.02881 1.58899 1.58899 2.02881 1.31336 2.56978C1 3.18477 1 3.98985 1 5.6V13.65C1 15.2602 1 16.0652 1.31336 16.6802C1.58899 17.2212 2.02881 17.661 2.56978 17.9366C3.18477 18.25 3.98985 18.25 5.6 18.25Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Imágenes disponibles
+            Imágenes
           </h3>
           <span class="panel-diseno__count">{{ store.uploadedImages.length }}</span>
         </div>
@@ -887,6 +895,7 @@ function scrollColors(direction: 'left' | 'right') {
             <div
               v-if="store.imageWarnings.get(img.id)"
               class="panel-diseno__library-warning"
+              @click.stop
               @mouseenter="showTooltip($event, store.imageWarnings.get(img.id) || '')"
               @mouseleave="hideTooltip"
             >
@@ -1727,6 +1736,11 @@ function scrollColors(direction: 'left' | 'right') {
       opacity: 1;
     }
 
+    // Always visible on mobile (no hover state)
+    @include mobile {
+      opacity: 1;
+    }
+
     @include hover {
       background: #f5f5f5;
       color: #181d27;
@@ -1818,6 +1832,11 @@ function scrollColors(direction: 'left' | 'right') {
     transition: opacity $transition-fast, background-color $transition-fast;
 
     .panel-diseno__library-item:hover & {
+      opacity: 1;
+    }
+
+    // Always visible on mobile (no hover state)
+    @include mobile {
       opacity: 1;
     }
 
