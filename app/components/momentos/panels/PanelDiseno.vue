@@ -619,6 +619,73 @@ function scrollColors(direction: 'left' | 'right') {
     behavior: 'smooth',
   })
 }
+
+// Rellenar (Fill) modal state
+const showRellenarModal = ref(false)
+const rellenarFilter = ref<'all' | 'used' | 'unused'>('all')
+const rellenarSelectedImages = ref<string[]>([])
+
+// Computed: filtered images for Rellenar modal
+const rellenarFilteredImages = computed(() => {
+  if (rellenarFilter.value === 'all') {
+    return store.uploadedImages
+  } else if (rellenarFilter.value === 'used') {
+    return store.uploadedImages.filter(img => getImageUsageCount(img.id) > 0)
+  } else {
+    return store.uploadedImages.filter(img => getImageUsageCount(img.id) === 0)
+  }
+})
+
+// Open Rellenar modal
+function openRellenarModal() {
+  rellenarSelectedImages.value = []
+  rellenarFilter.value = 'all'
+  showRellenarModal.value = true
+}
+
+// Close Rellenar modal
+function closeRellenarModal() {
+  showRellenarModal.value = false
+  rellenarSelectedImages.value = []
+}
+
+// Toggle image selection in Rellenar modal
+function toggleRellenarImage(imageId: string) {
+  const index = rellenarSelectedImages.value.indexOf(imageId)
+  if (index > -1) {
+    rellenarSelectedImages.value.splice(index, 1)
+  } else {
+    rellenarSelectedImages.value.push(imageId)
+  }
+}
+
+// Get selection order for an image in Rellenar modal
+function getRellenarSelectionOrder(imageId: string): number {
+  return rellenarSelectedImages.value.indexOf(imageId) + 1
+}
+
+// Select all visible images in Rellenar modal
+function selectAllRellenarImages() {
+  rellenarSelectedImages.value = rellenarFilteredImages.value.map(img => img.id)
+}
+
+// Confirm Rellenar and fill empty cells
+function confirmRellenar() {
+  const selectedIds = rellenarSelectedImages.value
+  let imageIndex = 0
+
+  // Fill empty cells in order with selected images
+  for (const cell of store.canvasCells) {
+    if (imageIndex >= selectedIds.length) break
+    const imageId = selectedIds[imageIndex]
+    if (cell && imageId && !cell.imageId) {
+      store.setImageToCell(cell.id, imageId)
+      imageIndex++
+    }
+  }
+
+  closeRellenarModal()
+}
 </script>
 
 <template>
@@ -866,7 +933,16 @@ function scrollColors(direction: 'left' | 'right') {
             </svg>
             Imágenes
           </h3>
-          <span class="panel-diseno__count">{{ store.uploadedImages.length }}</span>
+          <div class="panel-diseno__library-actions">
+            <span class="panel-diseno__count">{{ store.uploadedImages.length }}</span>
+            <button
+              v-if="store.uploadedImages.length > 0 && store.emptyCellCount > 0"
+              class="panel-diseno__change-btn panel-diseno__change-btn--small"
+              @click="openRellenarModal"
+            >
+              Rellenar
+            </button>
+          </div>
         </div>
 
         <!-- Select image indicator -->
@@ -1039,6 +1115,147 @@ function scrollColors(direction: 'left' | 'right') {
               >
                 Sí, rellenar
               </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Rellenar Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showRellenarModal"
+          class="panel-diseno__modal-overlay"
+          @click="closeRellenarModal"
+        >
+          <div class="panel-diseno__rellenar-modal" @click.stop>
+            <!-- Header -->
+            <div class="panel-diseno__rellenar-header">
+              <h3 class="panel-diseno__rellenar-title">Seleccionar fotos</h3>
+              <div class="panel-diseno__rellenar-header-actions">
+                <button
+                  class="panel-diseno__rellenar-skip"
+                  @click="closeRellenarModal"
+                >
+                  Cancelar
+                </button>
+                <button
+                  class="panel-diseno__rellenar-confirm"
+                  :disabled="rellenarSelectedImages.length === 0"
+                  @click="confirmRellenar"
+                >
+                  Rellenar
+                </button>
+              </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="panel-diseno__rellenar-filters">
+              <div class="panel-diseno__rellenar-filter-dropdown">
+                <select v-model="rellenarFilter" class="panel-diseno__rellenar-select">
+                  <option value="all">Todas ({{ store.uploadedImages.length }})</option>
+                  <option value="unused">Sin usar ({{ store.uploadedImages.filter(img => getImageUsageCount(img.id) === 0).length }})</option>
+                  <option value="used">Usadas ({{ store.uploadedImages.filter(img => getImageUsageCount(img.id) > 0).length }})</option>
+                </select>
+              </div>
+              <button
+                class="panel-diseno__rellenar-select-all"
+                @click="selectAllRellenarImages"
+              >
+                Seleccionar todo
+              </button>
+            </div>
+
+            <!-- Image Grid -->
+            <div class="panel-diseno__rellenar-grid-container">
+              <div v-if="rellenarFilteredImages.length === 0" class="panel-diseno__rellenar-empty">
+                <p>No hay imágenes que coincidan con el filtro seleccionado.</p>
+              </div>
+              <div v-else class="panel-diseno__rellenar-grid">
+                <div
+                  v-for="img in rellenarFilteredImages"
+                  :key="img.id"
+                  :class="[
+                    'panel-diseno__rellenar-item',
+                    { 'panel-diseno__rellenar-item--selected': rellenarSelectedImages.includes(img.id) },
+                    { 'panel-diseno__rellenar-item--warning': store.imageWarnings.get(img.id) }
+                  ]"
+                  @click="toggleRellenarImage(img.id)"
+                >
+                  <img
+                    :src="img.lowResUrl"
+                    :alt="`Imagen ${img.id}`"
+                    class="panel-diseno__rellenar-image"
+                  >
+                  <!-- Warning badge -->
+                  <div
+                    v-if="store.imageWarnings.get(img.id)"
+                    class="panel-diseno__rellenar-warning"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="7" cy="7" r="6" fill="#dc2626"/>
+                      <path d="M7 4V7M7 9H7.005" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <!-- Selection order badge -->
+                  <div
+                    v-if="rellenarSelectedImages.includes(img.id)"
+                    class="panel-diseno__rellenar-order"
+                  >
+                    {{ getRellenarSelectionOrder(img.id) }}
+                  </div>
+                  <!-- Usage count badge -->
+                  <div
+                    v-if="getImageUsageCount(img.id) > 0"
+                    class="panel-diseno__rellenar-usage"
+                  >
+                    {{ getImageUsageCount(img.id) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="panel-diseno__rellenar-footer">
+              <div class="panel-diseno__rellenar-status">
+                <span class="panel-diseno__rellenar-count-badge">{{ rellenarSelectedImages.length }}</span>
+                <span class="panel-diseno__rellenar-status-text">
+                  {{ rellenarSelectedImages.length === 1 ? 'Foto seleccionada' : 'Fotos seleccionadas' }}
+                </span>
+                <span class="panel-diseno__rellenar-remaining">
+                  {{ store.emptyCellCount }} {{ store.emptyCellCount === 1 ? 'espacio vacío' : 'espacios vacíos' }}
+                </span>
+              </div>
+              <!-- Selected thumbnails -->
+              <div v-if="rellenarSelectedImages.length > 0" class="panel-diseno__rellenar-thumbs">
+                <div
+                  v-for="imageId in rellenarSelectedImages.slice(0, 5)"
+                  :key="imageId"
+                  class="panel-diseno__rellenar-thumb"
+                >
+                  <img
+                    :src="store.uploadedImages.find(img => img.id === imageId)?.lowResUrl"
+                    :alt="`Seleccionada ${imageId}`"
+                  >
+                  <!-- Warning badge on thumbnail -->
+                  <div
+                    v-if="store.imageWarnings.get(imageId)"
+                    class="panel-diseno__rellenar-thumb-warning"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="7" cy="7" r="6" fill="#dc2626"/>
+                      <path d="M7 4V7M7 9H7.005" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  v-if="rellenarSelectedImages.length > 5"
+                  class="panel-diseno__rellenar-thumb panel-diseno__rellenar-thumb--more"
+                >
+                  +{{ rellenarSelectedImages.length - 5 }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2040,6 +2257,358 @@ function scrollColors(direction: 'left' | 'right') {
       }
     }
   }
+
+  // Library actions container
+  &__library-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  // Small variant for change button
+  &__change-btn--small {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  // Rellenar modal (full-screen)
+  &__rellenar-modal {
+    position: fixed;
+    inset: 0;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    z-index: $z-modal + 1;
+  }
+
+  &__rellenar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+
+  &__rellenar-title {
+    font-family: $font-primary;
+    font-size: 18px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    margin: 0;
+  }
+
+  &__rellenar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__rellenar-skip {
+    @include button-reset;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    color: $color-brand;
+    padding: 8px 16px;
+    cursor: pointer;
+
+    @include hover {
+      opacity: 0.8;
+    }
+  }
+
+  &__rellenar-confirm {
+    @include button-reset;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    color: white;
+    background: $color-brand;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:disabled {
+      background: #d5d7da;
+      cursor: not-allowed;
+    }
+
+    @include hover {
+      &:not(:disabled) {
+        background: darken($color-brand, 8%);
+      }
+    }
+  }
+
+  &__rellenar-filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+
+  &__rellenar-filter-dropdown {
+    position: relative;
+  }
+
+  &__rellenar-select {
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-medium;
+    color: #414651;
+    background: white;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    padding: 8px 32px 8px 12px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23414651' d='M2.5 4.5L6 8L9.5 4.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      outline: none;
+      border-color: $color-brand;
+    }
+  }
+
+  &__rellenar-select-all {
+    @include button-reset;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-medium;
+    color: #414651;
+    background: #f5f5f5;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    @include hover {
+      background: #ebebeb;
+    }
+  }
+
+  &__rellenar-grid-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  &__rellenar-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #717680;
+    font-family: $font-primary;
+    font-size: 14px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__rellenar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+
+    @media (min-width: 480px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  &__rellenar-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #f5f5f5;
+    border: 3px solid transparent;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &--selected {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    &--warning {
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 2px solid #f59e0b;
+        border-radius: 5px;
+        pointer-events: none;
+      }
+    }
+
+    @include hover {
+      border-color: #93c5fd;
+    }
+  }
+
+  &__rellenar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__rellenar-warning {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+  }
+
+  &__rellenar-order {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    background: #3b82f6;
+    color: white;
+    font-family: $font-primary;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  &__rellenar-usage {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: $color-brand;
+    color: white;
+    font-family: $font-primary;
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  &__rellenar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    background: #fafafa;
+    flex-shrink: 0;
+  }
+
+  &__rellenar-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__rellenar-count-badge {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    background: $color-brand;
+    color: white;
+    font-family: $font-primary;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__rellenar-status-text {
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    color: #181d27;
+  }
+
+  &__rellenar-remaining {
+    font-family: $font-primary;
+    font-size: 14px;
+    color: #f59e0b;
+    margin-left: auto;
+  }
+
+  &__rellenar-thumbs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d5d7da;
+      border-radius: 2px;
+    }
+  }
+
+  &__rellenar-thumb {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid #3b82f6;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &--more {
+      background: #f5f5f5;
+      border-color: #d5d7da;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: $font-primary;
+      font-size: 11px;
+      font-weight: $font-weight-semibold;
+      color: #717680;
+    }
+  }
+
+  &__rellenar-thumb-warning {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 2;
+  }
 }
 
 // Lightbox transition
@@ -2058,7 +2627,8 @@ function scrollColors(direction: 'left' | 'right') {
 .modal-leave-active {
   transition: opacity 0.2s ease;
 
-  .panel-diseno__modal {
+  .panel-diseno__modal,
+  .panel-diseno__rellenar-modal {
     transition: transform 0.2s ease;
   }
 }
@@ -2069,6 +2639,10 @@ function scrollColors(direction: 'left' | 'right') {
 
   .panel-diseno__modal {
     transform: scale(0.95);
+  }
+
+  .panel-diseno__rellenar-modal {
+    transform: translateY(20px);
   }
 }
 
