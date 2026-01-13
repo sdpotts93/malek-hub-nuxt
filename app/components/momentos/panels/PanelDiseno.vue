@@ -547,7 +547,7 @@ function handleRemoveImage(imageId: string) {
   store.removeUploadedImage(imageId)
 }
 
-// Handle clicking on library image to assign to selected cell
+// Handle clicking on library image to assign to selected cell or next empty cell
 function handleImageClick(imageId: string) {
   // Check if there's a selected cell waiting for an image
   if (store.selectedCellId) {
@@ -557,6 +557,13 @@ function handleImageClick(imageId: string) {
       store.setImageToCell(store.selectedCellId, imageId)
       store.selectCell(null) // Deselect after assignment
       emit('image-assigned') // Notify parent to close mobile sheet
+    }
+  } else {
+    // No cell selected - find the first empty cell and assign the image
+    // Don't close the mobile sheet so user can keep adding images
+    const emptyCell = store.canvasCells.find(cell => cell.imageId === null)
+    if (emptyCell) {
+      store.setImageToCell(emptyCell.id, imageId)
     }
   }
 }
@@ -583,6 +590,22 @@ function showTooltip(event: MouseEvent, text: string) {
 
 function hideTooltip() {
   tooltipState.value.visible = false
+}
+
+// Count how many times each image is used in the canvas
+const imageUsageCount = computed(() => {
+  const counts = new Map<string, number>()
+  for (const cell of store.canvasCells) {
+    if (cell.imageId) {
+      counts.set(cell.imageId, (counts.get(cell.imageId) || 0) + 1)
+    }
+  }
+  return counts
+})
+
+// Get usage count for a specific image
+function getImageUsageCount(imageId: string): number {
+  return imageUsageCount.value.get(imageId) || 0
 }
 
 // Color scroll container ref
@@ -875,10 +898,11 @@ function scrollColors(direction: 'left' | 'right') {
             :key="img.id"
             :class="[
               'panel-diseno__library-item',
-              { 'panel-diseno__library-item--selectable': store.selectedCellId !== null },
+              { 'panel-diseno__library-item--selectable': store.selectedCellId !== null || store.emptyCellCount > 0 },
               { 'panel-diseno__library-item--dragging': store.draggingImageId === img.id },
               { 'panel-diseno__library-item--over-canvas': store.draggingImageId === img.id && store.isDraggingOverCanvas },
-              { 'panel-diseno__library-item--warning': store.imageWarnings.get(img.id) }
+              { 'panel-diseno__library-item--warning': store.imageWarnings.get(img.id) },
+              { 'panel-diseno__library-item--in-canvas': getImageUsageCount(img.id) > 0 }
             ]"
             draggable="true"
             @dragstart="handleImageDragStart($event, img.id)"
@@ -890,6 +914,11 @@ function scrollColors(direction: 'left' | 'right') {
               :alt="`Imagen ${img.id}`"
               class="panel-diseno__library-image"
             >
+            <!-- Overlay for images already in canvas -->
+            <div
+              v-if="getImageUsageCount(img.id) > 0 && !store.selectedCellId"
+              class="panel-diseno__library-overlay"
+            />
             <div v-if="img.isUploading" class="panel-diseno__library-loading">
               <div class="panel-diseno__library-progress" :style="{ width: img.uploadProgress + '%' }" />
             </div>
@@ -904,6 +933,13 @@ function scrollColors(direction: 'left' | 'right') {
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M7 5V7.5M7 9.5H7.005M6.11 2.182L1.262 10.5C1.18148 10.6391 1.13893 10.7962 1.13854 10.9563C1.13815 11.1164 1.17994 11.2738 1.25979 11.4132C1.33964 11.5527 1.45487 11.6694 1.59343 11.7511C1.732 11.8327 1.88905 11.8764 2.049 11.878H11.951C12.111 11.8764 12.268 11.8327 12.4066 11.7511C12.5451 11.6694 12.6604 11.5527 12.7402 11.4132C12.8201 11.2738 12.8619 11.1164 12.8615 10.9563C12.8611 10.7962 12.8185 10.6391 12.738 10.5L7.89 2.182C7.80777 2.0465 7.69168 1.9341 7.55335 1.85614C7.41501 1.77817 7.25892 1.73731 7.1 1.73731C6.94108 1.73731 6.78499 1.77817 6.64665 1.85614C6.50832 1.9341 6.39223 2.0465 6.31 2.182H6.11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+            </div>
+            <!-- Usage count badge (shown when no cell selected and image is in canvas) -->
+            <div
+              v-if="getImageUsageCount(img.id) > 0 && !store.selectedCellId"
+              class="panel-diseno__library-count"
+            >
+              {{ getImageUsageCount(img.id) }}
             </div>
             <!-- Drag indicator icon -->
             <div class="panel-diseno__library-drag-indicator">
@@ -988,7 +1024,7 @@ function scrollColors(direction: 'left' | 'right') {
             </div>
             <h3 class="panel-diseno__modal-title">Rellenar collage automáticamente</h3>
             <p class="panel-diseno__modal-text">
-              Has subido {{ pendingAutofillImages.length }} imágenes. ¿Quieres rellenar automáticamente los espacios vacíos del collage?
+              Has subido {{ pendingAutofillImages.length }} imágenes y tienes {{ store.emptyCellCount }} {{ store.emptyCellCount === 1 ? 'espacio vacío' : 'espacios vacíos' }}. ¿Quieres rellenar automáticamente?
             </p>
             <div class="panel-diseno__modal-actions">
               <button
@@ -1783,6 +1819,36 @@ function scrollColors(direction: 'left' | 'right') {
       border-radius: 7px;
       pointer-events: none;
     }
+  }
+
+  // Overlay for images already in canvas
+  &__library-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  // Usage count badge in bottom-right corner
+  &__library-count {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: $color-brand;
+    color: white;
+    font-family: $font-primary;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   // Select image indicator (info blue style)
