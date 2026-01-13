@@ -188,6 +188,14 @@ export function useCanvasRenderer() {
     wrapper.appendChild(clone)
     document.body.appendChild(wrapper)
 
+    // Make elements marked with data-render-transparent have transparent backgrounds
+    // This is used for empty cells that should show the canvas background color in exports
+    const transparentElements = clone.querySelectorAll('[data-render-transparent]')
+    for (const el of Array.from(transparentElements)) {
+      const htmlEl = el as HTMLElement
+      htmlEl.style.backgroundColor = 'transparent'
+    }
+
     // Convert SVG filter url(#id) references to inline data URL filters
     // This prevents ID conflicts when multiple clones exist in the DOM
     const elementsWithFilters = clone.querySelectorAll('[style*="filter"]')
@@ -263,24 +271,34 @@ export function useCanvasRenderer() {
             }
           }
         }
-        // Handle S3/remote URLs - try multiple approaches
+        // Handle S3/remote URLs - try canvas extraction first (fastest, no network)
         else if (originalSrc.startsWith('https://') || originalSrc.startsWith('http://')) {
-          // First, try loading with crossorigin (proper CORS)
-          try {
-            dataUrl = await loadImageAsDataUrl(originalSrc)
-            console.log('[CanvasRenderer] ✓ S3 URL converted successfully via CORS')
-          } catch (err) {
-            console.warn('[CanvasRenderer] ✗ S3 CORS failed, trying fetch...', err)
-            // Fallback: Try fetching directly as blob (may work if same-origin or CORS allows)
+          // First, try extracting from already-loaded original image (no network request!)
+          if (originalImg && originalImg.complete && originalImg.naturalWidth > 0) {
+            dataUrl = imageToDataUrl(originalImg)
+            if (dataUrl) {
+              console.log('[CanvasRenderer] ✓ S3 image extracted via canvas (no network)')
+            }
+          }
+
+          // Fallback: try CORS fetch if canvas extraction failed
+          if (!dataUrl) {
             try {
-              const response = await fetch(originalSrc, { mode: 'cors', credentials: 'omit' })
-              if (response.ok) {
-                const blob = await response.blob()
-                dataUrl = await blobUrlToDataUrl(URL.createObjectURL(blob))
-                console.log('[CanvasRenderer] ✓ S3 URL converted via fetch')
+              dataUrl = await loadImageAsDataUrl(originalSrc)
+              console.log('[CanvasRenderer] ✓ S3 URL converted via CORS fetch')
+            } catch (err) {
+              console.warn('[CanvasRenderer] ✗ S3 CORS failed, trying direct fetch...', err)
+              // Last resort: Try fetching directly as blob
+              try {
+                const response = await fetch(originalSrc, { mode: 'cors', credentials: 'omit' })
+                if (response.ok) {
+                  const blob = await response.blob()
+                  dataUrl = await blobUrlToDataUrl(URL.createObjectURL(blob))
+                  console.log('[CanvasRenderer] ✓ S3 URL converted via direct fetch')
+                }
+              } catch (fetchErr) {
+                console.warn('[CanvasRenderer] ✗ S3 direct fetch also failed:', fetchErr)
               }
-            } catch (fetchErr) {
-              console.warn('[CanvasRenderer] ✗ S3 fetch also failed:', fetchErr)
             }
           }
         }
@@ -323,8 +341,8 @@ export function useCanvasRenderer() {
         } else if (!originalSrc.startsWith('http')) {
           // Local path or already a data URL - keep as is
         } else {
-          // Remote URL failed to convert - remove to prevent errors
-          console.warn('[CanvasRenderer] ✗ Remote URL conversion failed - removing image:', originalSrc.substring(0, 50))
+          // Remote URL - all methods failed (canvas, CORS, fetch)
+          console.warn('[CanvasRenderer] ✗ All conversion methods failed - removing image:', originalSrc.substring(0, 50))
           img.remove()
         }
       } catch (err) {

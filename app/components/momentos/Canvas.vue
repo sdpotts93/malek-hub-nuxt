@@ -397,6 +397,7 @@ const selectedCellWithImage = computed(() => {
               'momentos-canvas__cell--drop-target': hoveringCellId === cell.id,
             }
           ]"
+          :data-render-transparent="!cell.imageId ? '' : undefined"
           @click.stop="handleCellClick(cell)"
           @drop="handleDrop($event, cell.id)"
           @dragover="handleDragOver"
@@ -404,7 +405,7 @@ const selectedCellWithImage = computed(() => {
           @dragleave="handleDragLeave($event, cell.id)"
         >
           <!-- Empty cell placeholder (excluded from render) -->
-          <div v-if="!cell.imageId" class="momentos-canvas__placeholder" data-html2canvas-ignore>
+          <div v-if="!cell.imageId" class="momentos-canvas__placeholder" data-render-transparent data-html2canvas-ignore>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
               <circle cx="9" cy="9" r="2"/>
@@ -425,6 +426,7 @@ const selectedCellWithImage = computed(() => {
               :src="getCellImageUrl(cell)!"
               alt=""
               class="momentos-canvas__cell-image"
+              crossorigin="anonymous"
               :style="{ objectPosition: getCellObjectPosition(cell) }"
             >
           </div>
@@ -754,13 +756,13 @@ const selectedCellWithImage = computed(() => {
 
   &__cell {
     position: relative;
-    background: #f5f5f5;
+    background: transparent;
     overflow: hidden;
     cursor: pointer;
     transition: outline $transition-fast;
 
     &--empty {
-      background: #f0f0f0;
+      background: #f0f0f0; // Gray in UI, made transparent during render via data-render-transparent
     }
 
     &--selected {
