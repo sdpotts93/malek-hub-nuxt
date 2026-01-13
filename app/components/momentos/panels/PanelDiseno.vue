@@ -28,11 +28,18 @@ watch(() => store.selectedCellId, (cellId) => {
   }
 })
 
-// Check if we should show the "select image" indicator
+// Check if we should show the "select image" indicator (for empty OR filled cells)
 const showSelectImageIndicator = computed(() => {
   if (!store.selectedCellId) return false
   const cell = store.getCellById(store.selectedCellId)
-  return cell && !cell.imageId
+  return cell !== undefined
+})
+
+// Check if the selected cell already has an image (to show "cambiar" vs "agregar")
+const selectedCellHasImage = computed(() => {
+  if (!store.selectedCellId) return false
+  const cell = store.getCellById(store.selectedCellId)
+  return cell?.imageId !== null && cell?.imageId !== undefined
 })
 
 // Check if any images have size warnings
@@ -536,8 +543,8 @@ function handleImageClick(imageId: string) {
   // Check if there's a selected cell waiting for an image
   if (store.selectedCellId) {
     const selectedCell = store.getCellById(store.selectedCellId)
-    // Only assign if the cell is empty (no image yet)
-    if (selectedCell && !selectedCell.imageId) {
+    // Assign image to the cell (whether empty or replacing existing)
+    if (selectedCell) {
       store.setImageToCell(store.selectedCellId, imageId)
       store.selectCell(null) // Deselect after assignment
     }
@@ -834,7 +841,7 @@ function scrollColors(direction: 'left' | 'right') {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M8 5.33333V8M8 10.6667H8.00667M14.6667 8C14.6667 11.6819 11.6819 14.6667 8 14.6667C4.3181 14.6667 1.33333 11.6819 1.33333 8C1.33333 4.3181 4.3181 1.33333 8 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Selecciona una imagen para el espacio vacío</span>
+          <span>{{ selectedCellHasImage ? 'Selecciona una imagen para cambiar' : 'Selecciona una imagen para agregar' }}</span>
         </div>
 
         <!-- Warning banner for small images -->
@@ -858,7 +865,7 @@ function scrollColors(direction: 'left' | 'right') {
             :key="img.id"
             :class="[
               'panel-diseno__library-item',
-              { 'panel-diseno__library-item--selectable': store.selectedCellId && store.getCellById(store.selectedCellId)?.imageId === null },
+              { 'panel-diseno__library-item--selectable': store.selectedCellId !== null },
               { 'panel-diseno__library-item--dragging': store.draggingImageId === img.id },
               { 'panel-diseno__library-item--over-canvas': store.draggingImageId === img.id && store.isDraggingOverCanvas },
               { 'panel-diseno__library-item--warning': store.imageWarnings.get(img.id) }

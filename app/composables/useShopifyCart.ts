@@ -309,6 +309,20 @@ export function useShopifyCart() {
     _canvasElement: HTMLElement, // Kept for API compatibility, but no longer used
     state: PersonalizaState
   ): Promise<ValidationResult | null> {
+    // IMPORTANT: Capture a snapshot of all values we need at the START
+    // This prevents race conditions if user changes frame/size during async operations
+    const snapshot = {
+      posterSize: state.posterSize,
+      imageFormat: state.imageFormat,
+      frameStyleId: state.frameStyle?.id || null,
+      frameStyleName: state.frameStyle?.name || 'Sin marco',
+      hasMargin: state.hasMargin,
+      marginColor: state.marginColor,
+      title: state.title,
+      subtitle: state.subtitle,
+      textStyle: state.textStyle,
+    }
+
     // Validate first
     const validation = validatePersonalizaForCart(state)
     if (!validation.isValid) {
@@ -320,8 +334,9 @@ export function useShopifyCart() {
     addToCartError.value = null
 
     try {
-      // 1. Get variant (already validated above)
-      const { variant } = calculatePersonalizaPrice(state)
+      // 1. Get variant using snapshot values (not reactive state)
+      const orientation = getOrientationFromFormat(snapshot.imageFormat)
+      const variant = getPersonalizaVariant(orientation, snapshot.posterSize, snapshot.frameStyleId)
       if (!variant) {
         throw new Error('No se encontró la variante del producto')
       }
@@ -349,14 +364,13 @@ export function useShopifyCart() {
 
       // 3. Generate high-res composite directly using Canvas API (bypasses DOM)
       // This gives us full 5000px quality without downsampling through the preview element
-      const orientation = getOrientationFromFormat(state.imageFormat)
       const compositeBlob = await generateHighResComposite(highResCropBlob, {
         orientation,
-        hasMargin: state.hasMargin,
-        marginColor: state.marginColor,
-        title: state.title,
-        subtitle: state.subtitle,
-        textStyle: state.textStyle,
+        hasMargin: snapshot.hasMargin,
+        marginColor: snapshot.marginColor,
+        title: snapshot.title,
+        subtitle: snapshot.subtitle,
+        textStyle: snapshot.textStyle,
       })
 
       // 4. Generate thumbnail from the composite image
@@ -380,18 +394,18 @@ export function useShopifyCart() {
         uploader.uploadDesignImage(thumbnailBlob, 'personaliza-thumb', 'custom-prints'),
       ])
 
-      // 6. Build description from state
-      const formatLabel = state.imageFormat === '1:1' ? 'Cuadrado' : state.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
-      const textInfo = state.title ? `"${state.title}"` : 'Sin texto'
+      // 6. Build description from snapshot (not reactive state)
+      const formatLabel = snapshot.imageFormat === '1:1' ? 'Cuadrado' : snapshot.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
+      const textInfo = snapshot.title ? `"${snapshot.title}"` : 'Sin texto'
 
-      // 7. Add to Shopify cart with attributes
+      // 7. Add to Shopify cart with attributes (using snapshot values)
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Personaliza' },
-        { key: 'Tamaño', value: state.posterSize },
+        { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Formato', value: formatLabel },
-        { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
+        { key: 'Marco', value: snapshot.frameStyleName },
         { key: 'Texto', value: textInfo },
       ])
 
@@ -536,7 +550,17 @@ export function useShopifyCart() {
     canvasElement: HTMLElement,
     state: MomentosState
   ): Promise<ValidationResult | null> {
-    // Validate first
+    // IMPORTANT: Capture a snapshot of all values we need at the START
+    // This prevents race conditions if user changes frame/size during async operations
+    const snapshot = {
+      posterSize: state.posterSize,
+      format: state.format,
+      imageCount: state.imageCount,
+      frameStyleId: state.frameStyle?.id || null,
+      frameStyleName: state.frameStyle?.name || 'Sin marco',
+    }
+
+    // Validate first (using snapshot values)
     const validation = validateMomentosForCart(state)
     if (!validation.isValid) {
       console.warn('[ShopifyCart] Validation failed:', validation.message)
@@ -548,8 +572,8 @@ export function useShopifyCart() {
     addToCartError.value = null
 
     try {
-      // 1. Get variant (already validated above)
-      const { variant } = calculateMomentosPrice(state)
+      // 1. Get variant using snapshot values (not reactive state)
+      const variant = getMomentosVariant(snapshot.posterSize, snapshot.frameStyleId)
       if (!variant) {
         throw new Error('No se encontró la variante del producto')
       }
@@ -589,19 +613,19 @@ export function useShopifyCart() {
       ])
       console.log('[ShopifyCart] S3 upload complete:', uploadResult.url)
 
-      // 4. Build description from state
-      const formatLabel = state.format === 'square' ? 'Cuadrado' : state.format === 'horizontal' ? 'Horizontal' : 'Vertical'
+      // 4. Build description from snapshot (not reactive state)
+      const formatLabel = snapshot.format === 'square' ? 'Cuadrado' : snapshot.format === 'horizontal' ? 'Horizontal' : 'Vertical'
 
-      // 5. Add to Shopify cart with attributes
+      // 5. Add to Shopify cart with attributes (using snapshot values)
       console.log('[ShopifyCart] Adding to Shopify cart...')
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Momentos' },
-        { key: 'Tamaño', value: state.posterSize },
+        { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Formato', value: formatLabel },
-        { key: 'Imágenes', value: `${state.imageCount} fotos` },
-        { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
+        { key: 'Imágenes', value: `${snapshot.imageCount} fotos` },
+        { key: 'Marco', value: snapshot.frameStyleName },
       ])
       console.log('[ShopifyCart] ✓ Successfully added to cart!')
 
@@ -664,6 +688,15 @@ export function useShopifyCart() {
     canvasElement: HTMLElement,
     state: BirthPosterState
   ): Promise<{ validation: ValidationResult } | { thumbnail: string }> {
+    // IMPORTANT: Capture a snapshot of all values we need at the START
+    // This prevents race conditions if user changes frame/size during async operations
+    const snapshot = {
+      posterSize: state.posterSize,
+      frameStyleId: state.frameStyle?.id || null,
+      frameStyleName: state.frameStyle?.name || 'Sin marco',
+      babyNames: state.babies.map(b => b.nombre || 'Sin nombre').join(', '),
+    }
+
     // Validate first
     const validation = validateForCart(state)
     if (!validation.isValid) {
@@ -675,8 +708,8 @@ export function useShopifyCart() {
     addToCartError.value = null
 
     try {
-      // 1. Get variant (already validated above)
-      const { variant } = calculatePrice(state)
+      // 1. Get variant using snapshot values (not reactive state)
+      const variant = getVariant(snapshot.posterSize, snapshot.frameStyleId)
       if (!variant) {
         throw new Error('No se encontró la variante del producto')
       }
@@ -711,16 +744,14 @@ export function useShopifyCart() {
         uploader.uploadDesignImage(thumbnailBlob, 'birth-poster-thumb'),
       ])
 
-      // 4. Add to Shopify cart with attributes
-      const babyNames = state.babies.map(b => b.nombre || 'Sin nombre').join(', ')
-
+      // 4. Add to Shopify cart with attributes (using snapshot values)
       await cartStore.addItem(variant.id, 1, [
         { key: '_imagen', value: uploadResult.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'BirthPoster' },
-        { key: 'Tamaño', value: state.posterSize },
-        { key: 'Marco', value: state.frameStyle?.name || 'Sin marco' },
-        { key: 'Bebés', value: babyNames },
+        { key: 'Tamaño', value: snapshot.posterSize },
+        { key: 'Marco', value: snapshot.frameStyleName },
+        { key: 'Bebés', value: snapshot.babyNames },
       ])
 
       // Return thumbnail for history saving (avoids re-rendering)
