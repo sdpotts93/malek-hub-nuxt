@@ -127,6 +127,16 @@ const buildDataLine = (baby: BirthPosterState['babies'][0]) => {
 definePageMeta({
   layout: false,
 })
+
+// Load fonts for Browserless (since layout: false skips normal font loading)
+useHead({
+  link: [
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap',
+    },
+  ],
+})
 </script>
 
 <template>
@@ -256,14 +266,16 @@ definePageMeta({
   padding: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: #ffffff;
   overflow: hidden;
 
   &__loading,
   &__error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     font-family: system-ui, sans-serif;
     font-size: 24px;
     color: #666;
@@ -275,7 +287,8 @@ definePageMeta({
 }
 
 // =============================================================================
-// Canvas Styles - Matching BabyCanvas.vue
+// Canvas Styles - Simplified for server-side rendering
+// Browserless sets viewport to exact aspect ratio, so we just fill it
 // =============================================================================
 .render-canvas {
   position: relative;
@@ -283,6 +296,9 @@ definePageMeta({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  // Fill the entire viewport (Browserless sets correct aspect ratio)
+  width: 100vw;
+  height: 100vh;
   container-type: inline-size;
 
   // Hidden SVG for filter definitions
@@ -291,22 +307,6 @@ definePageMeta({
     width: 0;
     height: 0;
     overflow: hidden;
-  }
-
-  // Vertical poster (1-2 babies)
-  &--count-1,
-  &--count-2 {
-    aspect-ratio: 5 / 7;
-    height: min(100vh, calc(100vw * 7 / 5));
-    width: auto;
-  }
-
-  // Horizontal poster (3-4 babies)
-  &--count-3,
-  &--count-4 {
-    aspect-ratio: 7 / 5;
-    width: min(100vw, calc(100vh * 7 / 5));
-    height: auto;
   }
 
   // ==========================================================================
@@ -374,12 +374,12 @@ definePageMeta({
   }
 
   // ==========================================================================
-  // Watermark
+  // Watermark - using cqi units for consistent positioning at any render size
   // ==========================================================================
   &__watermark {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 2cqi;
+    right: 2cqi;
   }
 
   &__watermark-img {
@@ -389,9 +389,13 @@ definePageMeta({
 
   &--count-3 &__watermark,
   &--count-4 &__watermark {
+    bottom: 1.5cqi;
+    right: 1.5cqi;
+  }
+
+  &--count-3 &__watermark-img,
+  &--count-4 &__watermark-img {
     width: 1.5cqi;
-    bottom: 10px;
-    right: 10px;
   }
 
   // ==========================================================================
@@ -407,7 +411,7 @@ definePageMeta({
   }
 
   &__title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Lexend', sans-serif;
     font-size: 2.4cqi;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -421,7 +425,7 @@ definePageMeta({
   }
 
   &__data {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Lexend', sans-serif;
     font-size: 1.8cqi;
     font-weight: 400;
     letter-spacing: 0.12em;

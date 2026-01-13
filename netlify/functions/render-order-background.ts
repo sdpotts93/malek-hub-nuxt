@@ -63,18 +63,30 @@ const S3_BASE_URL = `https://${S3_BUCKET}.s3.us-west-1.amazonaws.com`
 const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
 const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'studiomalek.myshopify.com'
 
-// Viewport sizes for different formats (150 DPI for 70x100cm)
-// Used by Momentos and Personaliza
-const VIEWPORT_SIZES = {
-  square: { width: 2953, height: 2953 }, // 50x50cm at 150 DPI
-  horizontal: { width: 5906, height: 4134 }, // 100x70cm at 150 DPI
-  vertical: { width: 4134, height: 5906 }, // 70x100cm at 150 DPI
+// Viewport sizes by poster size (all products use consistent aspect ratios)
+// Aspect ratios: 5:7 (vertical), 7:5 (horizontal), 1:1 (square)
+// DPI varies by size: 300 PPI (30cm), 200 PPI (50cm), 150 PPI (70cm/100cm)
+const VIEWPORT_BY_POSTER_SIZE: Record<string, { width: number; height: number }> = {
+  // 300 PPI - Small sizes (30cm)
+  '30x30': { width: 3543, height: 3543 },   // 1:1 ratio
+  '30x40': { width: 3543, height: 4960 },   // 5:7 ratio
+  '40x30': { width: 4960, height: 3543 },   // 7:5 ratio
+  // 200 PPI - Medium sizes (50cm)
+  '50x50': { width: 3937, height: 3937 },   // 1:1 ratio
+  '50x70': { width: 3937, height: 5512 },   // 5:7 ratio
+  '70x50': { width: 5512, height: 3937 },   // 7:5 ratio
+  // 150 PPI - Large sizes (70cm, 100cm)
+  '70x70': { width: 4134, height: 4134 },   // 1:1 ratio
+  '70x100': { width: 4134, height: 5788 },  // 5:7 ratio
+  '100x70': { width: 5788, height: 4134 },  // 7:5 ratio
 }
 
-// Birth Poster viewport sizes (aspect ratio 5:7 for 1-2 babies, 7:5 for 3-4)
-const BIRTH_POSTER_VIEWPORT_SIZES = {
-  vertical: { width: 4134, height: 5906 }, // 70x100cm at 150 DPI (1-2 babies)
-  horizontal: { width: 5906, height: 4134 }, // 100x70cm at 150 DPI (3-4 babies)
+// Default viewport sizes by format (fallback if posterSize not found)
+// Uses 200 PPI (50cm sizes) as default
+const DEFAULT_VIEWPORT_BY_FORMAT: Record<string, { width: number; height: number }> = {
+  vertical: { width: 3937, height: 5512 },   // 5:7 (50×70cm at 200 PPI)
+  horizontal: { width: 5512, height: 3937 }, // 7:5 (70×50cm at 200 PPI)
+  square: { width: 3937, height: 3937 },     // 1:1 (50×50cm at 200 PPI)
 }
 
 // Map shop type to render page path
@@ -214,17 +226,34 @@ async function updateOrderWithImages(orderId: number, results: RenderResult[]): 
 }
 
 /**
- * Get viewport size for a shop type and format
+ * Get viewport size based on poster size
+ * All products use consistent aspect ratios: 5:7 (vertical), 7:5 (horizontal), 1:1 (square)
+ * DPI varies by size for print quality
  */
-function getViewportSize(shopType: ShopType, format: string, babyCount?: number): { width: number; height: number } {
-  if (shopType === 'BirthPoster') {
-    // Birth poster: vertical for 1-2 babies, horizontal for 3-4
-    const orientation = (babyCount && babyCount > 2) ? 'horizontal' : 'vertical'
-    return BIRTH_POSTER_VIEWPORT_SIZES[orientation]
+function getViewportSize(
+  format: string,
+  posterSize?: string
+): { width: number; height: number } {
+  // Try to get viewport by exact poster size first
+  if (posterSize && VIEWPORT_BY_POSTER_SIZE[posterSize]) {
+    return VIEWPORT_BY_POSTER_SIZE[posterSize]
   }
 
-  // Momentos and Personaliza use the same viewport sizes based on format
-  return VIEWPORT_SIZES[format as keyof typeof VIEWPORT_SIZES] || VIEWPORT_SIZES.vertical
+  // Fallback to format-based default
+  return DEFAULT_VIEWPORT_BY_FORMAT[format] || DEFAULT_VIEWPORT_BY_FORMAT.vertical
+}
+
+/**
+ * Get the selector to wait for based on shop type
+ * Personaliza has a special #render-ready marker that appears after the image loads
+ */
+function getWaitSelector(shopType: ShopType): string {
+  if (shopType === 'Personaliza') {
+    // Wait for the ready marker which appears after the main image loads
+    return '#render-ready'
+  }
+  // Other shops just wait for the canvas to render
+  return '.render-canvas'
 }
 
 /**
@@ -234,7 +263,7 @@ async function renderWithBrowserless(
   configUrl: string,
   shopType: ShopType,
   format: string,
-  babyCount?: number
+  posterSize?: string
 ): Promise<ArrayBuffer> {
   if (!BROWSERLESS_API_KEY) {
     throw new Error('BROWSERLESS_API_KEY not configured')
@@ -243,13 +272,17 @@ async function renderWithBrowserless(
   // Get render page path for this shop
   const renderPath = SHOP_RENDER_PATHS[shopType]
 
-  // Determine viewport size based on shop type and format
-  const viewport = getViewportSize(shopType, format, babyCount)
+  // Determine viewport size based on poster size (all products use 5:7, 7:5, 1:1)
+  const viewport = getViewportSize(format, posterSize)
 
   const renderUrl = `${SITE_URL}${renderPath}?configUrl=${encodeURIComponent(configUrl)}`
 
   console.log(`[RenderOrder] Rendering ${shopType}: ${renderUrl}`)
-  console.log(`[RenderOrder] Viewport: ${viewport.width}x${viewport.height}`)
+  console.log(`[RenderOrder] Viewport: ${viewport.width}x${viewport.height} (posterSize: ${posterSize || 'default'})`)
+
+  // Get the appropriate selector to wait for
+  const waitSelector = getWaitSelector(shopType)
+  console.log(`[RenderOrder] Waiting for selector: ${waitSelector}`)
 
   // Browserless API - token in URL query parameter
   const browserlessUrl = `https://chrome.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`
@@ -267,12 +300,12 @@ async function renderWithBrowserless(
       },
       gotoOptions: {
         waitUntil: 'networkidle2',
-        timeout: 30000,
+        timeout: 60000, // Increased timeout for image loading
       },
       viewport: viewport,
       waitForSelector: {
-        selector: '.render-canvas',
-        timeout: 10000,
+        selector: waitSelector,
+        timeout: 30000, // Increased timeout for image loading
       },
     }),
   })
@@ -338,19 +371,19 @@ async function processLineItem(item: ShopifyLineItem, orderNumber: number): Prom
   const shopType = detectShopType(item)
 
   try {
-    // Fetch config to get format and other details
+    // Fetch config to get format and poster size
     const configResponse = await fetch(configUrl)
     if (!configResponse.ok) {
       throw new Error(`Failed to fetch config: ${configResponse.status}`)
     }
     const config = await configResponse.json() as Record<string, unknown>
     const format = getFormatFromConfig(config, shopType)
-    const babyCount = shopType === 'BirthPoster' ? (config.babyCount as number) : undefined
+    const posterSize = config.posterSize as string | undefined
 
-    console.log(`[RenderOrder] Processing ${shopType} order ${orderNumber}, item ${item.id}, format: ${format}${babyCount ? `, babies: ${babyCount}` : ''}`)
+    console.log(`[RenderOrder] Processing ${shopType} order ${orderNumber}, item ${item.id}, format: ${format}, posterSize: ${posterSize || 'not set'}`)
 
-    // Render with Browserless
-    const imageBuffer = await renderWithBrowserless(configUrl, shopType, format, babyCount)
+    // Render with Browserless (viewport based on posterSize)
+    const imageBuffer = await renderWithBrowserless(configUrl, shopType, format, posterSize)
     console.log(`[RenderOrder] Rendered image: ${(imageBuffer.byteLength / 1024 / 1024).toFixed(2)}MB`)
 
     // Upload to S3 (use appropriate bucket for each shop)

@@ -8,7 +8,7 @@
  * Usage: /render/personaliza?configUrl=https://...
  */
 
-import type { PersonalizaState, ImageFormat, TextStyle } from '~/stores/personaliza'
+import type { PersonalizaState, ImageFormat } from '~/stores/personaliza'
 
 // Extended state with cropped image URL from S3
 interface PersonalizaRenderConfig extends Omit<PersonalizaState, 'imageFile' | 'croppedBlob' | 'croppedImageUrl' | 'isUploadingToS3'> {
@@ -23,6 +23,39 @@ const configUrl = route.query.configUrl as string
 const config = ref<PersonalizaRenderConfig | null>(null)
 const error = ref<string | null>(null)
 const isLoading = ref(true)
+const imageLoaded = ref(false)
+
+// Track if page is ready for screenshot (config loaded + image loaded)
+const isReady = computed(() => {
+  if (!config.value) return false
+  // If no image URL, we're ready (will show placeholder)
+  if (!config.value.croppedImageS3Url) return true
+  // Otherwise, wait for image to load
+  return imageLoaded.value
+})
+
+// Handle image load event
+function onImageLoad() {
+  console.log('[Personaliza Render] Image loaded successfully')
+  imageLoaded.value = true
+}
+
+// Handle image error event
+function onImageError(e: Event) {
+  console.error('[Personaliza Render] Image failed to load:', e)
+  // Mark as ready anyway to not block forever
+  imageLoaded.value = true
+}
+
+// Fallback timeout to ensure page becomes ready even if image events don't fire
+function startFallbackTimeout() {
+  setTimeout(() => {
+    if (!imageLoaded.value) {
+      console.warn('[Personaliza Render] Fallback timeout reached, marking as ready')
+      imageLoaded.value = true
+    }
+  }, 15000) // 15 second fallback
+}
 
 // Fetch config on mount
 onMounted(async () => {
@@ -33,13 +66,21 @@ onMounted(async () => {
   }
 
   try {
+    console.log('[Personaliza Render] Fetching config from:', configUrl)
     const response = await fetch(configUrl)
     if (!response.ok) {
       throw new Error(`Failed to fetch config: ${response.status}`)
     }
     config.value = await response.json()
+    console.log('[Personaliza Render] Config loaded, croppedImageS3Url:', config.value?.croppedImageS3Url)
+
+    // Start fallback timeout if there's an image to load
+    if (config.value?.croppedImageS3Url) {
+      startFallbackTimeout()
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load config'
+    console.error('[Personaliza Render] Error:', err)
   } finally {
     isLoading.value = false
   }
@@ -142,17 +183,20 @@ definePageMeta({
       ]"
       :style="config.hasMargin ? { backgroundColor: config.marginColor } : {}"
     >
+      <!-- Ready marker for Browserless to wait for (hidden) -->
+      <div v-if="isReady" id="render-ready" class="render-canvas__ready-marker" />
       <!-- Main canvas content -->
       <div class="render-canvas__content">
         <!-- Image wrapper -->
         <div class="render-canvas__image-wrapper">
-          <!-- Cropped image from S3 -->
+          <!-- Cropped image from S3 (no crossorigin needed - just displaying) -->
           <img
             v-if="config.croppedImageS3Url"
             :src="config.croppedImageS3Url"
             alt=""
             class="render-canvas__image"
-            crossorigin="anonymous"
+            @load="onImageLoad"
+            @error="onImageError"
           >
           <!-- Fallback placeholder -->
           <div v-else class="render-canvas__placeholder">
@@ -186,14 +230,16 @@ definePageMeta({
   padding: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: #ffffff;
   overflow: hidden;
 
   &__loading,
   &__error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     font-family: system-ui, sans-serif;
     font-size: 24px;
     color: #666;
@@ -205,7 +251,8 @@ definePageMeta({
 }
 
 // =============================================================================
-// Canvas Styles - Matching personaliza/Canvas.vue
+// Canvas Styles - Simplified for server-side rendering
+// Browserless sets viewport to exact aspect ratio, so we just fill it
 // =============================================================================
 $padding-side: 5%;
 $padding-bottom-with-text: 12.143%;
@@ -216,31 +263,17 @@ $padding-bottom-with-text: 12.143%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  container-type: size;
+  // Fill the entire viewport (Browserless sets correct aspect ratio)
+  width: 100vw;
+  height: 100vh;
 
-  // ==========================================================================
-  // Aspect Ratio Variants
-  // ==========================================================================
-
-  // Square (1:1)
-  &--square {
-    aspect-ratio: 1;
-    height: min(100cqh, 100cqw);
-    width: auto;
-  }
-
-  // Horizontal (7:5)
-  &--horizontal {
-    aspect-ratio: 7 / 5;
-    width: min(100cqw, calc(100cqh * 7 / 5));
-    height: auto;
-  }
-
-  // Vertical (5:7)
-  &--vertical {
-    aspect-ratio: 5 / 7;
-    height: min(100cqh, calc(100cqw * 7 / 5));
-    width: auto;
+  // Hidden marker for Browserless to detect when ready
+  &__ready-marker {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
   }
 
   // ==========================================================================
@@ -255,7 +288,7 @@ $padding-bottom-with-text: 12.143%;
   }
 
   // ==========================================================================
-  // Margin/Padding System
+  // Margin/Padding System - using viewport units for consistency
   // ==========================================================================
   &--has-margin {
     .render-canvas__content {
@@ -269,34 +302,37 @@ $padding-bottom-with-text: 12.143%;
     }
   }
 
-  // Orientation-specific padding multipliers
+  // Orientation-specific padding multipliers using viewport units
+  // Vertical: use vh (height is the larger dimension)
   &--padding-height.render-canvas--has-margin.render-canvas--has-text {
     .render-canvas__content {
-      padding-bottom: calc(100cqh * 0.12143);
+      padding-bottom: calc(100vh * 0.12143);
     }
 
     .render-canvas__text-container {
-      height: calc(100cqh * 0.12143);
+      height: calc(100vh * 0.12143);
     }
   }
 
+  // Horizontal: use vw (width is the larger dimension)
   &--padding-width.render-canvas--has-margin.render-canvas--has-text {
     .render-canvas__content {
-      padding-bottom: calc(100cqw * 0.12143);
+      padding-bottom: calc(100vw * 0.12143);
     }
 
     .render-canvas__text-container {
-      height: calc(100cqw * 0.12143);
+      height: calc(100vw * 0.12143);
     }
   }
 
+  // Square: use vw with scale factor
   &--padding-width-scaled.render-canvas--has-margin.render-canvas--has-text {
     .render-canvas__content {
-      padding-bottom: calc(92cqw * 1.4 * 0.12143);
+      padding-bottom: calc(92vw * 1.4 * 0.12143);
     }
 
     .render-canvas__text-container {
-      height: calc(100cqw * 1.4 * 0.12143);
+      height: calc(100vw * 1.4 * 0.12143);
     }
   }
 
@@ -345,7 +381,8 @@ $padding-bottom-with-text: 12.143%;
 
   &__title {
     margin: 0;
-    font-size: 3cqi;
+    // Use vmin for consistent sizing across orientations (3% of smaller dimension)
+    font-size: 3vmin;
     line-height: 1.5;
     letter-spacing: 0.12em;
     color: #1a1a1a;
@@ -355,7 +392,8 @@ $padding-bottom-with-text: 12.143%;
 
   &__subtitle {
     margin: 0;
-    font-size: 2cqi;
+    // Use vmin for consistent sizing across orientations (2% of smaller dimension)
+    font-size: 2vmin;
     line-height: 2.1em;
     color: #000;
     font-family: 'Avenir', sans-serif;
@@ -403,26 +441,26 @@ $padding-bottom-with-text: 12.143%;
   }
 
   // ==========================================================================
-  // Orientation-specific font sizes
+  // Orientation-specific font sizes (using vmin for consistent sizing)
   // ==========================================================================
   &--square {
     .render-canvas__title {
-      font-size: 2.14cqi;
+      font-size: 2.14vmin;
     }
 
     .render-canvas__subtitle {
-      font-size: 1.42cqi;
+      font-size: 1.42vmin;
     }
   }
 
   &--horizontal {
     .render-canvas__title {
-      font-size: 1.75cqi;
+      font-size: 1.75vmin;
       line-height: 1.75;
     }
 
     .render-canvas__subtitle {
-      font-size: 1.25cqi;
+      font-size: 1.25vmin;
     }
   }
 

@@ -203,14 +203,16 @@ definePageMeta({
   padding: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: #ffffff;
   overflow: hidden;
 
   &__loading,
   &__error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     font-family: system-ui, sans-serif;
     font-size: 24px;
     color: #666;
@@ -222,7 +224,8 @@ definePageMeta({
 }
 
 // =============================================================================
-// Canvas Styles - SAME VALUES as Canvas.vue, different class name to avoid conflicts
+// Canvas Styles - Simplified for server-side rendering
+// Browserless sets viewport to exact aspect ratio, so we just fill it
 // =============================================================================
 .render-canvas {
   position: relative;
@@ -230,41 +233,15 @@ definePageMeta({
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  container-type: size;
+  // Fill the entire viewport (Browserless sets correct aspect ratio)
+  width: 100vw;
+  height: 100vh;
 
   // ==========================================================================
-  // Aspect Ratio Variants
+  // Content Layout - using vmin for consistent sizing across all formats
+  // vmin = smaller of viewport width or height, works for any aspect ratio
   // ==========================================================================
-
-  // Square (1:1)
-  &--square {
-    aspect-ratio: 1;
-    height: min(100cqh, 100cqw);
-    width: auto;
-  }
-
-  // Horizontal (7:5)
-  &--horizontal {
-    aspect-ratio: 7 / 5;
-    width: min(100cqw, calc(100cqh * 7 / 5));
-    height: auto;
-  }
-
-  // Vertical (5:7)
-  &--vertical {
-    aspect-ratio: 5 / 7;
-    height: min(100cqh, calc(100cqw * 7 / 5));
-    width: auto;
-  }
-
-  // ==========================================================================
-  // Content Layout - using container units for consistency across formats
-  // Always use the smaller dimension unit for visual consistency:
-  // - Square: cqw (width = height)
-  // - Horizontal: cqh (height is smaller)
-  // - Vertical: cqw (width is smaller)
-  // ==========================================================================
-  $padding-base: 5; // Base padding value (applied with appropriate unit per format)
+  $padding-base: 5vmin;
 
   &__content {
     position: relative;
@@ -275,19 +252,9 @@ definePageMeta({
     padding: 0;
   }
 
-  // Square format - use cqw (width = height)
-  &--square.render-canvas--has-margin &__content {
-    padding: #{$padding-base}cqw;
-  }
-
-  // Horizontal format - use cqh (height is the smaller dimension)
-  &--horizontal.render-canvas--has-margin &__content {
-    padding: #{$padding-base}cqh;
-  }
-
-  // Vertical format - use cqw (width is the smaller dimension)
-  &--vertical.render-canvas--has-margin &__content {
-    padding: #{$padding-base}cqw;
+  // Margin padding (same for all formats using vmin)
+  &--has-margin &__content {
+    padding: $padding-base;
   }
 
   // ==========================================================================
@@ -301,71 +268,24 @@ definePageMeta({
     height: 100%;
   }
 
-  // Base gap when margin is enabled (before gap class overrides)
-  // Using container units for consistency
-  &--square.render-canvas--has-margin &__grid {
-    gap: 1.5cqw;
-  }
-
-  &--horizontal.render-canvas--has-margin &__grid {
-    gap: 1.5cqh;
-  }
-
-  &--vertical.render-canvas--has-margin &__grid {
-    gap: 1.5cqw;
+  // Base gap when margin is enabled
+  &--has-margin &__grid {
+    gap: 1.5vmin;
   }
 
   // ==========================================================================
-  // Dynamic gap based on image count (consistent across all formats)
-  // Uses the smaller dimension for each format to ensure visual consistency:
-  // - Square: cqw (width = height)
-  // - Horizontal: cqh (height is smaller)
-  // - Vertical: cqw (width is smaller)
+  // Dynamic gap based on image count (using vmin for all formats)
   // ==========================================================================
-
-  // Square format - use cqw (width = height, doesn't matter)
-  &--square {
-    &.render-canvas--gap-small .render-canvas__grid {
-      gap: 3.5cqw;
-    }
-
-    &.render-canvas--gap-medium .render-canvas__grid {
-      gap: 2.5cqw;
-    }
-
-    &.render-canvas--gap-large .render-canvas__grid {
-      gap: 1.75cqw;
-    }
+  &--gap-small .render-canvas__grid {
+    gap: 3.5vmin;
   }
 
-  // Horizontal format - use cqh (height is the smaller dimension)
-  &--horizontal {
-    &.render-canvas--gap-small .render-canvas__grid {
-      gap: 3.5cqh;
-    }
-
-    &.render-canvas--gap-medium .render-canvas__grid {
-      gap: 2.5cqh;
-    }
-
-    &.render-canvas--gap-large .render-canvas__grid {
-      gap: 1.75cqh;
-    }
+  &--gap-medium .render-canvas__grid {
+    gap: 2.5vmin;
   }
 
-  // Vertical format - use cqw (width is the smaller dimension)
-  &--vertical {
-    &.render-canvas--gap-small .render-canvas__grid {
-      gap: 3.5cqw;
-    }
-
-    &.render-canvas--gap-medium .render-canvas__grid {
-      gap: 2.5cqw;
-    }
-
-    &.render-canvas--gap-large .render-canvas__grid {
-      gap: 1.75cqw;
-    }
+  &--gap-large .render-canvas__grid {
+    gap: 1.75vmin;
   }
 
   // ==========================================================================
