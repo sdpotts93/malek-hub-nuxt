@@ -117,6 +117,46 @@ export function useS3Upload() {
     }
   }
 
+  /**
+   * Upload JSON config to S3
+   * Used for server-side rendering - stores design config that can be loaded later
+   * @param config - JSON object to upload
+   * @param prefix - Filename prefix (e.g., 'momentos-config')
+   * @param bucket - S3 bucket to upload to
+   * @returns Upload result with S3 URL
+   */
+  async function uploadConfig(
+    config: Record<string, unknown>,
+    prefix: string = 'config',
+    bucket: S3Bucket = 'momentos-malek'
+  ): Promise<UploadResult> {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    // Use .txt extension and text/plain content type for broader S3/Lambda compatibility
+    const filename = `${prefix}-${timestamp}-${random}.txt`
+    const contentType = 'text/plain'
+
+    try {
+      // Get presigned URL
+      const presignedUrl = await getPresignedUrl(filename, contentType, bucket)
+
+      // Convert config to JSON blob
+      const jsonBlob = new Blob([JSON.stringify(config)], { type: contentType })
+
+      // Upload to S3
+      await uploadToS3(jsonBlob, presignedUrl, contentType)
+
+      const url = `${getS3BaseUrl(bucket)}/${filename}`
+
+      return { url, filename }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Config upload failed'
+      error.value = message
+      console.error('[S3Upload] Config upload error:', err)
+      throw err
+    }
+  }
+
   return {
     // State
     isUploading,
@@ -125,5 +165,6 @@ export function useS3Upload() {
 
     // Actions
     uploadDesignImage,
+    uploadConfig,
   }
 }

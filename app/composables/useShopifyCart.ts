@@ -541,10 +541,15 @@ export function useShopifyCart() {
 
   /**
    * Add momentos item to cart
+   *
+   * Server-side rendering approach:
    * 1. Validate state
-   * 2. Generate high-res composite image from canvas
-   * 3. Upload to S3 (momentos-malek bucket)
-   * 4. Add to Shopify cart with image URL as attribute
+   * 2. Generate thumbnail from canvas (fast, small)
+   * 3. Upload config JSON + thumbnail to S3
+   * 4. Add to Shopify cart with config URL
+   *
+   * The full high-res image is rendered server-side via Browserless
+   * when the order is placed (see netlify/functions/render-order.ts)
    */
   async function addMomentosToCart(
     canvasElement: HTMLElement,
@@ -565,7 +570,7 @@ export function useShopifyCart() {
     if (!validation.isValid) {
       console.warn('[ShopifyCart] Validation failed:', validation.message)
       addToCartError.value = validation.message
-      throw new Error(validation.message) // Throw so the error is visible to the user
+      throw new Error(validation.message || 'Validación fallida') // Throw so the error is visible to the user
     }
 
     isAddingToCart.value = true
@@ -578,48 +583,41 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate poster image from canvas element
-      // Medium-res (2000px) images are sufficient for all grid sizes:
-      // - 4 images: need ~1968px each → 2000px is perfect
-      // - 25 images: need ~787px each → 2000px is 2.5x overkill
-      // - 64 images: need ~492px each → 2000px is 4x overkill
+      // 2. Generate thumbnail only (fast!) - no full render needed
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      const renderResult = await renderer.generatePosterImage(canvasElement)
-      console.log(`[ShopifyCart] Momentos render: ${renderResult.width}x${renderResult.height}px (${(renderResult.blob.size / 1024 / 1024).toFixed(2)}MB)`)
-
-      // Convert blob to data URL for thumbnail generation
-      console.log('[ShopifyCart] Converting blob to data URL...')
-      const blobDataUrl = await blobToDataUrl(renderResult.blob)
-      console.log('[ShopifyCart] Blob converted, resizing for thumbnail...')
-
-      // Resize for thumbnail
-      const thumbnailDataUrl = await renderer.resizeToThumbnail(blobDataUrl, 200)
-      console.log('[ShopifyCart] Thumbnail resized, converting to blob...')
+      console.log('[ShopifyCart] Generating thumbnail...')
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
-      console.log('[ShopifyCart] Uploading to S3...')
+      console.log(`[ShopifyCart] Thumbnail generated: ${(thumbnailBlob.size / 1024).toFixed(1)}KB`)
 
-      // 3. Upload both to S3 (momentos-malek bucket)
+      // 3. Get design config snapshot from store
+      const { useMomentosStore } = await import('~/stores/momentos')
+      const momentosStore = useMomentosStore()
+      const designConfig = momentosStore.getSnapshot()
+
+      // 4. Upload config + thumbnail to S3 (fast! ~100KB total vs 40MB before)
       const { useS3Upload } = await import('~/composables/useS3Upload')
       const uploader = useS3Upload()
 
-      const [uploadResult, thumbnailUpload] = await Promise.all([
-        uploader.uploadDesignImage(renderResult.blob, 'momentos', 'momentos-malek'),
+      console.log('[ShopifyCart] Uploading config + thumbnail to S3...')
+      const [configUpload, thumbnailUpload] = await Promise.all([
+        uploader.uploadConfig(designConfig as Record<string, unknown>, 'momentos-config', 'momentos-malek'),
         uploader.uploadDesignImage(thumbnailBlob, 'momentos-thumb', 'momentos-malek'),
       ])
-      console.log('[ShopifyCart] S3 upload complete:', uploadResult.url)
+      console.log('[ShopifyCart] S3 upload complete:', configUpload.url)
 
-      // 4. Build description from snapshot (not reactive state)
+      // 5. Build description from snapshot (not reactive state)
       const formatLabel = snapshot.format === 'square' ? 'Cuadrado' : snapshot.format === 'horizontal' ? 'Horizontal' : 'Vertical'
 
-      // 5. Add to Shopify cart with attributes (using snapshot values)
+      // 6. Add to Shopify cart with config URL (server renders full image on order)
       console.log('[ShopifyCart] Adding to Shopify cart...')
       await cartStore.addItem(variant.id, 1, [
-        { key: '_imagen', value: uploadResult.url },
+        { key: '_config', value: configUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Momentos' },
         { key: 'Tamaño', value: snapshot.posterSize },

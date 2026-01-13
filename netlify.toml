@@ -1,2 +1,9 @@
 [images]
   remote_images = ["https://birth-poster.s3.us-west-1.amazonaws.com/*", "https://custom-prints.s3.us-west-1.amazonaws.com/*", "https://momentos-malek.s3.us-west-1.amazonaws.com/*"]
+
+[functions]
+  directory = "netlify/functions"
+
+# Background function for server-side rendering (runs up to 15 minutes)
+[functions."render-order-background"]
+  schedule = ""  # Not scheduled, triggered by webhook
