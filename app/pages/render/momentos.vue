@@ -45,11 +45,11 @@ const aspectClass = computed(() => {
   if (!config.value) return ''
   switch (config.value.format) {
     case 'square':
-      return 'momentos-canvas--square'
+      return 'render-canvas--square'
     case 'horizontal':
-      return 'momentos-canvas--horizontal'
+      return 'render-canvas--horizontal'
     case 'vertical':
-      return 'momentos-canvas--vertical'
+      return 'render-canvas--vertical'
   }
 })
 
@@ -60,14 +60,14 @@ const gapClass = computed(() => {
   const format = config.value.format
 
   if (format === 'square') {
-    if (count === 4) return 'momentos-canvas--gap-small'
-    if (count === 25) return 'momentos-canvas--gap-medium'
-    if (count === 64) return 'momentos-canvas--gap-large'
+    if (count === 4) return 'render-canvas--gap-small'
+    if (count === 25) return 'render-canvas--gap-medium'
+    if (count === 64) return 'render-canvas--gap-large'
   } else {
     // Horizontal and vertical formats
-    if (count === 12) return 'momentos-canvas--gap-small'
-    if (count === 35) return 'momentos-canvas--gap-medium'
-    if (count === 88) return 'momentos-canvas--gap-large'
+    if (count === 12) return 'render-canvas--gap-small'
+    if (count === 35) return 'render-canvas--gap-medium'
+    if (count === 88) return 'render-canvas--gap-large'
   }
   return null
 })
@@ -138,22 +138,22 @@ definePageMeta({
       {{ error }}
     </div>
 
-    <!-- Canvas render - SAME structure as Canvas.vue -->
+    <!-- Canvas render -->
     <div
       v-else-if="config"
       :class="[
-        'momentos-canvas',
+        'render-canvas',
         aspectClass,
         gapClass,
-        { 'momentos-canvas--has-margin': config.hasMargin }
+        { 'render-canvas--has-margin': config.hasMargin }
       ]"
       :style="config.hasMargin ? { backgroundColor: config.marginColor } : {}"
     >
       <!-- Main canvas content -->
-      <div class="momentos-canvas__content">
+      <div class="render-canvas__content">
         <!-- Image grid -->
         <div
-          class="momentos-canvas__grid"
+          class="render-canvas__grid"
           :style="{
             gridTemplateColumns: `repeat(${gridDimensions.cols}, 1fr)`,
             gridTemplateRows: `repeat(${gridDimensions.rows}, 1fr)`,
@@ -163,17 +163,17 @@ definePageMeta({
             v-for="cell in config.canvasCells"
             :key="cell.id"
             :class="[
-              'momentos-canvas__cell',
-              { 'momentos-canvas__cell--empty': !cell.imageId }
+              'render-canvas__cell',
+              { 'render-canvas__cell--empty': !cell.imageId }
             ]"
           >
             <!-- Empty cell placeholder -->
-            <div v-if="!cell.imageId" class="momentos-canvas__placeholder" />
+            <div v-if="!cell.imageId" class="render-canvas__placeholder" />
 
             <!-- Image with transformations -->
             <div
               v-else-if="getCellImageUrl(cell)"
-              class="momentos-canvas__cell-image-wrapper"
+              class="render-canvas__cell-image-wrapper"
               :style="{
                 transform: `rotate(${cell.rotation}deg) scale(${cell.zoom})`,
                 filter: getCellFilter(cell),
@@ -182,7 +182,7 @@ definePageMeta({
               <img
                 :src="getCellImageUrl(cell)!"
                 alt=""
-                class="momentos-canvas__cell-image"
+                class="render-canvas__cell-image"
                 crossorigin="anonymous"
                 :style="{ objectPosition: getCellObjectPosition(cell) }"
               >
@@ -194,7 +194,7 @@ definePageMeta({
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 // =============================================================================
 // Render Page Container
 // =============================================================================
@@ -222,10 +222,9 @@ definePageMeta({
 }
 
 // =============================================================================
-// Canvas Styles - COPIED EXACTLY from Canvas.vue (lines 563-834)
-// Only difference: empty cells use #ffffff for print instead of #f0f0f0
+// Canvas Styles - SAME VALUES as Canvas.vue, different class name to avoid conflicts
 // =============================================================================
-.momentos-canvas {
+.render-canvas {
   position: relative;
   background: #ffffff;
   display: flex;
@@ -277,17 +276,17 @@ definePageMeta({
   }
 
   // Square format - use cqw (width = height)
-  &--square.momentos-canvas--has-margin &__content {
+  &--square.render-canvas--has-margin &__content {
     padding: #{$padding-base}cqw;
   }
 
   // Horizontal format - use cqh (height is the smaller dimension)
-  &--horizontal.momentos-canvas--has-margin &__content {
+  &--horizontal.render-canvas--has-margin &__content {
     padding: #{$padding-base}cqh;
   }
 
   // Vertical format - use cqw (width is the smaller dimension)
-  &--vertical.momentos-canvas--has-margin &__content {
+  &--vertical.render-canvas--has-margin &__content {
     padding: #{$padding-base}cqw;
   }
 
@@ -304,15 +303,15 @@ definePageMeta({
 
   // Base gap when margin is enabled (before gap class overrides)
   // Using container units for consistency
-  &--square.momentos-canvas--has-margin &__grid {
+  &--square.render-canvas--has-margin &__grid {
     gap: 1.5cqw;
   }
 
-  &--horizontal.momentos-canvas--has-margin &__grid {
+  &--horizontal.render-canvas--has-margin &__grid {
     gap: 1.5cqh;
   }
 
-  &--vertical.momentos-canvas--has-margin &__grid {
+  &--vertical.render-canvas--has-margin &__grid {
     gap: 1.5cqw;
   }
 
@@ -326,45 +325,45 @@ definePageMeta({
 
   // Square format - use cqw (width = height, doesn't matter)
   &--square {
-    &.momentos-canvas--gap-small .momentos-canvas__grid {
+    &.render-canvas--gap-small .render-canvas__grid {
       gap: 3.5cqw;
     }
 
-    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+    &.render-canvas--gap-medium .render-canvas__grid {
       gap: 2.5cqw;
     }
 
-    &.momentos-canvas--gap-large .momentos-canvas__grid {
+    &.render-canvas--gap-large .render-canvas__grid {
       gap: 1.75cqw;
     }
   }
 
   // Horizontal format - use cqh (height is the smaller dimension)
   &--horizontal {
-    &.momentos-canvas--gap-small .momentos-canvas__grid {
+    &.render-canvas--gap-small .render-canvas__grid {
       gap: 3.5cqh;
     }
 
-    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+    &.render-canvas--gap-medium .render-canvas__grid {
       gap: 2.5cqh;
     }
 
-    &.momentos-canvas--gap-large .momentos-canvas__grid {
+    &.render-canvas--gap-large .render-canvas__grid {
       gap: 1.75cqh;
     }
   }
 
   // Vertical format - use cqw (width is the smaller dimension)
   &--vertical {
-    &.momentos-canvas--gap-small .momentos-canvas__grid {
+    &.render-canvas--gap-small .render-canvas__grid {
       gap: 3.5cqw;
     }
 
-    &.momentos-canvas--gap-medium .momentos-canvas__grid {
+    &.render-canvas--gap-medium .render-canvas__grid {
       gap: 2.5cqw;
     }
 
-    &.momentos-canvas--gap-large .momentos-canvas__grid {
+    &.render-canvas--gap-large .render-canvas__grid {
       gap: 1.75cqw;
     }
   }
@@ -378,7 +377,7 @@ definePageMeta({
     overflow: hidden;
 
     &--empty {
-      background: #ffffff; // White for print (Canvas.vue uses #f0f0f0 for UI visibility)
+      background: #ffffff; // White for print
     }
   }
 
@@ -400,8 +399,11 @@ definePageMeta({
     object-fit: cover;
   }
 }
+</style>
 
-// Reset any default styles
+<style lang="scss">
+// Global reset only for this page (html/body)
+// This won't affect other pages because it only loads on /render/momentos
 html, body {
   margin: 0;
   padding: 0;
