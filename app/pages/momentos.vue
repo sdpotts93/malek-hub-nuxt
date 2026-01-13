@@ -83,9 +83,21 @@ const isDirty = computed(() => {
   return lastSavedState.value !== currentState
 })
 
-// Check if there's any meaningful content to save (at least one image in library or on canvas)
+// Check if there's any meaningful content to save
+// Must have actual displayable images (with valid URLs), not just array entries
 const hasContent = computed(() => {
-  return momentosStore.uploadedImages.length > 0 || momentosStore.filledCellCount > 0
+  // Check for filled cells on canvas
+  if (momentosStore.filledCellCount > 0) return true
+
+  // Check if any uploaded images have valid displayable URLs
+  const hasDisplayableImages = momentosStore.uploadedImages.some(img => {
+    // Must have at least one valid URL (blob, S3, or data URL)
+    const hasValidUrl = (img.lowResUrl && img.lowResUrl.length > 0) ||
+      (img.s3LowResUrl && img.s3LowResUrl.length > 0)
+    return hasValidUrl
+  })
+
+  return hasDisplayableImages
 })
 
 // Generate design name
@@ -126,12 +138,16 @@ function saveCurrentDesignSync() {
   // Don't save if no content or no changes
   if (!isDirty.value || !hasContent.value) return
 
+  // Don't save without a valid thumbnail - prevents empty history items
+  if (!cachedThumbnail.value) {
+    console.log('[Momentos] Skipping sync save - no cached thumbnail')
+    return
+  }
+
   try {
     const persistentState = momentosStore.getSnapshot()
-    // Use cached thumbnail or empty string (will show placeholder in history)
-    const thumbnail = cachedThumbnail.value || ''
+    const thumbnail = cachedThumbnail.value
 
-    // Save even without thumbnail - the design state is more important
     saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
     lastSavedState.value = JSON.stringify(persistentState)
     console.log('[Momentos] Saved to history on unload')
