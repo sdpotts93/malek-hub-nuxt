@@ -348,6 +348,55 @@ const selectedCellWithImage = computed(() => {
   if (!cell || !cell.imageId) return null
   return cell
 })
+
+// Calculate edit menu position to keep it on screen
+const editMenuStyle = computed((): Record<string, string> => {
+  if (!selectedCellWithImage.value) return {}
+
+  const cellEl = cellRefs.value.get(selectedCellWithImage.value.id)
+  if (!cellEl) return {}
+
+  const cellRect = cellEl.getBoundingClientRect()
+  const menuWidth = 260 // Approximate width of the menu
+  const menuHeight = 44 // Approximate height of the menu
+  const gap = 8 // Gap between cell and menu
+  const screenPadding = 12 // Minimum padding from screen edges
+
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  // Calculate initial position (centered below cell)
+  let top = cellRect.bottom + gap
+  let left = (cellRect.left + cellRect.right) / 2
+  let transformX = '-50%'
+
+  // Check if menu would go off the bottom of the screen
+  if (top + menuHeight > viewportHeight - screenPadding) {
+    // Position above the cell instead
+    top = cellRect.top - gap - menuHeight
+  }
+
+  // Calculate the actual left position after transform
+  const actualLeft = left - menuWidth / 2
+
+  // Check if menu would go off the left edge
+  if (actualLeft < screenPadding) {
+    left = screenPadding
+    transformX = '0'
+  }
+  // Check if menu would go off the right edge
+  else if (actualLeft + menuWidth > viewportWidth - screenPadding) {
+    left = viewportWidth - screenPadding - menuWidth
+    transformX = '0'
+  }
+
+  return {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${left}px`,
+    transform: `translateX(${transformX})`,
+  }
+})
 </script>
 
 <template>
@@ -454,12 +503,7 @@ const selectedCellWithImage = computed(() => {
           <div
             v-if="selectedCellWithImage && cellRefs.get(selectedCellWithImage.id)"
             class="momentos-canvas__edit-menu"
-            :style="{
-              position: 'fixed',
-              top: `${(cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.bottom ?? 0) + 8}px`,
-              left: `${((cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.left ?? 0) + (cellRefs.get(selectedCellWithImage.id)?.getBoundingClientRect()?.right ?? 0)) / 2}px`,
-              transform: 'translateX(-50%)',
-            }"
+            :style="editMenuStyle"
             @click.stop
           >
             <button
@@ -531,31 +575,6 @@ const selectedCellWithImage = computed(() => {
       </Teleport>
     </div>
 
-    <!-- Undo/Redo buttons -->
-    <div class="momentos-canvas__history-controls" data-html2canvas-ignore>
-      <button
-        class="momentos-canvas__history-btn"
-        :disabled="!store.canUndo"
-        title="Deshacer"
-        @click="store.undo()"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 7v6h6"/>
-          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
-        </svg>
-      </button>
-      <button
-        class="momentos-canvas__history-btn"
-        :disabled="!store.canRedo"
-        title="Rehacer"
-        @click="store.redo()"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 7v6h-6"/>
-          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
-        </svg>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -932,41 +951,6 @@ const selectedCellWithImage = computed(() => {
     }
   }
 
-  // ==========================================================================
-  // History Controls
-  // ==========================================================================
-  &__history-controls {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 4px;
-    z-index: 15;
-  }
-
-  &__history-btn {
-    @include button-reset;
-    @include flex-center;
-    width: 32px;
-    height: 32px;
-    background: white;
-    border-radius: 6px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    @include hover {
-      &:not(:disabled) {
-        background: $color-brand-light;
-        color: $color-brand;
-      }
-    }
-  }
 }
 
 // Transitions

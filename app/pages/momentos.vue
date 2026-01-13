@@ -288,6 +288,32 @@ async function handleAddToCart() {
 
       <!-- Canvas Area -->
       <div class="momentos__canvas-area">
+        <!-- Undo/Redo buttons -->
+        <div class="momentos__history-controls">
+          <button
+            class="momentos__history-btn"
+            :disabled="!momentosStore.canUndo"
+            title="Deshacer"
+            @click="momentosStore.undo()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7v6h6"/>
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+            </svg>
+          </button>
+          <button
+            class="momentos__history-btn"
+            :disabled="!momentosStore.canRedo"
+            title="Rehacer"
+            @click="momentosStore.redo()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 7v6h-6"/>
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+            </svg>
+          </button>
+        </div>
+
         <div class="momentos__canvas-container">
           <MomentosCanvas ref="canvasRef" />
         </div>
@@ -397,6 +423,7 @@ async function handleAddToCart() {
   }
 
   &__canvas-area {
+    position: relative;
     background: $color-canvas;
     display: flex;
     align-items: center;
@@ -408,6 +435,39 @@ async function handleAddToCart() {
       flex: 1;
       padding: $space-xl;
       align-items: flex-start;
+    }
+  }
+
+  &__history-controls {
+    position: absolute;
+    top: $space-lg;
+    right: $space-lg;
+    display: flex;
+    gap: 4px;
+    z-index: 15;
+  }
+
+  &__history-btn {
+    @include button-reset;
+    @include flex-center;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    color: #414651;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    @include hover {
+      &:not(:disabled) {
+        background: $color-brand-light;
+        color: $color-brand;
+      }
     }
   }
 

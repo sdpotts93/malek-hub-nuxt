@@ -583,18 +583,23 @@ function handleDelete(e: Event, id: string) {
       border-color: $color-brand-light;
     }
 
-    // Active state
+    // Active state - dark orange (Momentos when active)
     &--active {
       background: $color-brand-hover;
       border-color: $color-brand-light;
       color: $color-brand-light;
 
+      // Override nth-child(3) specificity when active
+      &:nth-child(3) {
+        background: $color-brand-hover;
+      }
+
       .mobile-nav-wrapper__nav-card-header svg {
-        color: $color-brand-light;
+        color: $color-brand-lighter; // Cream arrow for active state
       }
 
       .mobile-nav-wrapper__nav-card-desc {
-        color: $color-brand-lighter;
+        color: $color-brand-light;
       }
 
       .mobile-nav-wrapper__nav-card-icon {
@@ -625,7 +630,7 @@ function handleDelete(e: Event, id: string) {
     svg {
       width: 20px;
       height: 20px;
-      color: #414651;
+      color: #414651; // Gray arrow by default
     }
   }
 

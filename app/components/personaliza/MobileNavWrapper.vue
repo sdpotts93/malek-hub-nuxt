@@ -31,7 +31,7 @@ const navItems = [
   },
   {
     name: 'Momentos',
-    href: '/moments',
+    href: '/momentos',
     description: 'Crea collages con tus recuerdos usando distintos layouts.',
     icon: 'grid',
   },
