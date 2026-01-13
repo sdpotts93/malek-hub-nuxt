@@ -649,24 +649,61 @@ function closeRellenarModal() {
   rellenarSelectedImages.value = []
 }
 
-// Toggle image selection in Rellenar modal
+// Toggle image selection in Rellenar modal (limited to empty cell count)
 function toggleRellenarImage(imageId: string) {
   const index = rellenarSelectedImages.value.indexOf(imageId)
   if (index > -1) {
     rellenarSelectedImages.value.splice(index, 1)
   } else {
-    rellenarSelectedImages.value.push(imageId)
+    // Only allow selection if we haven't reached the limit
+    if (rellenarSelectedImages.value.length < store.emptyCellCount) {
+      rellenarSelectedImages.value.push(imageId)
+    }
   }
 }
 
-// Get selection order for an image in Rellenar modal
-function getRellenarSelectionOrder(imageId: string): number {
-  return rellenarSelectedImages.value.indexOf(imageId) + 1
+// Check if selection limit is reached
+const isSelectionLimitReached = computed(() => {
+  return rellenarSelectedImages.value.length >= store.emptyCellCount
+})
+
+// Get the projected usage count (current + 1 if selected)
+function getProjectedUsageCount(imageId: string): number {
+  const currentCount = getImageUsageCount(imageId)
+  const isSelected = rellenarSelectedImages.value.includes(imageId)
+  return isSelected ? currentCount + 1 : currentCount
 }
 
-// Select all visible images in Rellenar modal
+// Select all visible images in Rellenar modal (up to empty cell limit)
 function selectAllRellenarImages() {
-  rellenarSelectedImages.value = rellenarFilteredImages.value.map(img => img.id)
+  const maxSelections = store.emptyCellCount
+  rellenarSelectedImages.value = rellenarFilteredImages.value
+    .slice(0, maxSelections)
+    .map(img => img.id)
+}
+
+// Rellenar modal tooltip state (separate from main tooltip)
+const rellenarTooltipState = ref<{
+  visible: boolean
+  text: string
+  position: { top: number; left: number }
+}>({ visible: false, text: '', position: { top: 0, left: 0 } })
+
+function showRellenarTooltip(event: MouseEvent, text: string) {
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  rellenarTooltipState.value = {
+    visible: true,
+    text,
+    position: {
+      top: rect.top + rect.height / 2,
+      left: rect.right + 8
+    }
+  }
+}
+
+function hideRellenarTooltip() {
+  rellenarTooltipState.value.visible = false
 }
 
 // Confirm Rellenar and fill empty cells
@@ -1179,7 +1216,8 @@ function confirmRellenar() {
                   :class="[
                     'panel-diseno__rellenar-item',
                     { 'panel-diseno__rellenar-item--selected': rellenarSelectedImages.includes(img.id) },
-                    { 'panel-diseno__rellenar-item--warning': store.imageWarnings.get(img.id) }
+                    { 'panel-diseno__rellenar-item--warning': store.imageWarnings.get(img.id) },
+                    { 'panel-diseno__rellenar-item--disabled': isSelectionLimitReached && !rellenarSelectedImages.includes(img.id) }
                   ]"
                   @click="toggleRellenarImage(img.id)"
                 >
@@ -1188,29 +1226,27 @@ function confirmRellenar() {
                     :alt="`Imagen ${img.id}`"
                     class="panel-diseno__rellenar-image"
                   >
-                  <!-- Warning badge -->
+                  <!-- Warning badge (same style as imagenes tab) -->
                   <div
                     v-if="store.imageWarnings.get(img.id)"
                     class="panel-diseno__rellenar-warning"
+                    @click.stop
+                    @mouseenter="showRellenarTooltip($event, store.imageWarnings.get(img.id) || '')"
+                    @mouseleave="hideRellenarTooltip"
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="7" cy="7" r="6" fill="#dc2626"/>
-                      <path d="M7 4V7M7 9H7.005" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                      <path d="M7 5V7.5M7 9.5H7.005M6.11 2.182L1.262 10.5C1.18148 10.6391 1.13893 10.7962 1.13854 10.9563C1.13815 11.1164 1.17994 11.2738 1.25979 11.4132C1.33964 11.5527 1.45487 11.6694 1.59343 11.7511C1.732 11.8327 1.88905 11.8764 2.049 11.878H11.951C12.111 11.8764 12.268 11.8327 12.4066 11.7511C12.5451 11.6694 12.6604 11.5527 12.7402 11.4132C12.8201 11.2738 12.8619 11.1164 12.8615 10.9563C12.8611 10.7962 12.8185 10.6391 12.738 10.5L7.89 2.182C7.80777 2.0465 7.69168 1.9341 7.55335 1.85614C7.41501 1.77817 7.25892 1.73731 7.1 1.73731C6.94108 1.73731 6.78499 1.77817 6.64665 1.85614C6.50832 1.9341 6.39223 2.0465 6.31 2.182H6.11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </div>
-                  <!-- Selection order badge -->
+                  <!-- Usage count badge (shows projected count when selected) -->
                   <div
-                    v-if="rellenarSelectedImages.includes(img.id)"
-                    class="panel-diseno__rellenar-order"
+                    v-if="getProjectedUsageCount(img.id) > 0"
+                    :class="[
+                      'panel-diseno__rellenar-usage',
+                      { 'panel-diseno__rellenar-usage--selected': rellenarSelectedImages.includes(img.id) }
+                    ]"
                   >
-                    {{ getRellenarSelectionOrder(img.id) }}
-                  </div>
-                  <!-- Usage count badge -->
-                  <div
-                    v-if="getImageUsageCount(img.id) > 0"
-                    class="panel-diseno__rellenar-usage"
-                  >
-                    {{ getImageUsageCount(img.id) }}
+                    {{ getProjectedUsageCount(img.id) }}
                   </div>
                 </div>
               </div>
@@ -1224,40 +1260,61 @@ function confirmRellenar() {
                   {{ rellenarSelectedImages.length === 1 ? 'Foto seleccionada' : 'Fotos seleccionadas' }}
                 </span>
                 <span class="panel-diseno__rellenar-remaining">
-                  {{ store.emptyCellCount }} {{ store.emptyCellCount === 1 ? 'espacio vacío' : 'espacios vacíos' }}
+                  {{ store.emptyCellCount - rellenarSelectedImages.length }} {{ (store.emptyCellCount - rellenarSelectedImages.length) === 1 ? 'faltante' : 'faltantes' }}
                 </span>
               </div>
-              <!-- Selected thumbnails -->
-              <div v-if="rellenarSelectedImages.length > 0" class="panel-diseno__rellenar-thumbs">
-                <div
-                  v-for="imageId in rellenarSelectedImages.slice(0, 5)"
-                  :key="imageId"
-                  class="panel-diseno__rellenar-thumb"
-                >
-                  <img
-                    :src="store.uploadedImages.find(img => img.id === imageId)?.lowResUrl"
-                    :alt="`Seleccionada ${imageId}`"
-                  >
-                  <!-- Warning badge on thumbnail -->
+              <!-- Reserved slots for empty cells with selected thumbnails -->
+              <div class="panel-diseno__rellenar-thumbs">
+                <!-- Show all slots up to emptyCellCount -->
+                <template v-for="index in store.emptyCellCount" :key="index">
+                  <!-- Filled slot -->
                   <div
-                    v-if="store.imageWarnings.get(imageId)"
-                    class="panel-diseno__rellenar-thumb-warning"
+                    v-if="rellenarSelectedImages[index - 1]"
+                    class="panel-diseno__rellenar-thumb"
                   >
-                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="7" cy="7" r="6" fill="#dc2626"/>
-                      <path d="M7 4V7M7 9H7.005" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    <img
+                      :src="store.uploadedImages.find(img => img.id === rellenarSelectedImages[index - 1])?.lowResUrl"
+                      :alt="`Seleccionada ${index}`"
+                    >
+                    <!-- Warning badge on thumbnail -->
+                    <div
+                      v-if="rellenarSelectedImages[index - 1] && store.imageWarnings.get(rellenarSelectedImages[index - 1]!)"
+                      class="panel-diseno__rellenar-thumb-warning"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 5V7.5M7 9.5H7.005M6.11 2.182L1.262 10.5C1.18148 10.6391 1.13893 10.7962 1.13854 10.9563C1.13815 11.1164 1.17994 11.2738 1.25979 11.4132C1.33964 11.5527 1.45487 11.6694 1.59343 11.7511C1.732 11.8327 1.88905 11.8764 2.049 11.878H11.951C12.111 11.8764 12.268 11.8327 12.4066 11.7511C12.5451 11.6694 12.6604 11.5527 12.7402 11.4132C12.8201 11.2738 12.8619 11.1164 12.8615 10.9563C12.8611 10.7962 12.8185 10.6391 12.738 10.5L7.89 2.182C7.80777 2.0465 7.69168 1.9341 7.55335 1.85614C7.41501 1.77817 7.25892 1.73731 7.1 1.73731C6.94108 1.73731 6.78499 1.77817 6.64665 1.85614C6.50832 1.9341 6.39223 2.0465 6.31 2.182H6.11Z" stroke="#d97706" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <!-- Empty placeholder slot -->
+                  <div
+                    v-else
+                    class="panel-diseno__rellenar-thumb panel-diseno__rellenar-thumb--empty"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 3.33333V12.6667M3.33333 8H12.6667" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </div>
-                </div>
-                <div
-                  v-if="rellenarSelectedImages.length > 5"
-                  class="panel-diseno__rellenar-thumb panel-diseno__rellenar-thumb--more"
-                >
-                  +{{ rellenarSelectedImages.length - 5 }}
-                </div>
+                </template>
               </div>
             </div>
           </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Rellenar Modal Tooltip -->
+    <Teleport to="body">
+      <Transition name="tooltip">
+        <div
+          v-if="rellenarTooltipState.visible"
+          class="panel-diseno__tooltip"
+          :style="{
+            top: rellenarTooltipState.position.top + 'px',
+            left: rellenarTooltipState.position.left + 'px'
+          }"
+        >
+          {{ rellenarTooltipState.text }}
         </div>
       </Transition>
     </Teleport>
@@ -1986,6 +2043,7 @@ function confirmRellenar() {
     cursor: pointer;
     opacity: 0;
     transition: opacity $transition-fast, background-color $transition-fast;
+    z-index: 2;
 
     .panel-diseno__library-item:hover & {
       opacity: 1;
@@ -2115,6 +2173,7 @@ function confirmRellenar() {
     cursor: pointer;
     opacity: 0;
     transition: opacity $transition-fast, background-color $transition-fast;
+    z-index: 2;
 
     .panel-diseno__library-item:hover & {
       opacity: 1;
@@ -2416,19 +2475,11 @@ function confirmRellenar() {
 
   &__rellenar-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
 
-    @media (min-width: 480px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
     @media (min-width: 768px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
-
-    @media (min-width: 1024px) {
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(8, 1fr);
     }
   }
 
@@ -2440,7 +2491,7 @@ function confirmRellenar() {
     cursor: pointer;
     background: #f5f5f5;
     border: 3px solid transparent;
-    transition: border-color $transition-fast, box-shadow $transition-fast;
+    transition: border-color $transition-fast, box-shadow $transition-fast, opacity $transition-fast;
 
     &--selected {
       border-color: #3b82f6;
@@ -2458,8 +2509,19 @@ function confirmRellenar() {
       }
     }
 
+    &--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        border-color: transparent;
+      }
+    }
+
     @include hover {
-      border-color: #93c5fd;
+      &:not(.panel-diseno__rellenar-item--disabled) {
+        border-color: #93c5fd;
+      }
     }
   }
 
@@ -2469,30 +2531,27 @@ function confirmRellenar() {
     object-fit: cover;
   }
 
+  // Warning badge (same style as imagenes tab)
   &__rellenar-warning {
     position: absolute;
-    top: 6px;
-    left: 6px;
-    z-index: 2;
-  }
-
-  &__rellenar-order {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 6px;
-    background: #3b82f6;
-    color: white;
-    font-family: $font-primary;
-    font-size: 12px;
-    font-weight: $font-weight-bold;
-    border-radius: 12px;
+    bottom: 4px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #d97706;
     z-index: 2;
+    cursor: help;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
   }
 
   &__rellenar-usage {
@@ -2512,6 +2571,22 @@ function confirmRellenar() {
     align-items: center;
     justify-content: center;
     z-index: 2;
+    transition: background-color $transition-fast;
+
+    // When image is selected, show pulsing animation to indicate it will be added
+    &--selected {
+      background: #3b82f6;
+      animation: pulse-usage 1.5s ease-in-out infinite;
+    }
+  }
+
+  @keyframes pulse-usage {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
   }
 
   &__rellenar-footer {
@@ -2601,6 +2676,15 @@ function confirmRellenar() {
       font-weight: $font-weight-semibold;
       color: #717680;
     }
+
+    &--empty {
+      background: #f5f5f5;
+      border: 2px dashed #d5d7da;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a1a1aa;
+    }
   }
 
   &__rellenar-thumb-warning {
@@ -2608,6 +2692,20 @@ function confirmRellenar() {
     top: 2px;
     left: 2px;
     z-index: 2;
+    width: 14px;
+    height: 14px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d97706;
+
+    svg {
+      width: 8px;
+      height: 8px;
+    }
   }
 }
 
