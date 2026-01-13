@@ -49,7 +49,17 @@ const missingElements = computed(() => {
   if (emptyCells > 0) {
     missing.push(`${emptyCells} ${emptyCells === 1 ? 'espacio vacío' : 'espacios vacíos'} en el collage`)
   }
+  // Add image size warnings
+  const smallImageCount = [...momentosStore.imageWarnings.values()].filter(w => w !== null).length
+  if (smallImageCount > 0) {
+    missing.push(`${smallImageCount} ${smallImageCount === 1 ? 'imagen con resolución baja' : 'imágenes con resolución baja'}`)
+  }
   return missing
+})
+
+// Can proceed with warnings - false if ALL cells are empty (must have at least one image)
+const canProceedWithWarnings = computed(() => {
+  return momentosStore.filledCellCount > 0
 })
 
 const isMobile = ref(false)
@@ -349,6 +359,7 @@ async function handleAddToCart() {
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
           :missing-elements="missingElements"
+          :can-proceed="canProceedWithWarnings"
           @add-to-cart="handleAddToCart"
           @edit="handleEditFromModal"
         />
@@ -380,6 +391,7 @@ async function handleAddToCart() {
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
       :missing-elements="missingElements"
+      :can-proceed="canProceedWithWarnings"
       @add-to-cart="handleAddToCart"
       @edit="handleEditFromModal"
     />

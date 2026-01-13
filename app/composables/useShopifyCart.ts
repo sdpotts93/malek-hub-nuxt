@@ -552,12 +552,16 @@ export function useShopifyCart() {
         throw new Error('No se encontró la variante del producto')
       }
 
-      // 2. Generate high-res image from canvas element
+      // 2. Generate poster image from canvas element
+      // Medium-res (2000px) images are sufficient for all grid sizes:
+      // - 4 images: need ~1968px each → 2000px is perfect
+      // - 25 images: need ~787px each → 2000px is 2.5x overkill
+      // - 64 images: need ~492px each → 2000px is 4x overkill
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // Generate high-res image
       const renderResult = await renderer.generatePosterImage(canvasElement)
+      console.log(`[ShopifyCart] Momentos render: ${renderResult.width}x${renderResult.height}px (${(renderResult.blob.size / 1024 / 1024).toFixed(2)}MB)`)
 
       // Convert blob to data URL for thumbnail generation
       const blobDataUrl = await blobToDataUrl(renderResult.blob)

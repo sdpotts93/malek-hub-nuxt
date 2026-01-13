@@ -403,8 +403,8 @@ const selectedCellWithImage = computed(() => {
           @dragenter="handleDragEnter($event, cell.id)"
           @dragleave="handleDragLeave($event, cell.id)"
         >
-          <!-- Empty cell placeholder -->
-          <div v-if="!cell.imageId" class="momentos-canvas__placeholder">
+          <!-- Empty cell placeholder (excluded from render) -->
+          <div v-if="!cell.imageId" class="momentos-canvas__placeholder" data-html2canvas-ignore>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
               <circle cx="9" cy="9" r="2"/>
@@ -429,11 +429,12 @@ const selectedCellWithImage = computed(() => {
             >
           </div>
 
-          <!-- Pan handle overlay for selected cells with images -->
+          <!-- Pan handle overlay for selected cells with images (excluded from render) -->
           <div
             v-if="cell.imageId && store.selectedCellId === cell.id"
             class="momentos-canvas__pan-overlay"
             :class="{ 'momentos-canvas__pan-overlay--panning': isPanning }"
+            data-html2canvas-ignore
             @mousedown="handlePanStart($event, cell.id)"
           >
             <img

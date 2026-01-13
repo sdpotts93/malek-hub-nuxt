@@ -35,6 +35,14 @@ const showSelectImageIndicator = computed(() => {
   return cell && !cell.imageId
 })
 
+// Check if any images have size warnings
+const hasImageWarnings = computed(() => {
+  for (const [, warning] of store.imageWarnings) {
+    if (warning) return true
+  }
+  return false
+})
+
 // Open lightbox with high res image
 function openLightbox(imageUrl: string) {
   lightboxImage.value = imageUrl
@@ -445,6 +453,24 @@ async function handleFilesFromDrop(files: File[]) {
 const dragPreviewRef = ref<HTMLElement | null>(null)
 const dragPreviewImage = ref<string | null>(null)
 
+// Pre-create the empty drag image (must be in DOM and loaded)
+const emptyDragImg = ref<HTMLImageElement | null>(null)
+onMounted(() => {
+  const img = new Image(1, 1)
+  img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+  img.style.position = 'absolute'
+  img.style.top = '-9999px'
+  img.style.left = '-9999px'
+  document.body.appendChild(img)
+  emptyDragImg.value = img
+})
+
+onUnmounted(() => {
+  if (emptyDragImg.value && emptyDragImg.value.parentNode) {
+    emptyDragImg.value.parentNode.removeChild(emptyDragImg.value)
+  }
+})
+
 // Handle drag start for image library
 function handleImageDragStart(e: DragEvent, imageId: string) {
   e.dataTransfer?.setData('imageId', imageId)
@@ -456,10 +482,10 @@ function handleImageDragStart(e: DragEvent, imageId: string) {
     dragPreviewImage.value = image.lowResUrl
   }
 
-  // Hide the default drag ghost
-  const emptyImg = new Image()
-  emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-  e.dataTransfer?.setDragImage(emptyImg, 0, 0)
+  // Hide the default drag ghost using pre-loaded image
+  if (emptyDragImg.value && e.dataTransfer) {
+    e.dataTransfer.setDragImage(emptyDragImg.value, 0, 0)
+  }
 
   // Position the custom preview at cursor
   nextTick(() => {
@@ -516,6 +542,30 @@ function handleImageClick(imageId: string) {
       store.selectCell(null) // Deselect after assignment
     }
   }
+}
+
+// Tooltip state for warning badges (teleported to body to escape overflow)
+const tooltipState = ref<{
+  visible: boolean
+  text: string
+  position: { top: number; left: number }
+}>({ visible: false, text: '', position: { top: 0, left: 0 } })
+
+function showTooltip(event: MouseEvent, text: string) {
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  tooltipState.value = {
+    visible: true,
+    text,
+    position: {
+      top: rect.top + rect.height / 2,
+      left: rect.right + 8
+    }
+  }
+}
+
+function hideTooltip() {
+  tooltipState.value.visible = false
 }
 
 // Color scroll container ref
@@ -787,6 +837,17 @@ function scrollColors(direction: 'left' | 'right') {
           <span>Selecciona una imagen para el espacio vacío</span>
         </div>
 
+        <!-- Warning banner for small images -->
+        <div v-if="hasImageWarnings" class="panel-diseno__size-warning">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5.33333V8M8 10.6667H8.00667M14.6667 8C14.6667 11.6819 11.6819 14.6667 8 14.6667C4.3181 14.6667 1.33333 11.6819 1.33333 8C1.33333 4.3181 4.3181 1.33333 8 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>
+            Algunas imágenes son pequeñas para el tamaño seleccionado.
+            Recomendado: {{ store.minimumImagePixels.width }}x{{ store.minimumImagePixels.height }}px
+          </span>
+        </div>
+
         <div v-if="store.uploadedImages.length === 0" class="panel-diseno__empty">
           <p>No hay imágenes subidas, sube imágenes para empezar a crear tu collage.</p>
         </div>
@@ -799,7 +860,8 @@ function scrollColors(direction: 'left' | 'right') {
               'panel-diseno__library-item',
               { 'panel-diseno__library-item--selectable': store.selectedCellId && store.getCellById(store.selectedCellId)?.imageId === null },
               { 'panel-diseno__library-item--dragging': store.draggingImageId === img.id },
-              { 'panel-diseno__library-item--over-canvas': store.draggingImageId === img.id && store.isDraggingOverCanvas }
+              { 'panel-diseno__library-item--over-canvas': store.draggingImageId === img.id && store.isDraggingOverCanvas },
+              { 'panel-diseno__library-item--warning': store.imageWarnings.get(img.id) }
             ]"
             draggable="true"
             @dragstart="handleImageDragStart($event, img.id)"
@@ -813,6 +875,17 @@ function scrollColors(direction: 'left' | 'right') {
             >
             <div v-if="img.isUploading" class="panel-diseno__library-loading">
               <div class="panel-diseno__library-progress" :style="{ width: img.uploadProgress + '%' }" />
+            </div>
+            <!-- Warning badge for small images -->
+            <div
+              v-if="store.imageWarnings.get(img.id)"
+              class="panel-diseno__library-warning"
+              @mouseenter="showTooltip($event, store.imageWarnings.get(img.id) || '')"
+              @mouseleave="hideTooltip"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 5V7.5M7 9.5H7.005M6.11 2.182L1.262 10.5C1.18148 10.6391 1.13893 10.7962 1.13854 10.9563C1.13815 11.1164 1.17994 11.2738 1.25979 11.4132C1.33964 11.5527 1.45487 11.6694 1.59343 11.7511C1.732 11.8327 1.88905 11.8764 2.049 11.878H11.951C12.111 11.8764 12.268 11.8327 12.4066 11.7511C12.5451 11.6694 12.6604 11.5527 12.7402 11.4132C12.8201 11.2738 12.8619 11.1164 12.8615 10.9563C12.8611 10.7962 12.8185 10.6391 12.738 10.5L7.89 2.182C7.80777 2.0465 7.69168 1.9341 7.55335 1.85614C7.41501 1.77817 7.25892 1.73731 7.1 1.73731C6.94108 1.73731 6.78499 1.77817 6.64665 1.85614C6.50832 1.9341 6.39223 2.0465 6.31 2.182H6.11Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
             <!-- Drag indicator icon -->
             <div class="panel-diseno__library-drag-indicator">
@@ -935,6 +1008,22 @@ function scrollColors(direction: 'left' | 'right') {
           </svg>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Teleported Tooltip for Warning Badges -->
+    <Teleport to="body">
+      <Transition name="tooltip">
+        <div
+          v-if="tooltipState.visible"
+          class="panel-diseno__tooltip"
+          :style="{
+            top: tooltipState.position.top + 'px',
+            left: tooltipState.position.left + 'px'
+          }"
+        >
+          {{ tooltipState.text }}
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -1500,6 +1589,27 @@ function scrollColors(direction: 'left' | 'right') {
     }
   }
 
+  // Size warning banner
+  &__size-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    color: #92400e;
+    font-family: $font-primary;
+    font-size: 12px;
+    line-height: 1.4;
+
+    svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: #d97706;
+    }
+  }
+
   &__empty-hint {
     margin-top: 8px !important;
     font-size: 12px !important;
@@ -1613,6 +1723,42 @@ function scrollColors(direction: 'left' | 'right') {
     @include hover {
       background: #f5f5f5;
       color: #181d27;
+    }
+  }
+
+  // Warning badge for small images (tooltip is teleported to body to escape overflow)
+  &__library-warning {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d97706;
+    z-index: 2;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  // Warning state for library items with small images
+  &__library-item--warning {
+    border-color: #f59e0b;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid #f59e0b;
+      border-radius: 7px;
+      pointer-events: none;
     }
   }
 
@@ -1896,5 +2042,47 @@ function scrollColors(direction: 'left' | 'right') {
   justify-content: center;
   color: #6b7280;
   transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+// Teleported tooltip (needs :global since it's outside scoped component)
+:global(.panel-diseno__tooltip) {
+  position: fixed;
+  transform: translateY(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  max-width: 280px;
+  z-index: 10001;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  // Arrow pointing left
+  &::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: #1f2937;
+    border-left: none;
+  }
+}
+
+// Tooltip transition
+:global(.tooltip-enter-active),
+:global(.tooltip-leave-active) {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+:global(.tooltip-enter-from),
+:global(.tooltip-leave-to) {
+  opacity: 0;
+  transform: translateY(-50%) translateX(-4px);
 }
 </style>

@@ -96,6 +96,45 @@ export const IMAGE_COUNTS: Record<MomentosFormat, number[]> = {
   horizontal: [12, 35, 88],
 }
 
+// Print configuration for size warnings
+// DPI scales based on poster size: 150 DPI for smallest (30x40), 100 DPI for largest (70x100)
+// Larger posters are viewed from further away, so they need less DPI
+const CM_TO_INCHES = 0.393701
+const MIN_DPI = 100 // For largest posters (70x100cm)
+const MAX_DPI = 150 // For smallest posters (30x40cm)
+const SMALLEST_AREA = 30 * 40 // 1200 cm²
+const LARGEST_AREA = 70 * 100 // 7000 cm²
+
+// Calculate DPI based on poster size (linear interpolation)
+function calculateDpiForSize(widthCm: number, heightCm: number): number {
+  const area = widthCm * heightCm
+  // Interpolate: smallest area → MAX_DPI, largest area → MIN_DPI
+  const ratio = (area - SMALLEST_AREA) / (LARGEST_AREA - SMALLEST_AREA)
+  const clampedRatio = Math.max(0, Math.min(1, ratio))
+  return Math.round(MAX_DPI - (clampedRatio * (MAX_DPI - MIN_DPI)))
+}
+
+// Calculate minimum required pixels for an image based on poster size and grid
+export function calculateMinimumPixels(
+  posterWidthCm: number,
+  posterHeightCm: number,
+  gridCols: number,
+  gridRows: number
+): { width: number; height: number } {
+  // Calculate DPI based on poster size
+  const dpi = calculateDpiForSize(posterWidthCm, posterHeightCm)
+
+  // Total pixels needed for the poster at target DPI
+  const totalWidthPx = posterWidthCm * CM_TO_INCHES * dpi
+  const totalHeightPx = posterHeightCm * CM_TO_INCHES * dpi
+
+  // Each cell needs this many pixels
+  return {
+    width: Math.ceil(totalWidthPx / gridCols),
+    height: Math.ceil(totalHeightPx / gridRows),
+  }
+}
+
 // Available sizes by orientation
 export const MOMENTOS_SIZES: Record<MomentosFormat, Record<string, SizeData>> = {
   vertical: {
@@ -361,6 +400,40 @@ export const useMomentosStore = defineStore('momentos', {
     // Get uploaded image by ID
     getImageById: (state) => (id: string): UploadedImage | undefined => {
       return state.uploadedImages.find(img => img.id === id)
+    },
+
+    // Get minimum required pixels for current configuration
+    minimumImagePixels(state): { width: number; height: number } {
+      const sizeData = MOMENTOS_SIZES[state.format]?.[state.posterSize]
+      if (!sizeData) return { width: 0, height: 0 }
+      const grid = calculateGridDimensions(state.imageCount, state.format)
+      return calculateMinimumPixels(sizeData.width, sizeData.height, grid.cols, grid.rows)
+    },
+
+    // Check which images are too small for the current poster/grid configuration
+    // Returns a map of imageId -> warning message (or null if ok)
+    imageWarnings(state): Map<string, string | null> {
+      const warnings = new Map<string, string | null>()
+      const sizeData = MOMENTOS_SIZES[state.format]?.[state.posterSize]
+      if (!sizeData) return warnings
+      const grid = calculateGridDimensions(state.imageCount, state.format)
+      const minPixels = calculateMinimumPixels(sizeData.width, sizeData.height, grid.cols, grid.rows)
+
+      for (const image of state.uploadedImages) {
+        // Check if image is too small (allowing up to 50% upscale before warning)
+        const minWithTolerance = {
+          width: Math.ceil(minPixels.width * 0.5), // Allow 2x upscale
+          height: Math.ceil(minPixels.height * 0.5),
+        }
+
+        if (image.width < minWithTolerance.width || image.height < minWithTolerance.height) {
+          warnings.set(image.id, `Imagen pequeña (${image.width}x${image.height}px). Se recomienda mínimo ${minPixels.width}x${minPixels.height}px`)
+        } else {
+          warnings.set(image.id, null)
+        }
+      }
+
+      return warnings
     },
 
     // Get cell by ID

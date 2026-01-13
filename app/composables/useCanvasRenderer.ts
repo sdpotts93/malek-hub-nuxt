@@ -7,12 +7,11 @@
 
 import { toPng, toBlob } from 'html-to-image'
 
-// DPI and print size configuration for high-quality output
+// DPI and print size configuration for large format printing
 const PRINT_CONFIG = {
-  targetDpi: 150, // Target DPI for large format printing
-  // Largest poster: 70x100cm vertical OR 100x70cm horizontal
-  // Use 100cm for both dimensions to cover either orientation
-  largestPrintCm: { width: 100, height: 100 },
+  targetDpi: 150, // 150 DPI for high quality prints (consistent across all tools)
+  // Largest poster: 70x100cm - use actual max dimensions
+  largestPrintCm: { width: 70, height: 100 },
   cmToInches: 0.393701,
 }
 
@@ -20,6 +19,9 @@ interface RenderOptions {
   scale?: number // Scale factor for resolution (default: 2 for retina)
   backgroundColor?: string
   quality?: number // 0-1 for JPEG quality
+  // Optional URL resolver to swap display URLs with higher resolution versions
+  // Used for final print rendering to use high-res images instead of medium-res preview
+  urlResolver?: (displayUrl: string) => string | null
 }
 
 interface RenderResult {
@@ -128,8 +130,12 @@ export function useCanvasRenderer() {
 
   /**
    * Clone element and convert blob URLs to data URLs for reliable rendering
+   * @param urlResolver - Optional function to resolve display URLs to higher-res versions
    */
-  async function prepareElementForRender(element: HTMLElement): Promise<HTMLElement> {
+  async function prepareElementForRender(
+    element: HTMLElement,
+    urlResolver?: (displayUrl: string) => string | null
+  ): Promise<HTMLElement> {
     // Get computed styles and dimensions from original
     const rect = element.getBoundingClientRect()
     const computedStyle = window.getComputedStyle(element)
@@ -188,12 +194,22 @@ export function useCanvasRenderer() {
     console.log(`[CanvasRenderer] Processing ${images.length} images in clone`)
 
     for (const img of Array.from(images)) {
-      const originalSrc = img.src
+      let originalSrc = img.src
 
       // Skip empty or placeholder images
       if (!originalSrc || originalSrc === 'undefined' || originalSrc === 'null') {
         img.removeAttribute('src')
         continue
+      }
+
+      // If a URL resolver is provided, try to get a higher-res version
+      // This is used for final print rendering to swap medium-res preview URLs with high-res
+      if (urlResolver) {
+        const resolvedUrl = urlResolver(originalSrc)
+        if (resolvedUrl) {
+          console.log(`[CanvasRenderer] Resolved to high-res:`, resolvedUrl.substring(0, 60))
+          originalSrc = resolvedUrl
+        }
       }
 
       const urlType = originalSrc.startsWith('blob:') ? 'blob' :
@@ -250,36 +266,30 @@ export function useCanvasRenderer() {
               setTimeout(resolve, 500)
             }
           })
-        } else if (!originalSrc.startsWith('blob:') && !originalSrc.startsWith('http')) {
+        } else if (originalSrc.startsWith('blob:')) {
+          // Blob URL conversion failed but browser may still have it cached
+          // Keep original src and let html-to-image try to render it
+          console.log('[CanvasRenderer] Keeping original blob URL (browser may have it cached)')
+          // Wait a moment for the image to be ready
+          await new Promise<void>((resolve) => {
+            if (img.complete && img.naturalWidth > 0) {
+              resolve()
+            } else {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+              setTimeout(resolve, 500)
+            }
+          })
+        } else if (!originalSrc.startsWith('http')) {
           // Local path or already a data URL - keep as is
         } else {
-          // Failed to convert - use a gray placeholder to avoid render errors
-          console.warn('[CanvasRenderer] Using placeholder for broken image:', originalSrc.substring(0, 50))
-          // Create a simple gray placeholder data URL
-          const placeholderCanvas = document.createElement('canvas')
-          placeholderCanvas.width = 100
-          placeholderCanvas.height = 100
-          const ctx = placeholderCanvas.getContext('2d')
-          if (ctx) {
-            ctx.fillStyle = '#e0e0e0'
-            ctx.fillRect(0, 0, 100, 100)
-          }
-          img.src = placeholderCanvas.toDataURL('image/png')
-          img.removeAttribute('crossorigin')
+          // Remote URL failed to convert - this shouldn't happen often
+          // Keep the original src and let html-to-image try
+          console.warn('[CanvasRenderer] Keeping original remote URL:', originalSrc.substring(0, 50))
         }
       } catch (err) {
-        console.warn('[CanvasRenderer] Error processing image, using placeholder:', err)
-        // Use gray placeholder instead of broken image
-        const placeholderCanvas = document.createElement('canvas')
-        placeholderCanvas.width = 100
-        placeholderCanvas.height = 100
-        const ctx = placeholderCanvas.getContext('2d')
-        if (ctx) {
-          ctx.fillStyle = '#e0e0e0'
-          ctx.fillRect(0, 0, 100, 100)
-        }
-        img.src = placeholderCanvas.toDataURL('image/png')
-        img.removeAttribute('crossorigin')
+        // Error processing image - keep original src and let html-to-image try
+        console.warn('[CanvasRenderer] Error processing image, keeping original src:', err)
       }
     }
 
@@ -296,7 +306,7 @@ export function useCanvasRenderer() {
     element: HTMLElement,
     options: RenderOptions = {}
   ): Promise<RenderResult> {
-    const { scale = 2, backgroundColor = '#ffffff' } = options
+    const { scale = 2, backgroundColor = '#ffffff', urlResolver } = options
 
     isRendering.value = true
     error.value = null
@@ -313,7 +323,8 @@ export function useCanvasRenderer() {
       const height = Math.round(rect.height)
 
       // Prepare clone with blob URLs converted to data URLs
-      clone = await prepareElementForRender(element)
+      // Pass urlResolver to swap in high-res URLs if provided
+      clone = await prepareElementForRender(element, urlResolver)
 
       // html-to-image options
       const renderOptions = {
@@ -462,13 +473,15 @@ export function useCanvasRenderer() {
 
   /**
    * Generate poster image for cart/preview
-   * Uses dynamic scale calculation to achieve target DPI (150) for 70x100cm prints
+   * Uses dynamic scale calculation to achieve target DPI for 70x100cm prints
    * Note: This is for order reference, not print production.
    * Print-ready files should be generated server-side with proper dimensions.
+   * @param urlResolver - Optional function to resolve display URLs to high-res versions
    */
   async function generatePosterImage(
     element: HTMLElement,
-    backgroundColor?: string
+    backgroundColor?: string,
+    urlResolver?: (displayUrl: string) => string | null
   ): Promise<RenderResult> {
     // Get current element dimensions
     const rect = element.getBoundingClientRect()
@@ -481,6 +494,7 @@ export function useCanvasRenderer() {
     return renderElement(element, {
       scale,
       backgroundColor: computedBg,
+      urlResolver,
     })
   }
 
