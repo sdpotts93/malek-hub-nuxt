@@ -74,6 +74,7 @@ export default defineNuxtConfig({
   // Image configuration
   image: {
     provider: 'netlify',
+    domains: ['birth-poster.s3.us-west-1.amazonaws.com', 'custom-prints.s3.us-west-1.amazonaws.com', 'momentos-malek.s3.us-west-1.amazonaws.com']
   },
 
   // App configuration
