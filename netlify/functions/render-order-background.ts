@@ -9,15 +9,15 @@
  * 2. For each line item with _config attribute (Momentos orders)
  * 3. Call Browserless to screenshot the /render/momentos page
  * 4. Upload the screenshot to S3
- * 5. (Optional) Update order metafields with final image URL
+ * 5. Update order notes with final image URLs (visible in Shopify admin "Notas")
  *
  * Environment Variables Required:
  * - BROWSERLESS_API_KEY: Your Browserless.io API key
  * - SITE_URL: Your site URL (e.g., https://hub.studiomalek.com)
- * - AWS_ACCESS_KEY_ID: For S3 uploads (if using AWS SDK)
- * - AWS_SECRET_ACCESS_KEY: For S3 uploads
+ * - SHOPIFY_ADMIN_API_TOKEN: Shopify Admin API access token (for updating order metafields)
+ * - SHOPIFY_STORE_DOMAIN: Your Shopify store domain (e.g., studiomalek.myshopify.com)
  *
- * Or use the existing presigned URL endpoint for S3 uploads.
+ * The presigned URL endpoint is used for S3 uploads (no AWS credentials needed).
  */
 
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions'
@@ -49,6 +49,10 @@ const SITE_URL = process.env.SITE_URL || process.env.URL || 'https://hub.studiom
 const PRESIGNED_URL_ENDPOINT = 'https://bs64vihq06.execute-api.us-west-1.amazonaws.com/v1/getPresignedPostData'
 const S3_BUCKET = 'momentos-malek'
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.us-west-1.amazonaws.com`
+
+// Shopify Admin API for updating order metafields
+const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
+const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'studiomalek.myshopify.com'
 
 // Viewport sizes for different formats (150 DPI for 70x100cm)
 const VIEWPORT_SIZES = {
@@ -96,6 +100,75 @@ async function uploadToS3(buffer: ArrayBuffer, filename: string): Promise<string
   }
 
   return `${S3_BASE_URL}/${filename}`
+}
+
+/**
+ * Update order with rendered image URLs using Shopify Admin API
+ * Appends to existing notes (preserves customer notes)
+ */
+async function updateOrderWithImages(orderId: number, results: RenderResult[]): Promise<void> {
+  if (!SHOPIFY_ADMIN_API_TOKEN) {
+    console.warn('[RenderOrder] SHOPIFY_ADMIN_API_TOKEN not configured, skipping order update')
+    return
+  }
+
+  const successfulResults = results.filter(r => r.imageUrl)
+  if (successfulResults.length === 0) {
+    console.log('[RenderOrder] No successful renders, skipping order update')
+    return
+  }
+
+  const apiUrl = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/orders/${orderId}.json`
+
+  // First, get current order to preserve existing notes
+  console.log(`[RenderOrder] Fetching order ${orderId} to get existing notes...`)
+  const getResponse = await fetch(apiUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+    },
+  })
+
+  if (!getResponse.ok) {
+    const errorText = await getResponse.text()
+    console.error(`[RenderOrder] Failed to fetch order: ${getResponse.status} - ${errorText}`)
+    throw new Error(`Failed to fetch order: ${getResponse.status}`)
+  }
+
+  const orderData = await getResponse.json()
+  const existingNote = orderData.order?.note || ''
+
+  // Build note with image URLs
+  const imageLines = successfulResults.map((r, i) => `${i + 1}. ${r.imageUrl}`).join('\n')
+  const newNote = `MOMENTOS - Imágenes renderizadas:\n${imageLines}`
+
+  // Append to existing notes (preserve customer notes)
+  const finalNote = existingNote ? `${existingNote}\n\n---\n${newNote}` : newNote
+
+  console.log(`[RenderOrder] Updating order ${orderId} notes...`)
+
+  const response = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+    },
+    body: JSON.stringify({
+      order: {
+        id: orderId,
+        note: finalNote,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`[RenderOrder] Failed to update order: ${response.status} - ${errorText}`)
+    throw new Error(`Failed to update order: ${response.status}`)
+  }
+
+  console.log(`[RenderOrder] ✓ Order notes updated with ${successfulResults.length} rendered images`)
 }
 
 /**
@@ -260,6 +333,14 @@ const handler: Handler = async (event: HandlerEvent, _context: HandlerContext) =
   const successful = results.filter(r => r.imageUrl).length
   const failed = results.filter(r => r.error).length
   console.log(`[RenderOrder] Completed: ${successful} successful, ${failed} failed`)
+
+  // Update order tags with rendered image URLs (visible in Shopify admin)
+  try {
+    await updateOrderWithImages(order.id, results)
+  } catch (err) {
+    console.error('[RenderOrder] Failed to update order:', err)
+    // Don't fail the whole request - images are already uploaded to S3
+  }
 
   return {
     statusCode: 200,
