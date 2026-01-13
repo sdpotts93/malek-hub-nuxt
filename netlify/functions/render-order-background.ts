@@ -139,9 +139,9 @@ async function updateOrderWithImages(orderId: number, results: RenderResult[]): 
   const orderData = await getResponse.json()
   const existingNote = orderData.order?.note || ''
 
-  // Build note with image URLs
-  const imageLines = successfulResults.map((r, i) => `${i + 1}. ${r.imageUrl}`).join('\n')
-  const newNote = `MOMENTOS - Imágenes renderizadas:\n${imageLines}`
+  // Build note with image URLs (extra spacing between items)
+  const imageLines = successfulResults.map((r, i) => `${i + 1}. ${r.imageUrl}`).join('\n\n')
+  const newNote = `MOMENTOS - Imágenes renderizadas:\n\n${imageLines}`
 
   // Append to existing notes (preserve customer notes)
   const finalNote = existingNote ? `${existingNote}\n\n---\n${newNote}` : newNote
