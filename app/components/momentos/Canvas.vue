@@ -858,6 +858,8 @@ const selectedCellWithImage = computed(() => {
   &__pan-icon {
     width: 32px;
     height: 32px;
+    max-height: 70%;
+    max-width: 70%;
     opacity: 1;
     pointer-events: none;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
