@@ -175,11 +175,11 @@ function handleCanvasClick(e: MouseEvent) {
 // Global click listener to deselect when clicking outside canvas
 function handleGlobalClick(e: MouseEvent) {
   const target = e.target as HTMLElement
-  // Don't deselect if clicking on canvas, edit menu, panel library items, or lightbox
+  // Don't deselect if clicking on canvas, edit menu, or anywhere in the design panel
   if (
     target.closest('.momentos-canvas') ||
     target.closest('.momentos-canvas__edit-menu') ||
-    target.closest('.panel-diseno__library-item') ||
+    target.closest('.panel-diseno') ||
     target.closest('.panel-diseno__lightbox')
   ) {
     return
@@ -872,7 +872,7 @@ const selectedCellWithImage = computed(() => {
     padding: 6px 8px;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     z-index: 9999; // High z-index since it's in body
   }
 

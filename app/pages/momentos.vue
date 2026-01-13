@@ -35,6 +35,10 @@ const cart = useShopifyCart()
 // Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
+// Cached thumbnail for history saves (updated periodically)
+const cachedThumbnail = ref<string | null>(null)
+const thumbnailCacheTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
 // Computed
 const pricing = computed(() => cart.calculateMomentosPrice(momentosStore.$state))
 
@@ -70,6 +74,67 @@ const isDirty = computed(() => {
   return lastSavedState.value !== currentState
 })
 
+// Check if there's any meaningful content to save (at least one image in library or on canvas)
+const hasContent = computed(() => {
+  return momentosStore.uploadedImages.length > 0 || momentosStore.filledCellCount > 0
+})
+
+// Check if images are ready for thumbnail generation
+// We only need images that are ON the canvas to be ready (not uploading)
+// Blob URLs are fine - useCanvasRenderer converts them to data URLs
+const imagesReadyForThumbnail = computed(() => {
+  // Get image IDs that are actually used on the canvas
+  const usedImageIds = new Set(
+    momentosStore.canvasCells
+      .filter(cell => cell.imageId)
+      .map(cell => cell.imageId)
+  )
+
+  if (usedImageIds.size === 0) return false
+
+  // Only check images that are on the canvas
+  return momentosStore.uploadedImages
+    .filter(img => usedImageIds.has(img.id))
+    .every(img =>
+      !img.isUploading &&
+      (img.mediumResUrl || img.s3MediumResUrl) // Either blob URL or S3 URL is fine
+    )
+})
+
+// Update cached thumbnail (debounced) - only caches, doesn't save to history
+// History is saved on: navigation away, page reload, and add-to-cart
+async function updateCachedThumbnail() {
+  const canvasElement = canvasRef.value?.$el
+
+  if (!canvasElement) {
+    return
+  }
+
+  if (!hasContent.value) {
+    return
+  }
+
+  // Only generate thumbnail when images on canvas are ready (not uploading)
+  if (!imagesReadyForThumbnail.value) {
+    return
+  }
+
+  try {
+    cachedThumbnail.value = await generateThumbnail(canvasElement)
+  } catch (error) {
+    console.error('[Momentos] Failed to cache thumbnail:', error)
+  }
+}
+
+// Debounced thumbnail update - called when canvas changes
+function scheduleThumbnailUpdate() {
+  if (thumbnailCacheTimer.value) {
+    clearTimeout(thumbnailCacheTimer.value)
+  }
+  // Update thumbnail 2 seconds after last change
+  thumbnailCacheTimer.value = setTimeout(updateCachedThumbnail, 2000)
+}
+
 // Generate design name
 function getDesignName(): string {
   const format = momentosStore.format === 'square' ? 'Cuadrado' :
@@ -82,14 +147,18 @@ function handleLoadDesign(state: Partial<MomentosState>) {
   momentosStore.loadState(state)
 }
 
-// Save design to history (auto-save helper)
-async function saveCurrentDesign() {
+// Save design to history (used on navigation away and unmount)
+async function saveCurrentDesign(useCachedThumbnail = false) {
   const canvasElement = canvasRef.value?.$el
-  // Don't save if no images or no changes
-  if (!canvasElement || !isDirty.value || !momentosStore.isReadyForCart) return
+  // Don't save if no content or no changes
+  if (!canvasElement || !isDirty.value || !hasContent.value) return
 
   try {
-    const thumbnail = await generateThumbnail(canvasElement)
+    // Use cached thumbnail if available and requested, otherwise generate new one
+    const thumbnail = useCachedThumbnail && cachedThumbnail.value
+      ? cachedThumbnail.value
+      : await generateThumbnail(canvasElement)
+
     const persistentState = momentosStore.getSnapshot()
 
     saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
@@ -99,8 +168,43 @@ async function saveCurrentDesign() {
   }
 }
 
+// Synchronous save for beforeunload (uses cached thumbnail)
+function saveCurrentDesignSync() {
+  // Don't save if no content or no changes
+  if (!isDirty.value || !hasContent.value) return
+
+  try {
+    const persistentState = momentosStore.getSnapshot()
+    // Use cached thumbnail or empty string (will show placeholder in history)
+    const thumbnail = cachedThumbnail.value || ''
+
+    // Save even without thumbnail - the design state is more important
+    saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
+    lastSavedState.value = JSON.stringify(persistentState)
+    console.log('[Momentos] Saved to history on unload')
+  } catch (error) {
+    console.error('[Momentos] Sync save failed:', error)
+  }
+}
+
 // Auto-save settings
 const AUTOSAVE_KEY = 'studiomalek_autosave_momentos'
+
+// Watch for canvas changes to keep thumbnail cached (for save on navigation)
+watch(
+  () => [
+    momentosStore.canvasCells,
+    momentosStore.uploadedImages,
+    momentosStore.hasMargin,
+    momentosStore.marginColor,
+    momentosStore.format,
+    momentosStore.imageCount,
+  ],
+  () => {
+    scheduleThumbnailUpdate()
+  },
+  { deep: true }
+)
 
 // Check mobile on mount and initialize cart
 onMounted(async () => {
@@ -126,15 +230,24 @@ onMounted(async () => {
   // Store initial state to track changes (after autosave restore)
   lastSavedState.value = JSON.stringify(momentosStore.getSnapshot())
 
+  // Generate initial thumbnail cache if there's content (for save on navigation)
+  if (hasContent.value) {
+    setTimeout(updateCachedThumbnail, 500)
+  }
+
   const checkMobile = () => {
     isMobile.value = window.innerWidth < 768
   }
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
-  // Auto-save on page unload (browser close/refresh)
+  // Save to history on page unload (browser close/refresh)
   const handleBeforeUnload = () => {
     try {
+      // Save to history with cached thumbnail
+      saveCurrentDesignSync()
+
+      // Also save raw state as backup for crash recovery
       const snapshot = momentosStore.getSnapshot()
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
     } catch (e) {
@@ -146,14 +259,18 @@ onMounted(async () => {
   onUnmounted(() => {
     window.removeEventListener('resize', checkMobile)
     window.removeEventListener('beforeunload', handleBeforeUnload)
-    // Save when navigating away within the app
-    saveCurrentDesign()
+    // Clear thumbnail cache timer
+    if (thumbnailCacheTimer.value) {
+      clearTimeout(thumbnailCacheTimer.value)
+    }
+    // Save to history when navigating away within the app
+    saveCurrentDesign(true) // Use cached thumbnail
   })
 })
 
-// Also save when navigating via Vue Router
+// Save to history when navigating via Vue Router
 onBeforeRouteLeave(async () => {
-  await saveCurrentDesign()
+  await saveCurrentDesign(true) // Use cached thumbnail
   return true
 })
 

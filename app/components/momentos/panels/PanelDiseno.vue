@@ -77,84 +77,8 @@ const showAutofillModal = ref(false)
 const pendingAutofillImages = ref<string[]>([])
 const autofillStartIndex = ref(0)
 
-// Upload a single file
-async function uploadFile(file: File) {
-  if (!file.type.startsWith('image/')) {
-    console.warn('[PanelDiseno] Invalid file type:', file.type)
-    return
-  }
-
-  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-    console.warn('[PanelDiseno] File too large:', file.size)
-    alert(`El archivo es demasiado grande. Tamaño máximo: ${MAX_IMAGE_SIZE_MB}MB`)
-    return
-  }
-
-  if (store.uploadedImages.length >= MAX_IMAGES) {
-    alert(`Has alcanzado el límite de ${MAX_IMAGES} imágenes`)
-    return
-  }
-
-  const id = generateId()
-
-  // Create blob URL for immediate preview
-  const blobUrl = URL.createObjectURL(file)
-
-  // Get image dimensions
-  const dimensions = await getImageDimensions(blobUrl)
-
-  // Create uploaded image entry
-  const uploadedImage = {
-    id,
-    file,
-    lowResUrl: blobUrl, // Will be replaced after resize
-    mediumResUrl: blobUrl, // Will be replaced after resize
-    highResUrl: blobUrl,
-    width: dimensions.width,
-    height: dimensions.height,
-    uploadProgress: 0,
-    isUploading: true,
-  }
-
-  store.addUploadedImage(uploadedImage)
-
-  try {
-    // Generate resized versions
-    const [lowResBlob, mediumResBlob] = await Promise.all([
-      resizeImage(file, 200),
-      resizeImage(file, 2000),
-    ])
-
-    // Upload all three versions to S3
-    const [lowResResult, mediumResResult, highResResult] = await Promise.all([
-      uploadDesignImage(lowResBlob, 'momentos-low', 'momentos-malek'),
-      uploadDesignImage(mediumResBlob, 'momentos-med', 'momentos-malek'),
-      uploadDesignImage(file, 'momentos-high', 'momentos-malek'),
-    ])
-
-    // Update with S3 URLs
-    store.updateUploadedImage(id, {
-      s3LowResUrl: lowResResult.url,
-      s3MediumResUrl: mediumResResult.url,
-      s3HighResUrl: highResResult.url,
-      lowResUrl: lowResResult.url,
-      mediumResUrl: mediumResResult.url,
-      highResUrl: highResResult.url,
-      uploadProgress: 100,
-      isUploading: false,
-    })
-
-    // Revoke blob URL
-    URL.revokeObjectURL(blobUrl)
-  } catch (error) {
-    console.error('[PanelDiseno] Upload failed:', error)
-    // Keep the blob URL for preview even if S3 upload fails
-    store.updateUploadedImage(id, {
-      uploadProgress: 100,
-      isUploading: false,
-    })
-  }
-}
+// Preserve selected cell ID across file dialog (in case store selection gets cleared)
+const savedSelectedCellId = ref<string | null>(null)
 
 // Get image dimensions from URL
 function getImageDimensions(url: string): Promise<{ width: number; height: number }> {
@@ -212,6 +136,8 @@ async function resizeImage(file: File, maxDimension: number): Promise<Blob> {
 
 // Handle file selection
 function handleFileSelect() {
+  // Save the selected cell ID before opening file dialog (it might get cleared)
+  savedSelectedCellId.value = store.selectedCellId
   fileInput.value?.click()
 }
 
@@ -220,6 +146,7 @@ async function handleFileChange(e: Event) {
   const files = input.files
   if (!files || files.length === 0) {
     input.value = ''
+    savedSelectedCellId.value = null
     return
   }
 
@@ -235,30 +162,38 @@ async function handleFileChange(e: Event) {
   // Reset input so the same file can be selected again
   input.value = ''
 
-  if (uploadedIds.length === 0) return
+  if (uploadedIds.length === 0) {
+    savedSelectedCellId.value = null
+    return
+  }
+
+  // Use saved cell ID (store selection might have been cleared)
+  const targetCellId = savedSelectedCellId.value
 
   // Single image: auto-populate selected cell if empty
   if (uploadedIds.length === 1) {
     const imageId = uploadedIds[0]
-    if (imageId && store.selectedCellId) {
-      const selectedCell = store.getCellById(store.selectedCellId)
+    if (imageId && targetCellId) {
+      const selectedCell = store.getCellById(targetCellId)
       if (selectedCell && !selectedCell.imageId) {
-        store.setImageToCell(store.selectedCellId, imageId)
+        store.setImageToCell(targetCellId, imageId)
         store.selectCell(null)
       }
     }
+    savedSelectedCellId.value = null
     return
   }
 
   // Multiple images: show autofill modal
   pendingAutofillImages.value = uploadedIds
   // Determine start index based on selected cell
-  if (store.selectedCellId) {
-    const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
+  if (targetCellId) {
+    const cellIndex = store.canvasCells.findIndex(c => c.id === targetCellId)
     autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
   } else {
     autofillStartIndex.value = 0
   }
+  savedSelectedCellId.value = null
   showAutofillModal.value = true
 }
 
@@ -303,40 +238,85 @@ async function uploadFileAndGetId(file: File): Promise<string | null> {
 
   store.addUploadedImage(uploadedImage)
 
-  // Start S3 upload in background (don't await)
-  uploadToS3InBackground(id, file, blobUrl)
+  // Queue S3 upload (throttled to prevent overwhelming the endpoint)
+  queueUpload(id, file, blobUrl)
 
   return id
 }
 
-// Handle S3 upload in background
-async function uploadToS3InBackground(id: string, file: File, blobUrl: string) {
+// Upload queue to prevent overwhelming the Lambda endpoint
+const uploadQueue: Array<{ id: string; file: File; blobUrl: string }> = []
+const isProcessingQueue = ref(false)
+const MAX_CONCURRENT_UPLOADS = 2 // Limit concurrent image uploads (each has 3 requests)
+let activeUploads = 0
+
+// Add to upload queue instead of uploading immediately
+function queueUpload(id: string, file: File, blobUrl: string) {
+  uploadQueue.push({ id, file, blobUrl })
+  processUploadQueue()
+}
+
+// Process upload queue with concurrency limit
+async function processUploadQueue() {
+  if (isProcessingQueue.value && activeUploads >= MAX_CONCURRENT_UPLOADS) return
+
+  isProcessingQueue.value = true
+
+  while (uploadQueue.length > 0 && activeUploads < MAX_CONCURRENT_UPLOADS) {
+    const item = uploadQueue.shift()
+    if (!item) continue
+
+    activeUploads++
+    uploadToS3WithRetry(item.id, item.file, item.blobUrl)
+      .finally(() => {
+        activeUploads--
+        // Process next item when done
+        if (uploadQueue.length > 0) {
+          processUploadQueue()
+        } else if (activeUploads === 0) {
+          isProcessingQueue.value = false
+        }
+      })
+  }
+}
+
+// Handle S3 upload with retry logic
+async function uploadToS3WithRetry(id: string, file: File, blobUrl: string, retries = 2) {
   try {
     const [lowResBlob, mediumResBlob] = await Promise.all([
       resizeImage(file, 200),
       resizeImage(file, 2000),
     ])
 
-    const [lowResResult, mediumResResult, highResResult] = await Promise.all([
-      uploadDesignImage(lowResBlob, 'momentos-low', 'momentos-malek'),
-      uploadDesignImage(mediumResBlob, 'momentos-med', 'momentos-malek'),
-      uploadDesignImage(file, 'momentos-high', 'momentos-malek'),
-    ])
+    // Upload sequentially to avoid overwhelming the endpoint
+    const lowResResult = await uploadDesignImage(lowResBlob, 'momentos-low', 'momentos-malek')
+    const mediumResResult = await uploadDesignImage(mediumResBlob, 'momentos-med', 'momentos-malek')
+    const highResResult = await uploadDesignImage(file, 'momentos-high', 'momentos-malek')
 
+    // Store S3 URLs for persistence, but KEEP blob URLs for display
+    // This ensures thumbnail generation works reliably (blob URLs don't need CORS)
+    // Blob URLs will be cleaned up when the page unloads or image is deleted
     store.updateUploadedImage(id, {
       s3LowResUrl: lowResResult.url,
       s3MediumResUrl: mediumResResult.url,
       s3HighResUrl: highResResult.url,
-      lowResUrl: lowResResult.url,
-      mediumResUrl: mediumResResult.url,
-      highResUrl: highResResult.url,
+      // DON'T replace display URLs - keep using blob URLs for the canvas
+      // lowResUrl, mediumResUrl, highResUrl stay as blob URLs
       uploadProgress: 100,
       isUploading: false,
     })
 
-    URL.revokeObjectURL(blobUrl)
+    // DON'T revoke blob URL - we're still using it for display
+    // It will be cleaned up when the image is deleted or page unloads
   } catch (error) {
-    console.error('[PanelDiseno] Upload failed:', error)
+    if (retries > 0) {
+      console.warn(`[PanelDiseno] Upload failed, retrying... (${retries} left)`)
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      return uploadToS3WithRetry(id, file, blobUrl, retries - 1)
+    }
+    console.error('[PanelDiseno] Upload failed after retries:', error)
+    // Keep blob URL on failure - image can still be used locally
     store.updateUploadedImage(id, {
       uploadProgress: 100,
       isUploading: false,
@@ -382,12 +362,15 @@ function onDragLeave() {
   isDragging.value = false
 }
 
-function onDrop(e: DragEvent) {
+async function onDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
   const files = e.dataTransfer?.files
   if (files) {
-    Array.from(files).forEach(uploadFile)
+    // Process dropped files through the same upload flow as file input
+    for (const file of Array.from(files)) {
+      await uploadFileAndGetId(file)
+    }
   }
 }
 

@@ -48,6 +48,44 @@ export function useCanvasRenderer() {
   }
 
   /**
+   * Load a remote image URL as a data URL using Image + Canvas
+   * This handles CORS by using crossorigin attribute
+   */
+  async function loadImageAsDataUrl(imageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'))
+            return
+          }
+          ctx.drawImage(img, 0, 0)
+          const dataUrl = canvas.toDataURL('image/png')
+          resolve(dataUrl)
+        } catch (err) {
+          reject(err)
+        }
+      }
+
+      img.onerror = () => {
+        reject(new Error('Image failed to load'))
+      }
+
+      // Timeout to avoid hanging
+      setTimeout(() => reject(new Error('Image load timeout')), 10000)
+
+      img.src = imageUrl
+    })
+  }
+
+  /**
    * Wait for all images in an element to load
    */
   async function waitForImages(element: HTMLElement): Promise<void> {
@@ -144,27 +182,104 @@ export function useCanvasRenderer() {
       }
     }
 
-    // Convert blob URLs to data URLs in the clone
+    // Convert all image URLs to data URLs for reliable rendering
+    // This handles both blob URLs and S3/remote URLs
     const images = clone.querySelectorAll('img')
+    console.log(`[CanvasRenderer] Processing ${images.length} images in clone`)
+
     for (const img of Array.from(images)) {
-      if (img.src.startsWith('blob:')) {
-        try {
-          const dataUrl = await blobUrlToDataUrl(img.src)
+      const originalSrc = img.src
+
+      // Skip empty or placeholder images
+      if (!originalSrc || originalSrc === 'undefined' || originalSrc === 'null') {
+        img.removeAttribute('src')
+        continue
+      }
+
+      const urlType = originalSrc.startsWith('blob:') ? 'blob' :
+        originalSrc.startsWith('data:') ? 'data' :
+        originalSrc.startsWith('http') ? 's3/remote' : 'local'
+      console.log(`[CanvasRenderer] Processing ${urlType} URL:`, originalSrc.substring(0, 60))
+
+      try {
+        let dataUrl: string | null = null
+
+        // Handle blob URLs - convert directly to data URLs
+        if (originalSrc.startsWith('blob:')) {
+          try {
+            dataUrl = await blobUrlToDataUrl(originalSrc)
+            console.log('[CanvasRenderer] ✓ Blob URL converted successfully')
+          } catch (e) {
+            console.warn('[CanvasRenderer] ✗ Blob URL failed (may be revoked):', e)
+          }
+        }
+        // Handle S3/remote URLs - try multiple approaches
+        else if (originalSrc.startsWith('https://') || originalSrc.startsWith('http://')) {
+          // First, try loading with crossorigin (proper CORS)
+          try {
+            dataUrl = await loadImageAsDataUrl(originalSrc)
+            console.log('[CanvasRenderer] ✓ S3 URL converted successfully via CORS')
+          } catch (err) {
+            console.warn('[CanvasRenderer] ✗ S3 CORS failed, trying fetch...', err)
+            // Fallback: Try fetching directly as blob (may work if same-origin or CORS allows)
+            try {
+              const response = await fetch(originalSrc, { mode: 'cors', credentials: 'omit' })
+              if (response.ok) {
+                const blob = await response.blob()
+                dataUrl = await blobUrlToDataUrl(URL.createObjectURL(blob))
+                console.log('[CanvasRenderer] ✓ S3 URL converted via fetch')
+              }
+            } catch (fetchErr) {
+              console.warn('[CanvasRenderer] ✗ S3 fetch also failed:', fetchErr)
+            }
+          }
+        }
+
+        // If we got a data URL, use it
+        if (dataUrl) {
           img.src = dataUrl
-          // Wait for the new src to load
+          // Remove crossorigin for data URLs (not needed and can cause issues)
+          img.removeAttribute('crossorigin')
+          // Wait for the data URL image to be ready
           await new Promise<void>((resolve) => {
             if (img.complete && img.naturalWidth > 0) {
               resolve()
             } else {
               img.onload = () => resolve()
               img.onerror = () => resolve()
-              // Timeout fallback
               setTimeout(resolve, 500)
             }
           })
-        } catch (err) {
-          console.warn('[CanvasRenderer] Failed to convert blob URL:', err)
+        } else if (!originalSrc.startsWith('blob:') && !originalSrc.startsWith('http')) {
+          // Local path or already a data URL - keep as is
+        } else {
+          // Failed to convert - use a gray placeholder to avoid render errors
+          console.warn('[CanvasRenderer] Using placeholder for broken image:', originalSrc.substring(0, 50))
+          // Create a simple gray placeholder data URL
+          const placeholderCanvas = document.createElement('canvas')
+          placeholderCanvas.width = 100
+          placeholderCanvas.height = 100
+          const ctx = placeholderCanvas.getContext('2d')
+          if (ctx) {
+            ctx.fillStyle = '#e0e0e0'
+            ctx.fillRect(0, 0, 100, 100)
+          }
+          img.src = placeholderCanvas.toDataURL('image/png')
+          img.removeAttribute('crossorigin')
         }
+      } catch (err) {
+        console.warn('[CanvasRenderer] Error processing image, using placeholder:', err)
+        // Use gray placeholder instead of broken image
+        const placeholderCanvas = document.createElement('canvas')
+        placeholderCanvas.width = 100
+        placeholderCanvas.height = 100
+        const ctx = placeholderCanvas.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = '#e0e0e0'
+          ctx.fillRect(0, 0, 100, 100)
+        }
+        img.src = placeholderCanvas.toDataURL('image/png')
+        img.removeAttribute('crossorigin')
       }
     }
 
@@ -236,10 +351,18 @@ export function useCanvasRenderer() {
         height: height * scale,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al generar imagen'
+      // html-to-image can throw Event objects when images fail to load
+      let message: string
+      if (err instanceof Error) {
+        message = err.message
+      } else if (err instanceof Event) {
+        message = 'Error loading image - possible CORS issue or invalid image URL'
+      } else {
+        message = 'Error al generar imagen'
+      }
       error.value = message
       console.error('[CanvasRenderer] Error:', err)
-      throw err
+      throw new Error(message)
     } finally {
       // Clean up clone and its wrapper
       if (clone) {

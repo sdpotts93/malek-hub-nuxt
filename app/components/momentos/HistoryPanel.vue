@@ -92,13 +92,13 @@ function handleDelete(e: Event, id: string) {
           @keydown.space.prevent="handleLoad(design)"
         >
           <div class="history-panel__thumbnail">
-            <NuxtImg
+            <!-- Use regular img for data URLs (base64), NuxtImg for remote URLs -->
+            <img
               v-if="design.thumbnail"
               :src="design.thumbnail"
               :alt="design.name"
-              width="80"
-              height="100"
-            />
+              loading="lazy"
+            >
             <div v-else class="history-panel__placeholder" />
             <!-- Loading overlay -->
             <div v-if="loadingDesignId === design.id" class="history-panel__loading">
@@ -133,13 +133,13 @@ function handleDelete(e: Event, id: string) {
         class="history-panel__mini-thumb"
         @click="handleLoad(design)"
       >
-        <NuxtImg
+        <!-- Use regular img for data URLs (base64) -->
+        <img
           v-if="design.thumbnail"
           :src="design.thumbnail"
           :alt="design.name"
-          width="68"
-          height="68"
-        />
+          loading="lazy"
+        >
         <div v-else class="history-panel__placeholder" />
         <!-- Loading overlay -->
         <div v-if="loadingDesignId === design.id" class="history-panel__loading">
