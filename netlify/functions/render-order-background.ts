@@ -114,21 +114,28 @@ async function renderWithBrowserless(configUrl: string, format: string): Promise
   console.log(`[RenderOrder] Rendering: ${renderUrl}`)
   console.log(`[RenderOrder] Viewport: ${viewport.width}x${viewport.height}`)
 
-  const response = await fetch('https://chrome.browserless.io/screenshot', {
+  // Browserless API - token in URL query parameter
+  const browserlessUrl = `https://chrome.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`
+
+  const response = await fetch(browserlessUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${BROWSERLESS_API_KEY}`,
     },
     body: JSON.stringify({
       url: renderUrl,
       options: {
-        viewport: viewport,
         type: 'png',
         fullPage: false,
-        // Wait for images to load
-        waitForSelector: '.render-canvas',
-        waitForTimeout: 3000,
+      },
+      gotoOptions: {
+        waitUntil: 'networkidle2',
+        timeout: 30000,
+      },
+      viewport: viewport,
+      waitForSelector: {
+        selector: '.render-canvas',
+        timeout: 10000,
       },
     }),
   })
