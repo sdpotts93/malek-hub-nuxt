@@ -577,25 +577,14 @@ function handleDelete(e: Event, id: string) {
     border: 1px solid $color-brand-light;
     color: $color-brand-hover;
 
-    // Momentos - medium orange
-    &:nth-child(3) {
-      background: $color-brand-lightish;
-      border-color: $color-brand-light;
-    }
-
-    // Active state - dark orange (Momentos when active)
-    &--active {
+    // Birth Poster - dark orange (2nd card)
+    &:nth-child(2) {
       background: $color-brand-hover;
       border-color: $color-brand-light;
       color: $color-brand-light;
 
-      // Override nth-child(3) specificity when active
-      &:nth-child(3) {
-        background: $color-brand-hover;
-      }
-
       .mobile-nav-wrapper__nav-card-header svg {
-        color: $color-brand-lighter; // Cream arrow for active state
+        color: $color-brand-lighter;
       }
 
       .mobile-nav-wrapper__nav-card-desc {
@@ -606,6 +595,12 @@ function handleDelete(e: Event, id: string) {
         opacity: 1;
         color: $color-brand;
       }
+    }
+
+    // Momentos - medium orange (3rd card)
+    &:nth-child(3) {
+      background: $color-brand-lightish;
+      border-color: $color-brand-light;
     }
 
     @include hover {
