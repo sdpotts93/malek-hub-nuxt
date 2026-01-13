@@ -250,6 +250,12 @@ export interface MomentosState {
   // Currently selected cell (for editing)
   selectedCellId: string | null
 
+  // Currently dragging image ID (for visual feedback)
+  draggingImageId: string | null
+
+  // Is dragging over canvas (for library item indicator)
+  isDraggingOverCanvas: boolean
+
   // UI State
   activePanel: MomentosPanelType
   activeDisenoTab: DisenoTabType
@@ -293,6 +299,8 @@ export const createDefaultMomentosState = (): MomentosState => {
     uploadedImages: [],
     canvasCells: cells,
     selectedCellId: null,
+    draggingImageId: null,
+    isDraggingOverCanvas: false,
 
     // UI
     activePanel: 'diseno',
@@ -719,6 +727,18 @@ export const useMomentosStore = defineStore('momentos', {
 
     selectCell(cellId: string | null) {
       this.selectedCellId = cellId
+    },
+
+    setDraggingImageId(imageId: string | null) {
+      this.draggingImageId = imageId
+      // Reset canvas hover state when drag ends
+      if (imageId === null) {
+        this.isDraggingOverCanvas = false
+      }
+    },
+
+    setIsDraggingOverCanvas(value: boolean) {
+      this.isDraggingOverCanvas = value
     },
 
     // ==========================================================================

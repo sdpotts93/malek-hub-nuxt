@@ -461,6 +461,12 @@ async function handleFilesFromDrop(files: File[]) {
 // Handle drag start for image library
 function handleImageDragStart(e: DragEvent, imageId: string) {
   e.dataTransfer?.setData('imageId', imageId)
+  store.setDraggingImageId(imageId)
+}
+
+// Handle drag end for image library
+function handleImageDragEnd() {
+  store.setDraggingImageId(null)
 }
 
 // Remove image from library
@@ -502,30 +508,6 @@ function scrollColors(direction: 'left' | 'right') {
     @dragleave="onPanelDragLeave"
     @drop.prevent="onPanelDrop"
   >
-    <!-- Drop overlay (at panel level to cover visible area only) -->
-    <Transition name="drop-overlay">
-      <div
-        v-if="isDraggingOverContent && store.activeDisenoTab === 'imagenes'"
-        class="panel-diseno__drop-overlay"
-      >
-        <div class="panel-diseno__drop-zone">
-          <div class="panel-diseno__drop-icon">
-            <img
-              src="/personaliza-icons/icon/image-add.svg"
-              alt="Upload"
-              width="43"
-              height="43"
-            >
-          </div>
-          <p class="panel-diseno__drop-text">Suelta tus archivos aquí</p>
-          <p class="panel-diseno__drop-hint">
-            <span class="panel-diseno__drop-formats">PNG, JPEG, GIF </span>
-            <span class="panel-diseno__drop-size">hasta {{ MAX_IMAGE_SIZE_MB }}MB</span>
-          </p>
-        </div>
-      </div>
-    </Transition>
-
     <!-- Tabs -->
     <div class="panel-diseno__tabs">
       <button
@@ -685,6 +667,30 @@ function scrollColors(direction: 'left' | 'right') {
       v-if="store.activeDisenoTab === 'imagenes'"
       class="panel-diseno__content"
     >
+      <!-- Drop overlay (inside content area only) -->
+      <Transition name="drop-overlay">
+        <div
+          v-if="isDraggingOverContent"
+          class="panel-diseno__drop-overlay"
+        >
+          <div class="panel-diseno__drop-zone">
+            <div class="panel-diseno__drop-icon">
+              <img
+                src="/personaliza-icons/icon/image-add.svg"
+                alt="Upload"
+                width="43"
+                height="43"
+              >
+            </div>
+            <p class="panel-diseno__drop-text">Suelta tus archivos aquí</p>
+            <p class="panel-diseno__drop-hint">
+              <span class="panel-diseno__drop-formats">PNG, JPEG, GIF </span>
+              <span class="panel-diseno__drop-size">hasta {{ MAX_IMAGE_SIZE_MB }}MB</span>
+            </p>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Upload zone (only show if no images uploaded) -->
       <div v-if="store.uploadedImages.length === 0" class="panel-diseno__upload-section">
         <div
@@ -760,10 +766,13 @@ function scrollColors(direction: 'left' | 'right') {
             :key="img.id"
             :class="[
               'panel-diseno__library-item',
-              { 'panel-diseno__library-item--selectable': store.selectedCellId && store.getCellById(store.selectedCellId)?.imageId === null }
+              { 'panel-diseno__library-item--selectable': store.selectedCellId && store.getCellById(store.selectedCellId)?.imageId === null },
+              { 'panel-diseno__library-item--dragging': store.draggingImageId === img.id },
+              { 'panel-diseno__library-item--over-canvas': store.draggingImageId === img.id && store.isDraggingOverCanvas }
             ]"
             draggable="true"
             @dragstart="handleImageDragStart($event, img.id)"
+            @dragend="handleImageDragEnd"
             @click="handleImageClick(img.id)"
           >
             <img
@@ -773,6 +782,12 @@ function scrollColors(direction: 'left' | 'right') {
             >
             <div v-if="img.isUploading" class="panel-diseno__library-loading">
               <div class="panel-diseno__library-progress" :style="{ width: img.uploadProgress + '%' }" />
+            </div>
+            <!-- Drag indicator icon -->
+            <div class="panel-diseno__library-drag-indicator">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="m12 22l-4.25-4.25l1.425-1.425L11 18.15V13H5.875L7.7 14.8l-1.45 1.45L2 12l4.225-4.225L7.65 9.2L5.85 11H11V5.85L9.175 7.675L7.75 6.25L12 2l4.25 4.25l-1.425 1.425L13 5.85V11h5.125L16.3 9.2l1.45-1.45L22 12l-4.25 4.25l-1.425-1.425L18.15 13H13v5.125l1.8-1.825l1.45 1.45z"/>
+              </svg>
             </div>
             <!-- Magnifying glass button -->
             <button
@@ -894,14 +909,13 @@ function scrollColors(direction: 'left' | 'right') {
     padding: 16px 0;
     font-family: $font-primary;
     font-size: 14px;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: #717680;
     position: relative;
     transition: color $transition-fast;
 
     &--active {
       color: #252b37;
-      font-weight: 600;
 
       &::after {
         content: '';
@@ -1458,7 +1472,8 @@ function scrollColors(direction: 'left' | 'right') {
     overflow: hidden;
     cursor: grab;
     background: #f5f5f5;
-    transition: outline $transition-fast, box-shadow $transition-fast;
+    border: 1px solid #d5d7da;
+    transition: outline $transition-fast, box-shadow $transition-fast, border-color $transition-fast;
 
     &:active {
       cursor: grabbing;
@@ -1473,6 +1488,47 @@ function scrollColors(direction: 'left' | 'right') {
         outline: 2px solid $color-brand;
         box-shadow: 0 2px 8px rgba($color-brand, 0.25);
       }
+    }
+
+    // When this item is being dragged
+    &--dragging {
+      opacity: 0.7;
+    }
+
+    // When dragging over canvas - show active state
+    &--over-canvas {
+      border-color: $color-brand;
+      box-shadow: 0 4px 12px rgba($color-brand, 0.3);
+      opacity: 1;
+    }
+  }
+
+  // Drag indicator icon in bottom-right corner
+  // Hidden when item is being dragged (shows on the drag ghost instead)
+  &__library-drag-indicator {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888888;
+    pointer-events: none;
+    transition: color $transition-fast, background-color $transition-fast, opacity $transition-fast;
+
+    // Hide when this item is being dragged (the ghost image will show it)
+    .panel-diseno__library-item--dragging & {
+      opacity: 0;
+    }
+
+    // Only turn green when over canvas
+    .panel-diseno__library-item--over-canvas & {
+      color: $color-brand;
+      background: rgba(255, 255, 255, 1);
     }
   }
 

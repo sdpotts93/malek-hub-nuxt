@@ -62,17 +62,61 @@ function getCellFilter(cell: CanvasCell): string {
   return IMAGE_FILTERS[cell.filter].cssFilter
 }
 
+// Track which cell is being hovered during drag
+const hoveringCellId = ref<string | null>(null)
+
 // Handle drop on cell
 function handleDrop(e: DragEvent, cellId: string) {
   e.preventDefault()
+  hoveringCellId.value = null
   const imageId = e.dataTransfer?.getData('imageId')
   if (imageId) {
     store.setImageToCell(cellId, imageId)
   }
+  // Clear dragging state
+  store.setDraggingImageId(null)
 }
 
 function handleDragOver(e: DragEvent) {
   e.preventDefault()
+}
+
+// Handle drag enter on cell (for visual feedback)
+function handleDragEnter(e: DragEvent, cellId: string) {
+  e.preventDefault()
+  // Only show hover state if dragging an image and cell is empty
+  if (store.draggingImageId) {
+    store.setIsDraggingOverCanvas(true)
+    const cell = store.canvasCells.find(c => c.id === cellId)
+    if (cell && !cell.imageId) {
+      hoveringCellId.value = cellId
+    }
+  }
+}
+
+// Handle drag leave on cell
+function handleDragLeave(e: DragEvent, cellId: string) {
+  e.preventDefault()
+  // Only clear if leaving this specific cell
+  if (hoveringCellId.value === cellId) {
+    // Check if we're leaving to a child element
+    const relatedTarget = e.relatedTarget as HTMLElement | null
+    const currentTarget = e.currentTarget as HTMLElement
+    if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+      hoveringCellId.value = null
+    }
+  }
+}
+
+// Handle drag leave on grid (to detect leaving canvas entirely)
+function handleGridDragLeave(e: DragEvent) {
+  const relatedTarget = e.relatedTarget as HTMLElement | null
+  const currentTarget = e.currentTarget as HTMLElement
+  // If leaving the grid entirely (not to a child element)
+  if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+    store.setIsDraggingOverCanvas(false)
+    hoveringCellId.value = null
+  }
 }
 
 // Handle cell click
@@ -339,6 +383,7 @@ const selectedCellWithImage = computed(() => {
           gridTemplateColumns: `repeat(${gridDimensions.cols}, 1fr)`,
           gridTemplateRows: `repeat(${gridDimensions.rows}, 1fr)`,
         }"
+        @dragleave="handleGridDragLeave"
       >
         <div
           v-for="cell in store.canvasCells"
@@ -349,11 +394,14 @@ const selectedCellWithImage = computed(() => {
             {
               'momentos-canvas__cell--empty': !cell.imageId,
               'momentos-canvas__cell--selected': store.selectedCellId === cell.id,
+              'momentos-canvas__cell--drop-target': hoveringCellId === cell.id,
             }
           ]"
           @click.stop="handleCellClick(cell)"
           @drop="handleDrop($event, cell.id)"
           @dragover="handleDragOver"
+          @dragenter="handleDragEnter($event, cell.id)"
+          @dragleave="handleDragLeave($event, cell.id)"
         >
           <!-- Empty cell placeholder -->
           <div v-if="!cell.imageId" class="momentos-canvas__placeholder">
@@ -364,9 +412,9 @@ const selectedCellWithImage = computed(() => {
             </svg>
           </div>
 
-          <!-- Image with transformations -->
+          <!-- Image with transformations (only render when image URL exists) -->
           <div
-            v-else
+            v-else-if="getCellImageUrl(cell)"
             class="momentos-canvas__cell-image-wrapper"
             :style="{
               transform: `rotate(${cell.rotation}deg) scale(${cell.zoom})`,
@@ -374,7 +422,7 @@ const selectedCellWithImage = computed(() => {
             }"
           >
             <img
-              :src="getCellImageUrl(cell) || ''"
+              :src="getCellImageUrl(cell)!"
               alt=""
               class="momentos-canvas__cell-image"
               :style="{ objectPosition: getCellObjectPosition(cell) }"
@@ -740,6 +788,13 @@ const selectedCellWithImage = computed(() => {
     &:hover:not(&--selected) {
       outline: 1px solid rgba($color-brand, 0.5);
       outline-offset: -1px;
+    }
+
+    // Drop target state when dragging an image over an empty cell
+    &--drop-target {
+      outline: 2px solid $color-brand;
+      outline-offset: -2px;
+      background: rgba($color-brand, 0.1);
     }
   }
 

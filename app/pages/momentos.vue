@@ -37,6 +37,17 @@ const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
 const pricing = computed(() => cart.calculateMomentosPrice(momentosStore.$state))
+
+// Missing elements for cart warning modal
+const missingElements = computed(() => {
+  const missing: string[] = []
+  const emptyCells = momentosStore.emptyCellCount
+  if (emptyCells > 0) {
+    missing.push(`${emptyCells} ${emptyCells === 1 ? 'espacio vacío' : 'espacios vacíos'} en el collage`)
+  }
+  return missing
+})
+
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 
@@ -154,22 +165,23 @@ const navItems: { id: MomentosPanelType; label: string; icon: string }[] = [
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Handle edit from missing elements modal - navigate to images tab
+async function handleEditFromModal() {
+  momentosStore.setActivePanel('diseno')
+  momentosStore.setActiveDisenoTab('imagenes')
+  if (isMobile.value) {
+    await nextTick()
+    isMobileSheetOpen.value = true
+  }
+}
+
 // Handle add to cart
 async function handleAddToCart() {
   const canvasElement = canvasRef.value?.$el
   if (!canvasElement) return
 
-  // Check if design is ready
-  if (!momentosStore.isReadyForCart) {
-    // Navigate to diseno panel to add images
-    momentosStore.setActivePanel('diseno')
-    momentosStore.setActiveDisenoTab('imagenes')
-    if (isMobile.value) {
-      await nextTick()
-      isMobileSheetOpen.value = true
-    }
-    return
-  }
+  // Note: Empty cells are allowed - they will appear white in the final image.
+  // The warning modal in AddToCartSection already informed the user about empty cells.
 
   try {
     uiStore.setLoading(true)
@@ -219,7 +231,9 @@ async function handleAddToCart() {
           :price="pricing.price"
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
+          :missing-elements="missingElements"
           @add-to-cart="handleAddToCart"
+          @edit="handleEditFromModal"
         />
       </div>
 
@@ -248,7 +262,9 @@ async function handleAddToCart() {
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
+      :missing-elements="missingElements"
       @add-to-cart="handleAddToCart"
+      @edit="handleEditFromModal"
     />
 
     <!-- Mobile: Bottom Navbar -->

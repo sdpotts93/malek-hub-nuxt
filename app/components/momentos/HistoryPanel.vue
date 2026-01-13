@@ -163,7 +163,7 @@ function handleDelete(e: Event, id: string) {
   border-radius: $radius-xl;
   box-shadow: 0 7px 21px rgba(51, 51, 51, 0.05);
   transition: width $transition-base;
-  z-index: $z-dropdown;
+  z-index: $z-sticky;
 
   // Expanded state - overlays to the left
   width: 220px;

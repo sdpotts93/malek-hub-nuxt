@@ -36,6 +36,31 @@ const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
 const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
+
+// Missing elements for cart warning modal
+// Always check for missing names, but only block if showScale is enabled
+const missingElements = computed(() => {
+  const missing: string[] = []
+  birthPosterStore.babies.forEach((baby, index) => {
+    if (!baby.nombre?.trim()) {
+      const babyLabel = birthPosterStore.babyCount > 1 ? `Bebé ${index + 1}` : 'Bebé'
+      if (baby.showScale) {
+        // Blocking: name is required when showScale is on
+        missing.push(`Nombre del ${babyLabel.toLowerCase()} (requerido cuando "Escala 1:1" está activado)`)
+      } else {
+        // Warning: name is optional but recommended
+        missing.push(`Nombre del ${babyLabel.toLowerCase()} no especificado`)
+      }
+    }
+  })
+  return missing
+})
+
+// Can only proceed if there are no blocking issues (missing name with showScale on)
+const canProceed = computed(() => {
+  return !birthPosterStore.babies.some(baby => baby.showScale && !baby.nombre?.trim())
+})
+
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 
@@ -179,6 +204,22 @@ const navItems: { id: PanelType; label: string; icon: string }[] = [
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Handle edit from missing elements modal - navigate to datos panel
+async function handleEditFromModal() {
+  birthPosterStore.setActivePanel('datos')
+  // Find first baby with missing name and switch to that tab
+  const missingIndex = birthPosterStore.babies.findIndex(b => !b.nombre?.trim())
+  if (missingIndex !== -1) {
+    birthPosterStore.setActiveBabyTab(missingIndex)
+  }
+  if (isMobile.value) {
+    await nextTick()
+    isMobileSheetOpen.value = true
+  }
+  // Trigger focus on nombre input
+  birthPosterStore.triggerNombreFocus()
+}
+
 // Handle add to cart
 async function handleAddToCart() {
   const canvasElement = canvasRef.value?.$el
@@ -254,7 +295,10 @@ async function handleAddToCart() {
           :price="pricing.price"
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
+          :missing-elements="missingElements"
+          :can-proceed="canProceed"
           @add-to-cart="handleAddToCart"
+          @edit="handleEditFromModal"
         />
       </div>
 
@@ -283,7 +327,10 @@ async function handleAddToCart() {
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
+      :missing-elements="missingElements"
+      :can-proceed="canProceed"
       @add-to-cart="handleAddToCart"
+      @edit="handleEditFromModal"
     />
 
     <!-- Mobile: Bottom Navbar -->

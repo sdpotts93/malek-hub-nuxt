@@ -38,6 +38,24 @@ const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
 // Computed
 const pricing = computed(() => cart.calculatePersonalizaPrice(personalizaStore.$state))
+
+// Missing elements for cart warning modal
+const missingElements = computed(() => {
+  const missing: string[] = []
+  // Check if no image at all (blocking)
+  if (!personalizaStore.hasImage) {
+    missing.push('No has subido ninguna imagen')
+  }
+  // Check if image has quality issues (warning, can proceed)
+  else if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
+    missing.push('Tu imagen tiene una resolucion menor a la recomendada para el tamano seleccionado.')
+  }
+  return missing
+})
+
+// Can only proceed if there's an image (low-res warning is just a warning)
+const canProceed = computed(() => personalizaStore.hasImage)
+
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 
@@ -249,36 +267,35 @@ const navItems: { id: PersonalizaPanelType; label: string; icon: string }[] = [
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Handle edit from missing elements modal - navigate to archivo panel
+async function handleEditFromModal() {
+  personalizaStore.setActivePanel('archivo')
+  if (isMobile.value) {
+    await nextTick()
+    isMobileSheetOpen.value = true
+  }
+  // If there's a size warning, scroll to it
+  if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
+    await nextTick()
+    setTimeout(() => {
+      personalizaStore.triggerScrollToWarning()
+    }, 250)
+  }
+}
+
 // Handle add to cart
 async function handleAddToCart() {
   const canvasElement = canvasRef.value?.$el
   if (!canvasElement) return
 
-  // Check if image is ready
-  if (!personalizaStore.isImageReady) {
-    // Navigate to archivo panel
-    personalizaStore.setActivePanel('archivo')
-    if (isMobile.value) {
-      await nextTick()
-      isMobileSheetOpen.value = true
-    }
-    return
-  }
+  // Note: The "no image" blocking case is handled by the modal (canProceed=false).
+  // This function is only called when user clicks "Continuar" after seeing the warning,
+  // which means either there's no warning or the user accepted the low-res warning.
 
-  // Check size warning
+  // If there's a size warning and user is proceeding anyway (via "Continuar" in modal),
+  // acknowledge it so the cart validation passes
   if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
-    // Navigate to archivo panel to show the warning
-    personalizaStore.setActivePanel('archivo')
-    if (isMobile.value) {
-      await nextTick()
-      isMobileSheetOpen.value = true
-    }
-    // Wait for panel transition then scroll to warning
-    await nextTick()
-    setTimeout(() => {
-      personalizaStore.triggerScrollToWarning()
-    }, 250) // Wait for panel transition animation
-    return
+    personalizaStore.acknowledgeSizeWarning()
   }
 
   try {
@@ -329,7 +346,10 @@ async function handleAddToCart() {
           :price="pricing.price"
           :compare-at-price="pricing.compareAtPrice"
           :is-loading="uiStore.isLoading || isRendering"
+          :missing-elements="missingElements"
+          :can-proceed="canProceed"
           @add-to-cart="handleAddToCart"
+          @edit="handleEditFromModal"
         />
       </div>
 
@@ -358,7 +378,10 @@ async function handleAddToCart() {
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
+      :missing-elements="missingElements"
+      :can-proceed="canProceed"
       @add-to-cart="handleAddToCart"
+      @edit="handleEditFromModal"
     />
 
     <!-- Mobile: Bottom Navbar -->

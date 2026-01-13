@@ -608,10 +608,11 @@ export function useShopifyCart() {
    * Returns validation result with info about missing data
    */
   function validateForCart(state: BirthPosterState): ValidationResult {
-    // Check each baby for missing name
+    // Check each baby for missing name (only required if showScale is enabled)
     for (let i = 0; i < state.babies.length; i++) {
       const baby = state.babies[i]
-      if (!baby || !baby.nombre || baby.nombre.trim() === '') {
+      // Name is only required when showScale is enabled (shows "SCALE 1:1 OF {nombre}")
+      if (baby?.showScale && (!baby.nombre || baby.nombre.trim() === '')) {
         return {
           isValid: false,
           message: 'Por favor completa el nombre de tu bebé',
