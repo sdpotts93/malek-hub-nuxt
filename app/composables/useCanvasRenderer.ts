@@ -468,7 +468,7 @@ export function useCanvasRenderer() {
    */
   async function generateThumbnail(
     element: HTMLElement,
-    maxSize = 200 // Match cart thumbnail size
+    maxSize = 200
   ): Promise<string> {
     // Use element's computed background color
     const computedBg = window.getComputedStyle(element).backgroundColor

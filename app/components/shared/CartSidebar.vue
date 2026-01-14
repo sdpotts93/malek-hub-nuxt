@@ -91,26 +91,23 @@ onMounted(() => {
                   v-if="item.thumbnailImage"
                   :src="item.thumbnailImage"
                   :alt="item.productTitle"
-                  class="cart-item__img"
                   width="80"
-                  height="100"
+                  class="cart-item__img"
                   loading="lazy"
                 />
                 <NuxtImg
                   v-else-if="item.designImage"
                   :src="item.designImage"
                   :alt="item.productTitle"
-                  class="cart-item__img"
                   width="80"
-                  height="100"
+                  class="cart-item__img"
                   loading="lazy"
                 />
                 <NuxtImg
                   v-else-if="item.shopifyImage"
+                  width="80"
                   :src="item.shopifyImage"
                   :alt="item.productTitle"
-                  width="80"
-                  height="100"
                 />
                 <div v-else class="cart-item__placeholder" />
               </div>
@@ -337,15 +334,19 @@ onMounted(() => {
 
   &__image {
     width: 80px;
-    height: 100px;
+    min-height: 60px;
+    max-height: 112px;
     border-radius: $radius-md;
     overflow: hidden;
     flex-shrink: 0;
     background: $color-bg-tertiary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     img {
       width: 100%;
-      height: 100%;
+      height: auto;
       object-fit: contain;
     }
   }

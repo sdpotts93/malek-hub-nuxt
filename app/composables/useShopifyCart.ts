@@ -372,7 +372,7 @@ export function useShopifyCart() {
       const renderer = useCanvasRenderer()
 
       console.log('[ShopifyCart] Generating thumbnail for Personaliza...')
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
@@ -590,7 +590,7 @@ export function useShopifyCart() {
       const renderer = useCanvasRenderer()
 
       console.log('[ShopifyCart] Generating thumbnail...')
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
@@ -724,7 +724,7 @@ export function useShopifyCart() {
       const renderer = useCanvasRenderer()
 
       console.log('[ShopifyCart] Generating thumbnail for Birth Poster...')
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement, 400)
+      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)

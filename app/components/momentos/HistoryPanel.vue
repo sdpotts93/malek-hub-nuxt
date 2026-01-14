@@ -166,7 +166,7 @@ function handleDelete(e: Event, id: string) {
   z-index: $z-sticky;
 
   // Expanded state - overlays to the left
-  width: 220px;
+  width: 320px;
 
   &--collapsed {
     width: 82px;
