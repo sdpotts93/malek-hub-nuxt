@@ -194,15 +194,27 @@ const discountPercent = computed(() => {
     flex: 1;
     max-width: 200px;
     padding: $space-lg $space-xl;
-    background: $color-brand;
+    background: #252b37;
+    border: 2px solid rgba(255, 255, 255, 0.12);
     color: $color-text-inverse;
     font-size: $font-size-sm;
     font-weight: $font-weight-semibold;
     border-radius: $radius-lg;
     transition: background-color $transition-fast, opacity $transition-fast;
+    box-shadow: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0px 0px 0px 1px rgba(10, 13, 18, 0.18), inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
+    }
 
     @include hover {
-      background: $color-brand-hover;
+      background: #1a1f28;
     }
 
     &:disabled {

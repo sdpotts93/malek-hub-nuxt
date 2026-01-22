@@ -255,8 +255,8 @@ function handleCancel() {
     position: relative;
     width: 100%;
     padding: 16px 22px;
-    background: $color-brand;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #252b37;
+    border: 2px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
     font-family: $font-primary;
     font-size: 18px;
@@ -265,6 +265,7 @@ function handleCancel() {
     border-radius: 10px;
     overflow: hidden;
     transition: background-color $transition-fast, opacity $transition-fast;
+    box-shadow: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);
 
     // Skeuomorphic inner shadows
     &::after {
@@ -274,7 +275,7 @@ function handleCancel() {
       pointer-events: none;
       border-radius: 10px;
       box-shadow:
-        inset 0px 0px 0px 1px rgb(255 255 255 / 33%),
+        inset 0px 0px 0px 1px rgba(10, 13, 18, 0.18),
         inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
     }
 
@@ -285,7 +286,7 @@ function handleCancel() {
     }
 
     @include hover {
-      background: $color-brand-hover;
+      background: #1a1f28;
     }
 
     &:disabled {

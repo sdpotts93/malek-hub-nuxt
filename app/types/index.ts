@@ -248,36 +248,28 @@ export const BACKGROUND_COLORS = [
 export interface BabyStyleConfig {
   id: string
   name: string
-  category: 'aquarelle' | 'chunky' | 'classic' | 'sketch'
+  category: 'acuarela' | 'crayon' | 'pluma' | 'plumon'
   thumbnail: string
   image: string
 }
 
 export const BABY_STYLES: BabyStyleConfig[] = [
-  // Aquarelle styles
-  { id: 'aq1', name: 'Aquarelle 1', category: 'aquarelle', thumbnail: '/posters/thumbnails/aq1_thumbnail.png', image: '/posters/aquarelle-1.png' },
-  { id: 'aq2', name: 'Aquarelle 2', category: 'aquarelle', thumbnail: '/posters/thumbnails/aq2_thumbnail.png', image: '/posters/aquarelle-2.png' },
-  { id: 'aq3', name: 'Aquarelle 3', category: 'aquarelle', thumbnail: '/posters/thumbnails/aq3_thumbnail.png', image: '/posters/aquarelle-3.png' },
-  // { id: 'aq4', name: 'Aquarelle 4', category: 'aquarelle', thumbnail: '/posters/thumbnails/aq4_thumbnail.png', image: '/posters/aquarelle-4.png' },
-  { id: 'aq5', name: 'Aquarelle 5', category: 'aquarelle', thumbnail: '/posters/thumbnails/aq5_thumbnail.png', image: '/posters/aquarelle-5.png' },
-  // Chunky styles
-  { id: 'chunky1', name: 'Chunky 1', category: 'chunky', thumbnail: '/posters/thumbnails/chunky1_thumbnail.png', image: '/posters/chunky-1.png' },
-  { id: 'chunky2', name: 'Chunky 2', category: 'chunky', thumbnail: '/posters/thumbnails/chunky2_thumbnail.png', image: '/posters/chunky-2.png' },
-  { id: 'chunky3', name: 'Chunky 3', category: 'chunky', thumbnail: '/posters/thumbnails/chunky3_thumbnail.png', image: '/posters/chunky-3.png' },
-  // { id: 'chunky4', name: 'Chunky 4', category: 'chunky', thumbnail: '/posters/thumbnails/chunky4_thumbnail.png', image: '/posters/chunky-4.png' },
-  { id: 'chunky5', name: 'Chunky 5', category: 'chunky', thumbnail: '/posters/thumbnails/chunky5_thumbnail.png', image: '/posters/chunky-5.png' },
-  // Classic styles
-  { id: 'cl1', name: 'Classic 1', category: 'classic', thumbnail: '/posters/thumbnails/cl1_thumbnail.png', image: '/posters/cl1.png' },
-  { id: 'cl2', name: 'Classic 2', category: 'classic', thumbnail: '/posters/thumbnails/cl2_thumbnail.png', image: '/posters/cl2.png' },
-  { id: 'cl3', name: 'Classic 3', category: 'classic', thumbnail: '/posters/thumbnails/cl3_thumbnail.png', image: '/posters/cl3.png' },
-  // { id: 'cl4', name: 'Classic 4', category: 'classic', thumbnail: '/posters/thumbnails/cl4_thumbnail.png', image: '/posters/cl4.png' },
-  { id: 'cl5', name: 'Classic 5', category: 'classic', thumbnail: '/posters/thumbnails/cl5_thumbnail.png', image: '/posters/cl5.png' },
-  // Sketch styles
-  { id: 'sketch1', name: 'Sketch 1', category: 'sketch', thumbnail: '/posters/thumbnails/sketch1_thumbnail.png', image: '/posters/sketch-1.png' },
-  { id: 'sketch2', name: 'Sketch 2', category: 'sketch', thumbnail: '/posters/thumbnails/sketch2_thumbnail.png', image: '/posters/sketch-2.png' },
-  // { id: 'sketch3', name: 'Sketch 3', category: 'sketch', thumbnail: '/posters/thumbnails/sketch3_thumbnail.png', image: '/posters/sketch-3.png' },
-  { id: 'sketch4', name: 'Sketch 4', category: 'sketch', thumbnail: '/posters/thumbnails/sketch4_thumbnail.png', image: '/posters/sketch-4.png' },
-  { id: 'sketch5', name: 'Sketch 5', category: 'sketch', thumbnail: '/posters/thumbnails/sketch5_thumbnail.png', image: '/posters/sketch-5.png' },
+  // Acuarela styles
+  { id: 'ac1', name: 'Acuarela 1', category: 'acuarela', thumbnail: '/posters/thumbnails/ac1_thumbnail.png', image: '/posters/acuarela-1.png' },
+  { id: 'ac2', name: 'Acuarela 2', category: 'acuarela', thumbnail: '/posters/thumbnails/ac2_thumbnail.png', image: '/posters/acuarela-2.png' },
+  { id: 'ac3', name: 'Acuarela 3', category: 'acuarela', thumbnail: '/posters/thumbnails/ac3_thumbnail.png', image: '/posters/acuarela-3.png' },
+  // Crayon styles
+  { id: 'cr1', name: 'Crayon 1', category: 'crayon', thumbnail: '/posters/thumbnails/cr1_thumbnail.png', image: '/posters/crayon-1.png' },
+  { id: 'cr2', name: 'Crayon 2', category: 'crayon', thumbnail: '/posters/thumbnails/cr2_thumbnail.png', image: '/posters/crayon-2.png' },
+  { id: 'cr3', name: 'Crayon 3', category: 'crayon', thumbnail: '/posters/thumbnails/cr3_thumbnail.png', image: '/posters/crayon-3.png' },
+  // Pluma styles
+  { id: 'pl1', name: 'Pluma 1', category: 'pluma', thumbnail: '/posters/thumbnails/pl1_thumbnail.png', image: '/posters/pluma-1.png' },
+  { id: 'pl2', name: 'Pluma 2', category: 'pluma', thumbnail: '/posters/thumbnails/pl2_thumbnail.png', image: '/posters/pluma-2.png' },
+  { id: 'pl3', name: 'Pluma 3', category: 'pluma', thumbnail: '/posters/thumbnails/pl3_thumbnail.png', image: '/posters/pluma-4.png' },
+  // Plumon styles
+  { id: 'plm1', name: 'Plumon 1', category: 'plumon', thumbnail: '/posters/thumbnails/plm1_thumbnail.png', image: '/posters/plumon-1.png' },
+  { id: 'plm2', name: 'Plumon 2', category: 'plumon', thumbnail: '/posters/thumbnails/plm2_thumbnail.png', image: '/posters/plumon-2.png' },
+  { id: 'plm3', name: 'Plumon 3', category: 'plumon', thumbnail: '/posters/thumbnails/plm3_thumbnail.png', image: '/posters/plumon-3.png' },
 ]
 
 // Helper to get style by ID
@@ -288,7 +280,7 @@ export const getStyleById = (styleId: string): BabyStyleConfig | undefined => {
 // Default baby configuration
 export const createDefaultBabyConfig = (): BabyConfig => ({
   orientation: 'izquierda',
-  styleId: 'aq1',
+  styleId: 'ac1',
   illustrationColor: '#000000',
   nombre: '',
   altura: 50,
