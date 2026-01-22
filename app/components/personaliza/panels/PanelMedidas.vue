@@ -83,6 +83,9 @@ function getSizeDimensions(sizeId: PersonalizaSize): { width: number; height: nu
     display: flex;
     align-items: center;
     gap: 8px;
+    @include mobile {
+      display: none;
+    }
   }
 
   &__title-icon {

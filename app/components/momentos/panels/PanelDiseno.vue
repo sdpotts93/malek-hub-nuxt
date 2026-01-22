@@ -758,7 +758,7 @@ function confirmRellenar() {
     <div v-if="store.activeDisenoTab === 'diseno'" class="panel-diseno__content">
       <!-- Format selector -->
       <div class="panel-diseno__section">
-        <h3 class="panel-diseno__title">Formato</h3>
+        <h3 class="panel-diseno__title panel-diseno__title--always-visible">Formato</h3>
         <div class="panel-diseno__styles">
           <button
             v-for="format in formatOptions"
@@ -776,7 +776,7 @@ function confirmRellenar() {
 
       <!-- Image count selector -->
       <div class="panel-diseno__section">
-        <h3 class="panel-diseno__title">Número de imágenes</h3>
+        <h3 class="panel-diseno__title panel-diseno__title--always-visible">Número de imágenes</h3>
         <div class="panel-diseno__image-counts">
           <button
             v-for="count in availableImageCounts"
@@ -930,7 +930,7 @@ function confirmRellenar() {
       <!-- Image library -->
       <div ref="librarySectionRef" class="panel-diseno__section">
         <div class="panel-diseno__library-header">
-          <h3 class="panel-diseno__title">
+          <h3 class="panel-diseno__title panel-diseno__title--always-visible">
             <svg width="20" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6.75 8.66667C7.80855 8.66667 8.66667 7.80855 8.66667 6.75C8.66667 5.69145 7.80855 4.83333 6.75 4.83333C5.69145 4.83333 4.83333 5.69145 4.83333 6.75C4.83333 7.80855 5.69145 8.66667 6.75 8.66667Z" fill="currentColor"/>
               <path d="M3.17742 17.9892L9.4991 11.6676C9.87862 11.288 10.0684 11.0983 10.2872 11.0272C10.4797 10.9647 10.687 10.9647 10.8795 11.0272C11.0983 11.0983 11.2881 11.2881 11.6676 11.6676L17.9471 17.9471M12.5 12.5L15.2491 9.7509C15.6286 9.37138 15.8184 9.18162 16.0372 9.11053C16.2297 9.04799 16.437 9.04799 16.6295 9.11053C16.8483 9.18162 17.038 9.37138 17.4176 9.7509L20.1667 12.5M8.66667 6.75C8.66667 7.80855 7.80855 8.66667 6.75 8.66667C5.69145 8.66667 4.83333 7.80855 4.83333 6.75C4.83333 5.69145 5.69145 4.83333 6.75 4.83333C7.80855 4.83333 8.66667 5.69145 8.66667 6.75ZM5.6 18.25H15.5667C17.1768 18.25 17.9819 18.25 18.5969 17.9366C19.1379 17.661 19.5777 17.2212 19.8533 16.6802C20.1667 16.0652 20.1667 15.2602 20.1667 13.65V5.6C20.1667 3.98985 20.1667 3.18477 19.8533 2.56978C19.5777 2.02881 19.1379 1.58899 18.5969 1.31336C17.9819 1 17.1768 1 15.5667 1H5.6C3.98985 1 3.18477 1 2.56978 1.31336C2.02881 1.58899 1.58899 2.02881 1.31336 2.56978C1 3.18477 1 3.98985 1 5.6V13.65C1 15.2602 1 16.0652 1.31336 16.6802C1.58899 17.2212 2.02881 17.661 2.56978 17.9366C3.18477 18.25 3.98985 18.25 5.6 18.25Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1422,6 +1422,15 @@ function confirmRellenar() {
     display: flex;
     align-items: center;
     gap: 8px;
+    @include mobile {
+      display: none;
+    }
+
+    &--always-visible {
+      @include mobile {
+        display: flex;
+      }
+    }
   }
 
   &__label {

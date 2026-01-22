@@ -118,6 +118,9 @@ const scrollColors = (direction: 'left' | 'right') => {
     display: flex;
     align-items: center;
     gap: 8px;
+    @include mobile {
+      display: none;
+    }
   }
 
   &__title-icon {

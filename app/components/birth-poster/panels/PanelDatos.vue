@@ -431,6 +431,9 @@ function formatMinute(minute: number): string {
     display: flex;
     align-items: center;
     gap: 8px;
+    @include mobile {
+      display: none;
+    }
   }
 
   &__title-icon {
