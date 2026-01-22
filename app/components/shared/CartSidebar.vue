@@ -1,6 +1,18 @@
 <script setup lang="ts">
 const uiStore = useUIStore()
+const cartStore = useCartStore()
 const { lines, subtotal, isEmpty, isLoading, formatPrice, removeItem, updateQuantity, checkout } = useShopifyCart()
+
+// Discount code input
+const discountCode = ref('')
+
+async function applyDiscount() {
+  if (!discountCode.value.trim()) return
+  await cartStore.applyDiscountCode(discountCode.value)
+  if (!cartStore.discountError) {
+    discountCode.value = ''
+  }
+}
 
 // Get visible attributes (not prefixed with _)
 function getVisibleAttributes(attributes: Array<{ key: string; value: string }>) {
@@ -168,10 +180,83 @@ onMounted(() => {
 
         <!-- Footer -->
         <div v-if="!isEmpty" class="cart-sidebar__footer">
+          <!-- Discount Code Section -->
+          <div class="cart-sidebar__discount">
+            <div class="cart-sidebar__discount-input-wrapper">
+              <input
+                v-model="discountCode"
+                type="text"
+                class="cart-sidebar__discount-input"
+                placeholder="Código de descuento"
+                :disabled="cartStore.isApplyingDiscount"
+                @keyup.enter="applyDiscount"
+              />
+              <button
+                class="cart-sidebar__discount-btn"
+                :disabled="cartStore.isApplyingDiscount || !discountCode.trim()"
+                @click="applyDiscount"
+              >
+                {{ cartStore.isApplyingDiscount ? '...' : 'Usar' }}
+              </button>
+            </div>
+            <p v-if="cartStore.discountError" class="cart-sidebar__discount-error">
+              {{ cartStore.discountError }}
+            </p>
+            <!-- Applied discounts (automatic + manual codes) -->
+            <div v-if="cartStore.automaticDiscounts.length || cartStore.appliedDiscountCodes.length" class="cart-sidebar__discount-applied">
+              <!-- Automatic discounts (can't be removed) -->
+              <div
+                v-for="discount in cartStore.automaticDiscounts"
+                :key="discount.title"
+                class="cart-sidebar__discount-tag"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M12.79 21L3 11.21v2c0 .53.21 1.04.59 1.41l7.79 7.79c.78.78 2.05.78 2.83 0l6.21-6.21c.78-.78.78-2.05 0-2.83z"/>
+                  <path fill="currentColor" d="M11.38 17.41c.39.39.9.59 1.41.59s1.02-.2 1.41-.59l6.21-6.21c.78-.78.78-2.05 0-2.83L12.62.58C12.25.21 11.74 0 11.21 0H5C3.9 0 3 .9 3 2v6.21c0 .53.21 1.04.59 1.41zM5 2h6.21L19 9.79L12.79 16L5 8.21z"/>
+                  <circle cx="7.25" cy="4.25" r="1.25" fill="currentColor"/>
+                </svg>
+                <span>{{ discount.title }}</span>
+              </div>
+              <!-- Manual discount codes (can be removed) -->
+              <div
+                v-for="discount in cartStore.appliedDiscountCodes"
+                :key="discount.code"
+                class="cart-sidebar__discount-tag"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M12.79 21L3 11.21v2c0 .53.21 1.04.59 1.41l7.79 7.79c.78.78 2.05.78 2.83 0l6.21-6.21c.78-.78.78-2.05 0-2.83z"/>
+                  <path fill="currentColor" d="M11.38 17.41c.39.39.9.59 1.41.59s1.02-.2 1.41-.59l6.21-6.21c.78-.78.78-2.05 0-2.83L12.62.58C12.25.21 11.74 0 11.21 0H5C3.9 0 3 .9 3 2v6.21c0 .53.21 1.04.59 1.41zM5 2h6.21L19 9.79L12.79 16L5 8.21z"/>
+                  <circle cx="7.25" cy="4.25" r="1.25" fill="currentColor"/>
+                </svg>
+                <span>{{ discount.code }}</span>
+                <button
+                  class="cart-sidebar__discount-remove"
+                  aria-label="Eliminar código"
+                  @click="cartStore.removeDiscountCode(discount.code)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="cart-sidebar__subtotal">
             <span>Subtotal</span>
             <span class="cart-sidebar__subtotal-price">{{ formatPrice(subtotal) }}</span>
           </div>
+
+          <!-- Discount amount -->
+          <div v-if="cartStore.hasDiscount" class="cart-sidebar__discount-amount">
+            <span>Descuento</span>
+            <span class="cart-sidebar__discount-value">-{{ formatPrice(cartStore.totalDiscount) }}</span>
+          </div>
+
+          <!-- Total -->
+          <div v-if="cartStore.hasDiscount" class="cart-sidebar__total">
+            <span>Total</span>
+            <span class="cart-sidebar__total-price">{{ formatPrice(cartStore.total) }}</span>
+          </div>
+
           <p class="cart-sidebar__shipping">
             Envío calculado en el checkout
           </p>
@@ -322,6 +407,136 @@ onMounted(() => {
     @include hover {
       background: $color-brand-hover;
     }
+  }
+
+  &__discount {
+    margin-bottom: $space-xl;
+  }
+
+  &__discount-input-wrapper {
+    display: flex;
+    gap: $space-md;
+  }
+
+  &__discount-input {
+    @include input-reset;
+    flex: 1;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+    font-family: $font-primary;
+    font-size: 16px;
+    color: #2f3038;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &::placeholder {
+      color: #717680;
+    }
+
+    &:focus {
+      border-color: $color-brand;
+      box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+    }
+  }
+
+  &__discount-btn {
+    @include button-reset;
+    padding: 10px 20px;
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    color: #414651;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+    white-space: nowrap;
+    transition: background-color $transition-fast;
+
+    @include hover {
+      background: #f5f5f5;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background: #ffffff;
+      }
+    }
+  }
+
+  &__discount-error {
+    margin-top: $space-md;
+    font-size: $font-size-xs;
+    color: $color-error;
+  }
+
+  &__discount-applied {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-md;
+    margin-top: $space-lg;
+  }
+
+  &__discount-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #252b37;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: $font-weight-medium;
+    color: #ffffff;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__discount-remove {
+    @include button-reset;
+    @include flex-center;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 2px;
+
+    @include hover {
+      color: #ffffff;
+    }
+  }
+
+  &__discount-amount {
+    @include flex-between;
+    margin-bottom: $space-md;
+    color: $color-brand;
+  }
+
+  &__discount-value {
+    font-weight: $font-weight-semibold;
+  }
+
+  &__total {
+    @include flex-between;
+    margin-bottom: $space-md;
+    padding-top: $space-md;
+    border-top: 1px solid $color-border;
+  }
+
+  &__total-price {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
   }
 }
 

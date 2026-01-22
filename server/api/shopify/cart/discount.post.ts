@@ -1,9 +1,14 @@
 /**
- * POST /api/shopify/cart/update
- * Update line quantities in a Shopify cart
+ * POST /api/shopify/cart/discount
+ * Apply or remove discount codes from a Shopify cart
  */
 
 import { shopifyStorefrontQuery } from '../../../utils/shopify'
+
+interface DiscountCode {
+  code: string
+  applicable: boolean
+}
 
 interface CartDiscountAllocation {
   discountedAmount: { amount: string; currencyCode: string }
@@ -11,8 +16,8 @@ interface CartDiscountAllocation {
   code?: string   // From CartCodeDiscountAllocation
 }
 
-interface CartLinesUpdateResponse {
-  cartLinesUpdate: {
+interface CartResponse {
+  cartDiscountCodesUpdate: {
     cart: {
       id: string
       checkoutUrl: string
@@ -21,10 +26,7 @@ interface CartLinesUpdateResponse {
         subtotalAmount: { amount: string; currencyCode: string }
         totalAmount: { amount: string; currencyCode: string }
       }
-      discountCodes: Array<{
-        code: string
-        applicable: boolean
-      }>
+      discountCodes: DiscountCode[]
       discountAllocations: CartDiscountAllocation[]
       lines: {
         edges: Array<{
@@ -43,13 +45,16 @@ interface CartLinesUpdateResponse {
         }>
       }
     } | null
-    userErrors: Array<{ field: string[]; message: string }>
+    userErrors: Array<{
+      field: string[]
+      message: string
+    }>
   }
 }
 
-const CART_LINES_UPDATE_MUTATION = `
-  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
-    cartLinesUpdate(cartId: $cartId, lines: $lines) {
+const CART_DISCOUNT_MUTATION = `
+  mutation CartDiscountCodesUpdate($cartId: ID!, $discountCodes: [String!]!) {
+    cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
       cart {
         id
         checkoutUrl
@@ -122,33 +127,36 @@ const CART_LINES_UPDATE_MUTATION = `
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { cartId, lines } = body
+  const { cartId, discountCodes } = body
 
-  if (!cartId || !lines || !Array.isArray(lines)) {
-    throw createError({
-      statusCode: 400,
-      message: 'cartId and lines are required',
-    })
+  if (!cartId) {
+    throw createError({ statusCode: 400, message: 'Cart ID required' })
   }
 
-  const data = await shopifyStorefrontQuery<CartLinesUpdateResponse>(
+  if (!Array.isArray(discountCodes)) {
+    throw createError({ statusCode: 400, message: 'discountCodes must be an array' })
+  }
+
+  const data = await shopifyStorefrontQuery<CartResponse>(
     event,
-    CART_LINES_UPDATE_MUTATION,
-    { cartId, lines }
+    CART_DISCOUNT_MUTATION,
+    { cartId, discountCodes }
   )
 
-  if (data.cartLinesUpdate.userErrors.length > 0) {
+  const result = data.cartDiscountCodesUpdate
+
+  if (result.userErrors.length > 0) {
     throw createError({
       statusCode: 400,
-      message: data.cartLinesUpdate.userErrors[0].message,
+      message: result.userErrors[0].message,
     })
   }
 
-  if (!data.cartLinesUpdate.cart) {
-    throw createError({ statusCode: 500, message: 'Failed to update cart' })
+  if (!result.cart) {
+    throw createError({ statusCode: 404, message: 'Cart not found' })
   }
 
-  const cart = data.cartLinesUpdate.cart
+  const cart = result.cart
 
   // Calculate total discount amount
   const totalDiscount = cart.discountAllocations.reduce(

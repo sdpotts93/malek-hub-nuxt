@@ -5,6 +5,12 @@
 
 import { shopifyStorefrontQuery } from '../../../utils/shopify'
 
+interface CartDiscountAllocation {
+  discountedAmount: { amount: string; currencyCode: string }
+  title?: string  // From CartAutomaticDiscountAllocation or CartCustomDiscountAllocation
+  code?: string   // From CartCodeDiscountAllocation
+}
+
 interface CartResponse {
   cart: {
     id: string
@@ -14,6 +20,11 @@ interface CartResponse {
       subtotalAmount: { amount: string; currencyCode: string }
       totalAmount: { amount: string; currencyCode: string }
     }
+    discountCodes: Array<{
+      code: string
+      applicable: boolean
+    }>
+    discountAllocations: CartDiscountAllocation[]
     lines: {
       edges: Array<{
         node: {
@@ -47,6 +58,25 @@ const CART_QUERY = `
         totalAmount {
           amount
           currencyCode
+        }
+      }
+      discountCodes {
+        code
+        applicable
+      }
+      discountAllocations {
+        discountedAmount {
+          amount
+          currencyCode
+        }
+        ... on CartAutomaticDiscountAllocation {
+          title
+        }
+        ... on CartCodeDiscountAllocation {
+          code
+        }
+        ... on CartCustomDiscountAllocation {
+          title
         }
       }
       lines(first: 50) {
@@ -100,12 +130,40 @@ export default defineEventHandler(async (event) => {
   }
 
   const cart = data.cart
+
+  // Calculate total discount amount
+  const totalDiscount = cart.discountAllocations.reduce(
+    (sum, allocation) => sum + parseFloat(allocation.discountedAmount.amount),
+    0
+  )
+
+  // Extract unique automatic/custom discounts (those with title, not code)
+  // Sum amounts for discounts with the same title
+  const discountAmountsByTitle = new Map<string, number>()
+
+  for (const allocation of cart.discountAllocations) {
+    if (allocation.title) {
+      const currentAmount = discountAmountsByTitle.get(allocation.title) || 0
+      discountAmountsByTitle.set(
+        allocation.title,
+        currentAmount + parseFloat(allocation.discountedAmount.amount)
+      )
+    }
+  }
+
+  const automaticDiscounts = Array.from(discountAmountsByTitle.entries()).map(
+    ([title, amount]) => ({ title, amount, type: 'automatic' as const })
+  )
+
   return {
     id: cart.id,
     checkoutUrl: cart.checkoutUrl,
     totalQuantity: cart.totalQuantity,
     subtotal: parseFloat(cart.cost.subtotalAmount.amount),
     total: parseFloat(cart.cost.totalAmount.amount),
+    discountCodes: cart.discountCodes,
+    automaticDiscounts,
+    totalDiscount,
     lines: cart.lines.edges.map(e => ({
       id: e.node.id,
       quantity: e.node.quantity,

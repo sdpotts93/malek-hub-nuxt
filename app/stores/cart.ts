@@ -14,6 +14,17 @@ interface ShopifyCartLine {
   attributes: Array<{ key: string; value: string }>
 }
 
+interface DiscountCode {
+  code: string
+  applicable: boolean
+}
+
+interface AutomaticDiscount {
+  title: string
+  amount: number
+  type: 'automatic'
+}
+
 interface ShopifyCartResponse {
   id: string
   checkoutUrl: string
@@ -21,6 +32,9 @@ interface ShopifyCartResponse {
   subtotal: number
   total: number
   lines: ShopifyCartLine[]
+  discountCodes?: DiscountCode[]
+  automaticDiscounts?: AutomaticDiscount[]
+  totalDiscount?: number
 }
 
 // Internal cart line with design image support
@@ -43,8 +57,14 @@ interface CartState {
   lines: CartLine[]
   totalQuantity: number
   subtotal: number
+  total: number
+  discountCodes: DiscountCode[]
+  automaticDiscounts: AutomaticDiscount[]
+  totalDiscount: number
   isLoading: boolean
+  isApplyingDiscount: boolean
   error: string | null
+  discountError: string | null
 }
 
 export const useCartStore = defineStore('cart', {
@@ -54,8 +74,14 @@ export const useCartStore = defineStore('cart', {
     lines: [],
     totalQuantity: 0,
     subtotal: 0,
+    total: 0,
+    discountCodes: [],
+    automaticDiscounts: [],
+    totalDiscount: 0,
     isLoading: false,
+    isApplyingDiscount: false,
     error: null,
+    discountError: null,
   }),
 
   getters: {
@@ -65,6 +91,12 @@ export const useCartStore = defineStore('cart', {
     getLineImage: () => (line: CartLine): string | null => {
       return line.designImage || line.shopifyImage
     },
+
+    // Get applicable discount codes
+    appliedDiscountCodes: (state) => state.discountCodes.filter(d => d.applicable),
+
+    // Check if there's an active discount
+    hasDiscount: (state) => state.totalDiscount > 0,
   },
 
   actions: {
@@ -95,7 +127,19 @@ export const useCartStore = defineStore('cart', {
       this.checkoutUrl = response.checkoutUrl
       this.totalQuantity = response.totalQuantity
       this.subtotal = response.subtotal
+      this.total = response.total
       this.lines = this._transformLines(response.lines)
+
+      // Update discount info if present
+      if (response.discountCodes) {
+        this.discountCodes = response.discountCodes
+      }
+      if (response.automaticDiscounts) {
+        this.automaticDiscounts = response.automaticDiscounts
+      }
+      if (response.totalDiscount !== undefined) {
+        this.totalDiscount = response.totalDiscount
+      }
 
       // Persist cart ID
       if (import.meta.client && this.cartId) {
@@ -296,6 +340,88 @@ export const useCartStore = defineStore('cart', {
     checkout() {
       if (this.checkoutUrl && import.meta.client) {
         window.location.href = this.checkoutUrl
+      }
+    },
+
+    // Apply a discount code
+    async applyDiscountCode(code: string) {
+      if (!this.cartId || !code.trim()) return
+
+      this.isApplyingDiscount = true
+      this.discountError = null
+
+      try {
+        // Combine existing codes with the new one (if not already present)
+        const existingCodes = this.discountCodes.map(d => d.code)
+        const normalizedCode = code.trim().toUpperCase()
+
+        if (existingCodes.includes(normalizedCode)) {
+          this.discountError = 'Este código ya está aplicado'
+          return
+        }
+
+        const allCodes = [...existingCodes, normalizedCode]
+
+        const response = await $fetch<ShopifyCartResponse>(
+          '/api/shopify/cart/discount',
+          {
+            method: 'POST',
+            body: {
+              cartId: this.cartId,
+              discountCodes: allCodes,
+            },
+          }
+        )
+
+        this._updateFromResponse(response)
+
+        // Check if the new code was actually applied
+        const appliedCode = this.discountCodes.find(
+          d => d.code.toUpperCase() === normalizedCode
+        )
+        if (appliedCode && !appliedCode.applicable) {
+          this.discountError = 'El código no es válido o no aplica a estos productos'
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error al aplicar el código'
+        this.discountError = message
+        console.error('[Cart] Apply discount error:', err)
+      } finally {
+        this.isApplyingDiscount = false
+      }
+    },
+
+    // Remove a discount code
+    async removeDiscountCode(code: string) {
+      if (!this.cartId) return
+
+      this.isApplyingDiscount = true
+      this.discountError = null
+
+      try {
+        // Filter out the code to remove
+        const remainingCodes = this.discountCodes
+          .map(d => d.code)
+          .filter(c => c.toUpperCase() !== code.toUpperCase())
+
+        const response = await $fetch<ShopifyCartResponse>(
+          '/api/shopify/cart/discount',
+          {
+            method: 'POST',
+            body: {
+              cartId: this.cartId,
+              discountCodes: remainingCodes,
+            },
+          }
+        )
+
+        this._updateFromResponse(response)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error al eliminar el código'
+        this.discountError = message
+        console.error('[Cart] Remove discount error:', err)
+      } finally {
+        this.isApplyingDiscount = false
       }
     },
   },
