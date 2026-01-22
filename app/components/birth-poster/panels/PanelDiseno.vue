@@ -39,7 +39,7 @@ const scrollColors = (direction: 'left' | 'right') => {
   <div class="panel-diseno">
 
     <!-- Baby Tabs (if multiple babies and not hidden) -->
-    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" class="panel-diseno__tabs" />
+    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" underline class="panel-diseno__tabs" />
 
     <h3 class="panel-diseno__title">
       <svg class="panel-diseno__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -181,7 +181,6 @@ const scrollColors = (direction: 'left' | 'right') => {
     @include mobile {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
-      border-top: 1px solid #e9eaeb;
       margin-top: 0;
     }
   }

@@ -201,7 +201,7 @@ function formatMinute(minute: number): string {
 <template>
   <div class="panel-datos">
     <!-- Baby Tabs (if multiple babies and not hidden) -->
-    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" class="panel-datos__tabs" />
+    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" underline class="panel-datos__tabs" />
 
     <h3 class="panel-datos__title">
       <svg class="panel-datos__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -460,7 +460,6 @@ function formatMinute(minute: number): string {
     @include mobile {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
-      border-top: 1px solid #e9eaeb;
       margin-left: -20px;
       margin-right: -20px;
       margin-top: 0;
