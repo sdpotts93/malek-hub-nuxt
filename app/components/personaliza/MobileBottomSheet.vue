@@ -29,7 +29,7 @@ function handleOverlayClick() {
     >
       <button class="mobile-bottom-sheet__close" type="button" aria-label="Cerrar" @click="emit('close')">
         <span class="mobile-bottom-sheet__close-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </span>
@@ -94,8 +94,8 @@ function handleOverlayClick() {
     position: absolute;
     top: 16px;
     right: 16px;
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #dbdbdb;
     color: $color-text-primary;
@@ -112,7 +112,7 @@ function handleOverlayClick() {
     @include custom-scrollbar;
     padding: $space-xl;
     padding-inline: 0;
-    padding-top: 64px;
+    padding-top: 40px;
     // Hide content when sheet is closed to prevent showing old panel on reopen
     opacity: 0;
     transition: opacity 0.15s ease;
