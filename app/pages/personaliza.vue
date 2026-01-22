@@ -341,6 +341,7 @@ onBeforeRouteLeave(async () => {
 const navItemsDesktop: { id: PersonalizaPanelType; label: string; icon: string }[] = [
   { id: 'archivo', label: 'Archivo', icon: 'upload' },
   { id: 'texto', label: 'Texto', icon: 'text' },
+  { id: 'margen', label: 'Margen', icon: 'margin' },
   { id: 'medidas', label: 'Medidas', icon: 'ruler' },
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
@@ -425,7 +426,10 @@ async function handleAddToCart() {
       <div v-if="!isMobile" class="personaliza__panel-wrapper">
         <!-- Panel Content (scrollable) -->
         <div class="personaliza__panel-content">
-          <PersonalizaDesignPanelWrapper :active-panel="personalizaStore.activePanel" />
+          <PersonalizaDesignPanelWrapper
+            :active-panel="personalizaStore.activePanel"
+            :show-margin-controls="false"
+          />
         </div>
 
         <!-- Add to Cart Section (fixed at bottom) -->

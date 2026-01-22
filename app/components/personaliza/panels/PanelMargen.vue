@@ -30,7 +30,6 @@ function scrollColors(direction: 'left' | 'right') {
     </div>
 
     <div class="panel-margen__section">
-      <label class="panel-margen__label">Selecciona el margen</label>
       <div class="panel-margen__margin-buttons">
         <button
           :class="[
@@ -149,26 +148,40 @@ function scrollColors(direction: 'left' | 'right') {
 
   &__margin-buttons {
     display: flex;
-    gap: 10px;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   &__margin-btn {
     @include button-reset;
+    @include flex-center;
     flex: 1;
-    padding: 10px 12px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    min-height: 40px;
+    padding: 8px 16px;
     font-family: $font-primary;
-    font-size: 13px;
-    font-weight: $font-weight-medium;
-    color: #2f3038;
-    transition: border-color $transition-fast, background-color $transition-fast, box-shadow $transition-fast;
+    font-size: 14px;
+    font-weight: $font-weight-semibold;
+    background: #f5f5f5;
+    color: #414651;
+    transition: background-color $transition-fast, color $transition-fast;
+    border-right: 1px solid #d5d7da;
+
+    &:last-child {
+      border-right: none;
+    }
 
     &--active {
       background: $color-brand-light;
-      border-color: rgba(14, 19, 24, 0.1);
-      box-shadow: 0 4px 7px rgba(51, 51, 51, 0.08);
+      color: $color-brand;
+      border-right-color: $color-border;
+    }
+
+    @include hover {
+      background: #ebebeb;
+
+      &.panel-margen__margin-btn--active {
+        background: $color-brand-light;
+      }
     }
   }
 
@@ -177,49 +190,78 @@ function scrollColors(direction: 'left' | 'right') {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    padding-right: 20px;
   }
 
   &__color-nav {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    background: #fafafa;
+    border-radius: 5px;
+    padding: 4px 5px;
   }
 
   &__nav-btn {
     @include button-reset;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid #e5e7eb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #4b5563;
+    @include flex-center;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+
+    svg {
+      display: block;
+      stroke: $color-brand;
+    }
+
+    @include hover {
+      opacity: 0.7;
+    }
   }
 
   &__colors-scroll {
     overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 4px;
-    @include custom-scrollbar;
+    overflow-y: visible;
+    padding: 8px 0;
+    margin: -8px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   &__colors {
     display: flex;
-    gap: 10px;
-    padding-right: 20px;
+    gap: 14px;
+    padding-left: 6px;
+
+    &::after {
+      content: '';
+      min-width: 20px;
+      flex-shrink: 0;
+    }
   }
 
   &__color-btn {
     @include button-reset;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    @include flex-center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 100px;
+    border: 1px solid $color-border;
+    transition: box-shadow $transition-fast;
+    position: relative;
+    flex-shrink: 0;
+
+    @include hover {
+      opacity: 0.9;
+    }
 
     &--active {
-      border-color: $color-brand;
-      box-shadow: 0 0 0 2px rgba(255, 145, 75, 0.18);
+      box-shadow: 0 0 0 3px #ffffff, 0 0 0 5.5px #000000;
     }
   }
 }
