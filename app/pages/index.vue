@@ -17,25 +17,28 @@ useSeoMeta({
 
 const tools = [
   {
-    name: 'Birth Poster',
-    description: 'Crea un poster personalizado para celebrar el nacimiento de tu bebé',
-    href: '/birth-poster',
-    available: true,
-    icon: 'baby',
-  },
-  {
     name: 'Personaliza',
-    description: 'Diseña posters personalizados con tus propias fotos y textos',
+    description: 'Crea cuadros únicos con tus fotos o diseños.',
     href: '/personaliza',
     available: true,
     icon: 'palette',
+    buttonText: 'Sube tu imagen aquí',
   },
   {
     name: 'Momentos',
-    description: 'Captura tus momentos más especiales en diseños únicos',
+    description: 'Diseña un collage con tus fotos favoritas.',
     href: '/momentos',
     available: true,
     icon: 'image',
+    buttonText: 'Empieza a diseñar',
+  },
+  {
+    name: 'Póster de nacimiento',
+    description: 'Celebra la llegada de tu bebé.',
+    href: '/birth-poster',
+    available: true,
+    icon: 'baby',
+    buttonText: 'Crea tu recuerdo',
   },
 ]
 </script>
@@ -49,10 +52,10 @@ const tools = [
         <!-- Hero -->
         <section class="home-page__hero">
           <h1 class="home-page__title">
-            Crea diseños <span class="home-page__highlight">personalizados</span>
+            ¿Que vas a diseñar hoy?
           </h1>
           <p class="home-page__subtitle">
-            Herramientas de diseño fáciles de usar para crear posters únicos y memorables
+            Con nuestras herramientas de diseño podrás crear cuadros personalizados 100% a tu estilo.
           </p>
         </section>
 
@@ -95,7 +98,7 @@ const tools = [
                 :to="tool.href"
                 class="tool-card__button"
               >
-                Comenzar
+                {{ tool.buttonText }}
               </NuxtLink>
               <span v-else class="tool-card__coming-soon">
                 Próximamente
