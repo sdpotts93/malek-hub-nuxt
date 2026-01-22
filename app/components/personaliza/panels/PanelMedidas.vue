@@ -11,22 +11,12 @@ const availableSizes = computed(() => {
   }))
 })
 
-// Check orientation for aspect ratio
-const isVertical = computed(() => store.orientation === 'vertical')
-const isSquare = computed(() => store.orientation === 'square')
-
 // Get size dimensions
 function getSizeDimensions(sizeId: PersonalizaSize): { width: number; height: number } {
   const size = store.availableSizes[sizeId]
   if (!size) return { width: 0, height: 0 }
   const [width, height] = size.label.split(' x ').map(s => parseInt(s))
   return { width: width || 0, height: height || 0 }
-}
-
-// Format size label (e.g., "50x70")
-function formatSizeLabel(sizeId: PersonalizaSize): string {
-  const dims = getSizeDimensions(sizeId)
-  return `${dims.width}x${dims.height}`
 }
 </script>
 
@@ -39,35 +29,21 @@ function formatSizeLabel(sizeId: PersonalizaSize): string {
       Medidas del poster
     </h3>
 
-    <!-- Orientation indicator -->
-    <!-- <div class="panel-medidas__orientation">
-      <span class="panel-medidas__orientation-label">Formato:</span>
-      <span class="panel-medidas__orientation-value">
-        {{ store.orientation === 'square' ? 'Cuadrado' : store.orientation === 'horizontal' ? 'Horizontal' : 'Vertical' }}
-      </span>
-    </div> -->
-
-    <!-- Size options -->
-    <div class="panel-medidas__sizes">
-      <div
-        v-for="size in availableSizes"
-        :key="size.id"
-        class="panel-medidas__size-wrapper"
-      >
-        <button
-          :class="[
-            'panel-medidas__size',
-            'panel-medidas__size--' + store.orientation,
-            { 'panel-medidas__size--active': store.posterSize === size.id }
-          ]"
-          @click="store.setPosterSize(size.id)"
+    <!-- Size selector dropdown -->
+    <div class="panel-medidas__field">
+      <label class="panel-medidas__label">
+        Medidas del poster sin marco
+      </label>
+      <div class="panel-medidas__select-wrapper">
+        <select
+          class="panel-medidas__select"
+          :value="store.posterSize"
+          @change="store.setPosterSize(($event.target as HTMLSelectElement).value as PersonalizaSize)"
         >
-          <span class="panel-medidas__size-label">{{ formatSizeLabel(size.id) }}</span>
-        </button>
-        <div class="panel-medidas__size-details">
-          <span class="panel-medidas__size-detail">{{ getSizeDimensions(size.id).width }}cm ancho</span>
-          <span class="panel-medidas__size-detail">{{ getSizeDimensions(size.id).height }}cm alto</span>
-        </div>
+          <option v-for="size in availableSizes" :key="size.id" :value="size.id">
+            {{ getSizeDimensions(size.id).height }} alto x {{ getSizeDimensions(size.id).width }} ancho
+          </option>
+        </select>
       </div>
     </div>
 
@@ -117,100 +93,57 @@ function formatSizeLabel(sizeId: PersonalizaSize): string {
     }
   }
 
-  // Orientation indicator
-  &__orientation {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: #f5f5f5;
-    border-radius: 8px;
-  }
-
-  &__orientation-label {
-    font-family: $font-primary;
-    font-size: 14px;
-    color: #717680;
-  }
-
-  &__orientation-value {
-    font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    color: $color-brand;
-  }
-
-  &__sizes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-
-  &__size-wrapper {
+  &__field {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
+    gap: 12px;
   }
 
-  &__size {
-    @include button-reset;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e9eaeb;
-    border-radius: 12px;
-    background: #ffffff;
-    transition: border-color $transition-fast;
-
-    &--vertical {
-      aspect-ratio: 3 / 4;
-    }
-
-    &--horizontal {
-      aspect-ratio: 4 / 3;
-    }
-
-    &--square {
-      aspect-ratio: 1 / 1;
-    }
-
-    @include hover {
-      border-color: #252b37;
-    }
-
-    &--active {
-      border-color: #252b37;
-      border-width: 2px;
-    }
-  }
-
-  &__size-label {
+  &__label {
     font-family: $font-primary;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: $font-weight-semibold;
+    line-height: 24px;
     color: #2f3038;
-    text-align: center;
+  }
 
-    .panel-medidas__size--active & {
-      color: $color-brand;
+  &__select-wrapper {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #717680;
+      pointer-events: none;
     }
   }
 
-  &__size-details {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-
-  &__size-detail {
+  &__select {
+    @include input-reset;
+    width: 100%;
+    padding: 10px 32px 10px 14px;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
     font-family: $font-primary;
-    font-size: 10px;
-    font-weight: $font-weight-normal;
-    color: #717680;
-    text-align: center;
+    font-size: 16px;
+    color: #2f3038;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &:focus {
+      border-color: $color-brand;
+      box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), 0 0 0 3px rgba(219, 104, 0, 0.1);
+    }
   }
 
   // Info note
