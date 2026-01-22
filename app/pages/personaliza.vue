@@ -598,6 +598,10 @@ async function handleAddToCart() {
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-wrapper {
@@ -611,6 +615,10 @@ async function handleAddToCart() {
     overflow: hidden;
     height: calc(100% - 12px);
     margin-top: auto;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-content {
@@ -705,6 +713,10 @@ async function handleAddToCart() {
     width: 106px; // Fixed width: 82px panel + 24px margin
     background: $color-canvas;
     flex-shrink: 0;
+
+    @include mobile {
+      display: none;
+    }
   }
 }
 </style>
