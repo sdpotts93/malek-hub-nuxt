@@ -792,9 +792,6 @@ function confirmRellenar() {
         </div>
       </div>
 
-      <!-- Separator -->
-      <div class="panel-diseno__separator" />
-
       <!-- Upload button - opens images tab -->
       <div class="panel-diseno__section">
         <button
@@ -807,6 +804,52 @@ function confirmRellenar() {
             <path d="M3.17742 17.9892L9.4991 11.6676C9.87862 11.288 10.0684 11.0983 10.2872 11.0272C10.4797 10.9647 10.687 10.9647 10.8795 11.0272C11.0983 11.0983 11.2881 11.2881 11.6676 11.6676L17.9471 17.9471M12.5 12.5L15.2491 9.7509C15.6286 9.37138 15.8184 9.18162 16.0372 9.11053C16.2297 9.04799 16.437 9.04799 16.6295 9.11053C16.8483 9.18162 17.038 9.37138 17.4176 9.7509L20.1667 12.5M8.66667 6.75C8.66667 7.80855 7.80855 8.66667 6.75 8.66667C5.69145 8.66667 4.83333 7.80855 4.83333 6.75C4.83333 5.69145 5.69145 4.83333 6.75 4.83333C7.80855 4.83333 8.66667 5.69145 8.66667 6.75ZM5.6 18.25H15.5667C17.1768 18.25 17.9819 18.25 18.5969 17.9366C19.1379 17.661 19.5777 17.2212 19.8533 16.6802C20.1667 16.0652 20.1667 15.2602 20.1667 13.65V5.6C20.1667 3.98985 20.1667 3.18477 19.8533 2.56978C19.5777 2.02881 19.1379 1.58899 18.5969 1.31336C17.9819 1 17.1768 1 15.5667 1H5.6C3.98985 1 3.18477 1 2.56978 1.31336C2.02881 1.58899 1.58899 2.02881 1.31336 2.56978C1 3.18477 1 3.98985 1 5.6V13.65C1 15.2602 1 16.0652 1.31336 16.6802C1.58899 17.2212 2.02881 17.661 2.56978 17.9366C3.18477 18.25 3.98985 18.25 5.6 18.25Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+      </div>
+
+      <!-- Separator -->
+      <div class="panel-diseno__separator" />
+
+      <!-- Margin color (always available) -->
+      <div class="panel-diseno__section panel-diseno__section--pr0">
+        <div class="panel-diseno__color-header">
+          <label class="panel-diseno__label">Color del fondo</label>
+          <div class="panel-diseno__color-nav">
+            <button
+              class="panel-diseno__nav-btn"
+              aria-label="Scroll left"
+              @click="scrollColors('left')"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button
+              class="panel-diseno__nav-btn"
+              aria-label="Scroll right"
+              @click="scrollColors('right')"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div ref="colorScrollRef" class="panel-diseno__colors-scroll">
+          <div class="panel-diseno__colors">
+            <button
+              v-for="color in MARGIN_COLORS"
+              :key="color.id"
+              :class="[
+                'panel-diseno__color-btn',
+                { 'panel-diseno__color-btn--active': store.marginColor === color.hex }
+              ]"
+              :style="{ backgroundColor: color.hex }"
+              :aria-label="color.name"
+              :title="color.name"
+              @click="store.setMarginColor(color.hex)"
+            />
+          </div>
+        </div>
       </div>
 
     </div>
