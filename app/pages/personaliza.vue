@@ -349,7 +349,7 @@ const navItemsMobile: { id: PersonalizaPanelType; label: string; icon: string }[
   { id: 'archivo', label: 'Archivo', icon: 'upload' },
   { id: 'margen', label: 'Margen', icon: 'margin' },
   { id: 'texto', label: 'Texto', icon: 'text' },
-  { id: 'medidas', label: 'Formato', icon: 'ruler' },
+  { id: 'medidas', label: 'Medidas', icon: 'ruler' },
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
