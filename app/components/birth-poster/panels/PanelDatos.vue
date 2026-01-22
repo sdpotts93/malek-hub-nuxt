@@ -460,8 +460,8 @@ function formatMinute(minute: number): string {
     @include mobile {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
-      margin-left: -20px;
-      margin-right: -20px;
+      margin-left: 0px;
+      margin-right: 0px;
       margin-top: 0;
     }
   }

@@ -182,6 +182,7 @@ const scrollColors = (direction: 'left' | 'right') => {
       border-top-right-radius: 8px;
       border-top-left-radius: 8px;
       margin-top: 0;
+      margin-inline: 20px;
     }
   }
 
