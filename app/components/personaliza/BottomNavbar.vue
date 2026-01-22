@@ -24,13 +24,16 @@ const store = usePersonalizaStore()
 <template>
   <Teleport to="body">
     <nav class="bottom-navbar">
-      <button class="bottom-navbar__close" type="button" aria-label="Cerrar" @click="emit('close')">
-        <span class="bottom-navbar__close-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </button>
+      <div class="bottom-navbar__close-wrap">
+        <button class="bottom-navbar__close" type="button" aria-label="Cerrar" @click="emit('close')">
+          <span class="bottom-navbar__close-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <span class="bottom-navbar__close-divider" aria-hidden="true" />
+      </div>
 
       <button
         v-for="item in items"
@@ -112,10 +115,24 @@ const store = usePersonalizaStore()
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
     svg {
       width: 24px;
       height: 24px;
     }
+  }
+
+  &__close-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  &__close-divider {
+    width: 1px;
+    height: 44px;
+    background: #d9d9d9;
   }
 
   &__item {

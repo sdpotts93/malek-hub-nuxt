@@ -333,9 +333,9 @@ const navItemsDesktop: { id: PersonalizaPanelType; label: string; icon: string }
 
 const navItemsMobile: { id: PersonalizaPanelType; label: string; icon: string }[] = [
   { id: 'archivo', label: 'Archivo', icon: 'upload' },
-  { id: 'medidas', label: 'Formato', icon: 'ruler' },
-  { id: 'texto', label: 'Texto', icon: 'text' },
   { id: 'margen', label: 'Margen', icon: 'margin' },
+  { id: 'texto', label: 'Texto', icon: 'text' },
+  { id: 'medidas', label: 'Formato', icon: 'ruler' },
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
