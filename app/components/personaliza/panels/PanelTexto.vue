@@ -73,7 +73,7 @@ function scrollColors(direction: 'left' | 'right') {
         :value="store.title"
         placeholder="Ej: Nuestra boda"
         class="panel-texto__input"
-        maxlength="50"
+        maxlength="30"
         @input="store.setTitle(($event.target as HTMLInputElement).value)"
       >
     </div>
@@ -86,7 +86,7 @@ function scrollColors(direction: 'left' | 'right') {
         :value="store.subtitle"
         placeholder="Ej: 15 de marzo, 2024"
         class="panel-texto__input"
-        maxlength="100"
+        maxlength="30"
         @input="store.setSubtitle(($event.target as HTMLInputElement).value)"
       >
     </div>

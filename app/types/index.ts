@@ -223,25 +223,25 @@ export const POSTER_SIZES: Record<PosterSize, { width: number; height: number; l
 }
 
 export const ILLUSTRATION_COLORS = [
-  { id: 'black', name: 'Negro', hex: '#000000', filter: 'none' },
-  { id: 'dark-cream', name: 'Crema', hex: '#8B7355', filter: 'invert(44%) sepia(15%) saturate(735%) hue-rotate(357deg) brightness(93%) contrast(87%)' },
-  { id: 'dark-tan', name: 'Arena', hex: '#A0826D', filter: 'invert(53%) sepia(12%) saturate(737%) hue-rotate(351deg) brightness(92%) contrast(88%)' },
-  { id: 'dark-blue', name: 'Azul', hex: '#2C5F7C', filter: 'invert(32%) sepia(25%) saturate(884%) hue-rotate(165deg) brightness(93%) contrast(89%)' },
-  { id: 'medium-dark-blue', name: 'Azul medio', hex: '#3D6B8A', filter: 'invert(40%) sepia(20%) saturate(746%) hue-rotate(165deg) brightness(89%) contrast(88%)' },
-  { id: 'dark-purple', name: 'Lila', hex: '#5D4E6D', filter: 'invert(32%) sepia(10%) saturate(872%) hue-rotate(229deg) brightness(93%) contrast(87%)' },
-  { id: 'dark-gray', name: 'Gris', hex: '#4A4A4A', filter: 'invert(27%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(56%) contrast(89%)' },
-  { id: 'dark-peach', name: 'Durazno', hex: '#A66B4F', filter: 'invert(44%) sepia(25%) saturate(689%) hue-rotate(338deg) brightness(88%) contrast(87%)' },
+  { id: 'none', name: 'Negro', hex: '#000000', filter: 'none' },
+  { id: 'cream-light', name: 'Crema claro', hex: '#8B8680', filter: 'invert(55%) sepia(8%) saturate(200%) hue-rotate(15deg) brightness(90%) contrast(88%)' },
+  { id: 'cream', name: 'Crema', hex: '#7A7166', filter: 'invert(47%) sepia(10%) saturate(250%) hue-rotate(15deg) brightness(88%) contrast(86%)' },
+  { id: 'light-blue', name: 'Azul', hex: '#2A525C', filter: 'invert(30%) sepia(25%) saturate(600%) hue-rotate(160deg) brightness(80%) contrast(92%)' },
+  { id: 'light-gray', name: 'Gris', hex: '#6B6D6E', filter: 'invert(45%) sepia(3%) saturate(100%) hue-rotate(180deg) brightness(90%) contrast(90%)' },
+  { id: 'peach-light', name: 'Durazno', hex: '#9B8672', filter: 'invert(55%) sepia(15%) saturate(350%) hue-rotate(15deg) brightness(88%) contrast(86%)' },
+  { id: 'salmon', name: 'Salmón', hex: '#A67B70', filter: 'invert(52%) sepia(20%) saturate(400%) hue-rotate(340deg) brightness(88%) contrast(88%)' },
+  { id: 'tan', name: 'Caramelo', hex: '#8B6B4A', filter: 'invert(42%) sepia(25%) saturate(500%) hue-rotate(15deg) brightness(85%) contrast(88%)' },
 ]
 
 export const BACKGROUND_COLORS = [
   { id: 'white', name: 'Blanco', hex: '#fafafa' },
-  { id: 'cream-1', name: 'Crema', hex: '#f8f6f2' },
-  { id: 'cream-2', name: 'Crema claro', hex: '#faf8f4' },
-  { id: 'light-blue', name: 'Azul claro', hex: '#d9ebf1' },
-  { id: 'medium-blue', name: 'Azul medio', hex: '#80b2cd' },
-  { id: 'light-purple', name: 'Lila', hex: '#dedae8' },
-  { id: 'gray', name: 'Gris', hex: '#d2d3d4' },
-  { id: 'peach', name: 'Durazno', hex: '#fbf1e8' },
+  { id: 'cream-light', name: 'Crema claro', hex: '#f6f4f2' },
+  { id: 'cream', name: 'Crema', hex: '#f3eeea' },
+  { id: 'light-blue', name: 'Azul claro', hex: '#cee5eb' },
+  { id: 'light-gray', name: 'Gris claro', hex: '#e6e7e8' },
+  { id: 'peach-light', name: 'Durazno claro', hex: '#f5eadd' },
+  { id: 'salmon', name: 'Salmón', hex: '#e6cac0' },
+  { id: 'tan', name: 'Caramelo', hex: '#e1b794' },
 ]
 
 // Baby illustration styles with thumbnails and full images
@@ -281,7 +281,7 @@ export const getStyleById = (styleId: string): BabyStyleConfig | undefined => {
 export const createDefaultBabyConfig = (): BabyConfig => ({
   orientation: 'izquierda',
   styleId: 'ac1',
-  illustrationColor: '#000000',
+  illustrationColor: '#000000', // First color in ILLUSTRATION_COLORS (Negro/none)
   nombre: '',
   altura: 50,
   peso: null,

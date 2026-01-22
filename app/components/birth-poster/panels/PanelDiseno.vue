@@ -116,13 +116,16 @@ const scrollColors = (direction: 'left' | 'right') => {
             :key="color.id"
             :class="[
               'panel-diseno__color-btn',
-              { 'panel-diseno__color-btn--active': store.currentBaby.illustrationColor === color.hex }
+              { 'panel-diseno__color-btn--active': store.currentBaby.illustrationColor === color.hex },
+              { 'panel-diseno__color-btn--none': color.id === 'none' }
             ]"
-            :style="{ backgroundColor: color.hex }"
+            :style="color.id !== 'none' ? { backgroundColor: color.hex } : undefined"
             :aria-label="color.name"
             :title="color.name"
             @click="store.setBabyColor(color.hex)"
-          />
+          >
+            <span v-if="color.id === 'none'" class="panel-diseno__color-none" />
+          </button>
         </div>
       </div>
     </div>
@@ -349,9 +352,33 @@ const scrollColors = (direction: 'left' | 'right') => {
       box-shadow: 0 0 0 3px #ffffff, 0 0 0 5.5px #000000;
     }
 
+    &--none {
+      background-color: #ffffff;
+    }
+
     svg {
       color: #ffffff;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    }
+  }
+
+  &__color-none {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80%;
+      height: 2px;
+      background-color: #d1d5db;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      border-radius: 1px;
     }
   }
 }
