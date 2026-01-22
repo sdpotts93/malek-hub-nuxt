@@ -111,7 +111,7 @@ import type { MomentosState } from '~/stores/momentos'
 export type DesignState = BirthPosterState | PersonalizaState | MomentosState
 
 // Personaliza types
-export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
+export type PersonalizaPanelType = 'archivo' | 'texto' | 'margen' | 'medidas' | 'marco'
 export type ImageFormat = '1:1' | '7:5' | '5:7'
 export type TextStyle = 'moderno' | 'clasico' | 'minimalista'
 export type SquareSize = '50x50'
@@ -147,6 +147,7 @@ export interface PersonalizaState {
   showSizeWarning: boolean
   sizeWarningAcknowledged: boolean
   isImageReady: boolean
+  scrollToWarningTrigger: number
 }
 
 export interface SavedDesign<T = DesignState> {

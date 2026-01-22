@@ -54,40 +54,35 @@ const formattedComparePrice = computed(() => {
   return props.compareAtPrice !== null ? formatPrice(props.compareAtPrice) : ''
 })
 
-// Calculate discount percentage
-const discountPercent = computed(() => {
-  if (props.compareAtPrice === null || props.compareAtPrice <= props.price) return 0
-  return Math.round((1 - props.price / props.compareAtPrice) * 100)
-})
 </script>
 
 <template>
   <Teleport to="body">
     <div class="mobile-add-to-cart-bar">
-    <!-- Price Info -->
-    <div class="mobile-add-to-cart-bar__info">
-      <div class="mobile-add-to-cart-bar__prices">
-        <span class="mobile-add-to-cart-bar__price">
-          {{ formatPrice(price) }}
-        </span>
-        <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
-          {{ formattedComparePrice }}
+      <!-- Price Info -->
+      <div class="mobile-add-to-cart-bar__info">
+        <div class="mobile-add-to-cart-bar__prices">
+          <span class="mobile-add-to-cart-bar__price">
+            {{ formatPrice(price) }}
+          </span>
+          <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
+            {{ formattedComparePrice }}
+          </span>
+        </div>
+        <span class="mobile-add-to-cart-bar__shipping">
+          Envio Gratuito 3-5 dias
         </span>
       </div>
-      <span v-if="discountPercent > 0" class="mobile-add-to-cart-bar__discount">
-        -{{ discountPercent }}%
-      </span>
-    </div>
 
-    <!-- Add to Cart Button -->
-    <button
-      class="mobile-add-to-cart-bar__button"
-      :disabled="isLoading"
-      @click="handleAddToCartClick"
-    >
-      <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
-      <span v-else>Agregar al carrito</span>
-    </button>
+      <!-- Add to Cart Button -->
+      <button
+        class="mobile-add-to-cart-bar__button"
+        :disabled="isLoading"
+        @click="handleAddToCartClick"
+      >
+        <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
+        <span v-else>Agregar al carrito</span>
+      </button>
 
     <!-- Warning Modal for Missing Elements -->
     <Transition name="modal">
@@ -141,36 +136,38 @@ const discountPercent = computed(() => {
 <style lang="scss" scoped>
 .mobile-add-to-cart-bar {
   position: fixed;
-  bottom: $bottom-navbar-height;
+  bottom: 0;
   left: 0;
   right: 0;
-  height: $mobile-cart-bar-height;
-  background: $color-bg-primary;
-  border-top: 1px solid $color-border;
-  padding: $space-lg $space-xl;
+  height: 88px;
+  background: #ffffff;
+  border-top: 1px solid #f5f5f5;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $space-lg;
+  gap: 10px;
   z-index: $z-fixed + 1;
 
   &__info {
     display: flex;
-    align-items: center;
-    gap: $space-md;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
 
   &__prices {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   &__price {
-    font-size: $font-size-lg;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-    line-height: 1.2;
+    font-size: 24px;
+    font-weight: $font-weight-semibold;
+    color: #181d27;
+    line-height: 1.3;
   }
 
   &__compare-price {
@@ -179,30 +176,26 @@ const discountPercent = computed(() => {
     text-decoration: line-through;
   }
 
-  &__discount {
-    padding: $space-xs $space-md;
-    background: $color-brand-light;
-    color: $color-brand;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-bold;
-    border-radius: $radius-full;
+  &__shipping {
+    font-size: 12px;
+    font-weight: $font-weight-medium;
+    color: #181d27;
   }
 
   &__button {
     @include button-reset;
     @include flex-center;
-    flex: 1;
-    max-width: 200px;
-    padding: $space-lg $space-xl;
-    background: $color-brand;
-    color: $color-text-inverse;
-    font-size: $font-size-sm;
+    flex: 1 0 0;
+    padding: 10px 16px;
+    background: #414651;
+    color: #ffffff;
+    font-size: 16px;
     font-weight: $font-weight-semibold;
-    border-radius: $radius-lg;
+    border-radius: 8px;
     transition: background-color $transition-fast, opacity $transition-fast;
 
     @include hover {
-      background: $color-brand-hover;
+      background: #343741;
     }
 
     &:disabled {

@@ -100,9 +100,9 @@ function handleOverlayClick() {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: $z-fixed;
-  // Account for bottom navbar + cart bar
-  bottom: calc(#{$bottom-navbar-height} + #{$mobile-cart-bar-height});
   // Start invisible
   opacity: 0;
   visibility: hidden;
@@ -118,8 +118,7 @@ function handleOverlayClick() {
 
 .mobile-bottom-sheet {
   position: fixed;
-  // Position above bottom navbar + cart bar
-  bottom: calc(#{$mobile-cart-bar-height});
+  bottom: 0;
   left: 0;
   right: 0;
   // Fixed height to prevent resizing when switching tabs

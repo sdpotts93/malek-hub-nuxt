@@ -51,6 +51,12 @@ const store = usePersonalizaStore()
         <svg v-else-if="item.id === 'texto'" class="sidebar-nav__svg" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M1 3.875C1 2.98195 1 2.53542 1.1459 2.18319C1.34043 1.71355 1.71355 1.34043 2.18319 1.1459C2.53542 1 2.98195 1 3.875 1H13.4583C14.3514 1 14.7979 1 15.1501 1.1459C15.6198 1.34043 15.9929 1.71355 16.1874 2.18319C16.3333 2.53542 16.3333 2.98195 16.3333 3.875M5.79167 16.3333H11.5417M8.66667 1V16.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
+        <!-- Margen icon -->
+        <svg v-else-if="item.id === 'margen'" class="sidebar-nav__svg" width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.4583 3.39583L9.625 7.22917L5.79167 3.39583" fill="currentColor" fill-opacity="0.2"/>
+          <path d="M13.4583 17.7708L9.625 13.9375L5.79167 17.7708" fill="currentColor" fill-opacity="0.2"/>
+          <path d="M1 10.5833H18.25M9.625 1V7.22917M9.625 7.22917L13.4583 3.39583M9.625 7.22917L5.79167 3.39583M9.625 20.1667V13.9375M9.625 13.9375L13.4583 17.7708M9.625 13.9375L5.79167 17.7708" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
 
         <!-- Medidas (ruler) icon -->
         <svg v-else-if="item.id === 'medidas'" class="sidebar-nav__svg" width="23" height="23" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -5,7 +5,7 @@ import type { FrameStyle } from '~/types'
 // Personaliza Types
 // ==========================================================================
 
-export type PersonalizaPanelType = 'archivo' | 'texto' | 'medidas' | 'marco'
+export type PersonalizaPanelType = 'archivo' | 'texto' | 'margen' | 'medidas' | 'marco'
 
 // Image format options (matches poster aspect ratios)
 export type ImageFormat = '1:1' | '7:5' | '5:7'

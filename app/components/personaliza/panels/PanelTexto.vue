@@ -4,6 +4,14 @@ import { MARGIN_COLORS } from '~/stores/personaliza'
 
 const store = usePersonalizaStore()
 
+interface Props {
+  showMarginControls?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showMarginControls: true,
+})
+
 // Text style options with font info for button preview
 const textStyles: { id: TextStyle; label: string }[] = [
   { id: 'moderno', label: 'Moderno' },
@@ -84,82 +92,84 @@ function scrollColors(direction: 'left' | 'right') {
     </div>
 
     <!-- Separator -->
-    <div class="panel-texto__separator" />
+    <template v-if="props.showMarginControls">
+      <div class="panel-texto__separator" />
 
-    <!-- Margin selector -->
-    <div class="panel-texto__section">
-      <label class="panel-texto__label panel-texto__label--with-icon">
-        <svg class="panel-texto__label-icon" width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.4583 3.39583L9.625 7.22917L5.79167 3.39583" fill="currentColor" fill-opacity="0.2"/>
-          <path d="M13.4583 17.7708L9.625 13.9375L5.79167 17.7708" fill="currentColor" fill-opacity="0.2"/>
-          <path d="M1 10.5833H18.25M9.625 1V7.22917M9.625 7.22917L13.4583 3.39583M9.625 7.22917L5.79167 3.39583M9.625 20.1667V13.9375M9.625 13.9375L13.4583 17.7708M9.625 13.9375L5.79167 17.7708" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Margen
-      </label>
-      <div class="panel-texto__margin-buttons">
-        <button
-          :class="[
-            'panel-texto__margin-btn',
-            { 'panel-texto__margin-btn--active': store.hasMargin }
-          ]"
-          @click="store.setHasMargin(true)"
-        >
-          Con margen
-        </button>
-        <button
-          :class="[
-            'panel-texto__margin-btn',
-            { 'panel-texto__margin-btn--active': !store.hasMargin }
-          ]"
-          @click="store.setHasMargin(false)"
-        >
-          Sin margen
-        </button>
-      </div>
-    </div>
-
-    <!-- Margin color (only if margin is enabled) -->
-    <div v-if="store.hasMargin" class="panel-texto__section panel-texto__section--pr0">
-      <div class="panel-texto__color-header">
-        <label class="panel-texto__label">Color del margen</label>
-        <div class="panel-texto__color-nav">
+      <!-- Margin selector -->
+      <div class="panel-texto__section">
+        <label class="panel-texto__label panel-texto__label--with-icon">
+          <svg class="panel-texto__label-icon" width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.4583 3.39583L9.625 7.22917L5.79167 3.39583" fill="currentColor" fill-opacity="0.2"/>
+            <path d="M13.4583 17.7708L9.625 13.9375L5.79167 17.7708" fill="currentColor" fill-opacity="0.2"/>
+            <path d="M1 10.5833H18.25M9.625 1V7.22917M9.625 7.22917L13.4583 3.39583M9.625 7.22917L5.79167 3.39583M9.625 20.1667V13.9375M9.625 13.9375L13.4583 17.7708M9.625 13.9375L5.79167 17.7708" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Margen
+        </label>
+        <div class="panel-texto__margin-buttons">
           <button
-            class="panel-texto__nav-btn"
-            aria-label="Scroll left"
-            @click="scrollColors('left')"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button
-            class="panel-texto__nav-btn"
-            aria-label="Scroll right"
-            @click="scrollColors('right')"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div ref="colorScrollRef" class="panel-texto__colors-scroll">
-        <div class="panel-texto__colors">
-          <button
-            v-for="color in MARGIN_COLORS"
-            :key="color.id"
             :class="[
-              'panel-texto__color-btn',
-              { 'panel-texto__color-btn--active': store.marginColor === color.hex }
+              'panel-texto__margin-btn',
+              { 'panel-texto__margin-btn--active': store.hasMargin }
             ]"
-            :style="{ backgroundColor: color.hex }"
-            :aria-label="color.name"
-            :title="color.name"
-            @click="store.setMarginColor(color.hex)"
-          />
+            @click="store.setHasMargin(true)"
+          >
+            Con margen
+          </button>
+          <button
+            :class="[
+              'panel-texto__margin-btn',
+              { 'panel-texto__margin-btn--active': !store.hasMargin }
+            ]"
+            @click="store.setHasMargin(false)"
+          >
+            Sin margen
+          </button>
         </div>
       </div>
-    </div>
+
+      <!-- Margin color (only if margin is enabled) -->
+      <div v-if="store.hasMargin" class="panel-texto__section panel-texto__section--pr0">
+        <div class="panel-texto__color-header">
+          <label class="panel-texto__label">Color del margen</label>
+          <div class="panel-texto__color-nav">
+            <button
+              class="panel-texto__nav-btn"
+              aria-label="Scroll left"
+              @click="scrollColors('left')"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button
+              class="panel-texto__nav-btn"
+              aria-label="Scroll right"
+              @click="scrollColors('right')"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div ref="colorScrollRef" class="panel-texto__colors-scroll">
+          <div class="panel-texto__colors">
+            <button
+              v-for="color in MARGIN_COLORS"
+              :key="color.id"
+              :class="[
+                'panel-texto__color-btn',
+                { 'panel-texto__color-btn--active': store.marginColor === color.hex }
+              ]"
+              :style="{ backgroundColor: color.hex }"
+              :aria-label="color.name"
+              :title="color.name"
+              @click="store.setMarginColor(color.hex)"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PersonalizaPanelType } from '~/stores/personaliza'
+import PersonalizaMobileEditorPanel from '~/components/personaliza/MobileEditorPanel.vue'
 import type { PersonalizaState } from '~/types'
 import { isBlobUrl } from '~/utils/imageUtils'
 
@@ -58,17 +59,53 @@ const canProceed = computed(() => personalizaStore.hasImage)
 
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
+const isMobileEditorOpen = ref(false)
+const mobileStyleVars = computed<Record<string, string> | undefined>(() => {
+  if (!isMobile.value) return undefined
+
+  let canvasOffset = '88px'
+  if (isMobileSheetOpen.value || !personalizaStore.hasImage) {
+    canvasOffset = '0px'
+  } else if (isMobileEditorOpen.value) {
+    canvasOffset = '260px'
+  }
+
+  return {
+    '--personaliza-mobile-nav-height': '88px',
+    '--personaliza-mobile-canvas-offset': canvasOffset,
+  }
+})
 
 // Handle mobile panel selection
 async function handleMobilePanelSelect(panel: PersonalizaPanelType) {
+  if (!personalizaStore.hasImage) return
   personalizaStore.setActivePanel(panel)
-  // Wait for Vue to render the new panel before opening the sheet
   await nextTick()
-  isMobileSheetOpen.value = true
+  isMobileSheetOpen.value = false
+  isMobileEditorOpen.value = true
 }
 
 function handleMobileSheetClose() {
+  if (!personalizaStore.hasImage) return
   isMobileSheetOpen.value = false
+}
+
+function toggleMobileEditor() {
+  if (!personalizaStore.hasImage) return
+  const nextOpen = !isMobileEditorOpen.value
+  isMobileEditorOpen.value = nextOpen
+  if (nextOpen) {
+    isMobileSheetOpen.value = false
+  }
+}
+
+function closeMobileEditor() {
+  isMobileEditorOpen.value = false
+}
+
+function openArchivoSheet() {
+  personalizaStore.setActivePanel('archivo')
+  isMobileSheetOpen.value = true
 }
 
 // Track if design has been modified since last save
@@ -253,6 +290,35 @@ onMounted(async () => {
   })
 })
 
+watch(
+  [isMobile, () => personalizaStore.hasImage],
+  ([isMobileValue, hasImage], [wasMobile, hadImage]) => {
+    if (!isMobileValue) {
+      isMobileSheetOpen.value = false
+      isMobileEditorOpen.value = false
+      if (personalizaStore.activePanel === 'margen') {
+        personalizaStore.setActivePanel('texto')
+      }
+      return
+    }
+
+    if (!hasImage) {
+      personalizaStore.setActivePanel('archivo')
+      isMobileSheetOpen.value = true
+      isMobileEditorOpen.value = false
+      return
+    }
+
+    if (wasMobile && !hadImage && hasImage) {
+      isMobileSheetOpen.value = false
+    }
+
+    if (personalizaStore.activePanel === 'margen' && !isMobileEditorOpen.value) {
+      personalizaStore.setActivePanel('texto')
+    }
+  }
+)
+
 // Also save when navigating via Vue Router
 onBeforeRouteLeave(async () => {
   await saveCurrentDesign()
@@ -260,10 +326,18 @@ onBeforeRouteLeave(async () => {
 })
 
 // Panel navigation items
-const navItems: { id: PersonalizaPanelType; label: string; icon: string }[] = [
+const navItemsDesktop: { id: PersonalizaPanelType; label: string; icon: string }[] = [
   { id: 'archivo', label: 'Archivo', icon: 'upload' },
   { id: 'texto', label: 'Texto', icon: 'text' },
   { id: 'medidas', label: 'Medidas', icon: 'ruler' },
+  { id: 'marco', label: 'Marco', icon: 'frame' },
+]
+
+const navItemsMobile: { id: PersonalizaPanelType; label: string; icon: string }[] = [
+  { id: 'archivo', label: 'Archivo', icon: 'upload' },
+  { id: 'medidas', label: 'Formato', icon: 'ruler' },
+  { id: 'texto', label: 'Texto', icon: 'text' },
+  { id: 'margen', label: 'Margen', icon: 'margin' },
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
@@ -272,6 +346,7 @@ async function handleEditFromModal() {
   personalizaStore.setActivePanel('archivo')
   if (isMobile.value) {
     await nextTick()
+    isMobileEditorOpen.value = false
     isMobileSheetOpen.value = true
   }
   // If there's a size warning, scroll to it
@@ -319,7 +394,7 @@ async function handleAddToCart() {
 </script>
 
 <template>
-  <div class="personaliza tool-page">
+  <div class="personaliza tool-page" :style="mobileStyleVars">
     <!-- Header -->
     <SharedTheHeader />
 
@@ -328,7 +403,7 @@ async function handleAddToCart() {
       <!-- Desktop: Sidebar Navigation -->
       <aside v-if="!isMobile" class="personaliza__sidebar">
         <PersonalizaSidebarNavigation
-          :items="navItems"
+          :items="navItemsDesktop"
           :active-panel="personalizaStore.activePanel"
           @select="personalizaStore.setActivePanel"
         />
@@ -372,9 +447,38 @@ async function handleAddToCart() {
       </aside>
     </main>
 
+    <!-- Mobile: Inline Edit Panel -->
+    <div
+      v-if="isMobile && isMobileEditorOpen && !isMobileSheetOpen && personalizaStore.hasImage"
+      class="personaliza__mobile-panel"
+    >
+      <div class="personaliza__mobile-panel-content">
+        <PersonalizaMobileEditorPanel
+          :active-panel="personalizaStore.activePanel"
+          @change-image="openArchivoSheet"
+        />
+      </div>
+    </div>
+
+    <!-- Mobile: Floating Edit Button -->
+    <button
+      v-if="isMobile && personalizaStore.hasImage && !isMobileEditorOpen && !isMobileSheetOpen"
+      type="button"
+      class="personaliza__mobile-edit-button"
+      aria-label="Editar"
+      @click="toggleMobileEditor"
+    >
+      <span class="personaliza__mobile-edit-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 17.25V21h3.75L17.8 9.95l-3.75-3.75L3 17.25Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14.06 6.19 17.81 9.94" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </button>
+
     <!-- Mobile: Fixed Add to Cart Bar -->
     <PersonalizaMobileAddToCartBar
-      v-if="isMobile"
+      v-if="isMobile && !isMobileEditorOpen && !isMobileSheetOpen"
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
@@ -386,10 +490,11 @@ async function handleAddToCart() {
 
     <!-- Mobile: Bottom Navbar -->
     <PersonalizaBottomNavbar
-      v-if="isMobile"
-      :items="navItems"
-      :active-panel="isMobileSheetOpen ? personalizaStore.activePanel : null"
+      v-if="isMobile && isMobileEditorOpen && !isMobileSheetOpen"
+      :items="navItemsMobile"
+      :active-panel="personalizaStore.activePanel"
       @select="handleMobilePanelSelect"
+      @close="closeMobileEditor"
     />
 
     <!-- Mobile: Bottom Sheet -->
@@ -398,7 +503,7 @@ async function handleAddToCart() {
       :is-open="isMobileSheetOpen"
       @close="handleMobileSheetClose"
     >
-      <PersonalizaDesignPanelWrapper :active-panel="personalizaStore.activePanel" />
+      <PersonalizaPanelsPanelArchivo />
     </PersonalizaMobileBottomSheet>
 
     <!-- Mobile Nav Wrapper (History/Home overlay) -->
@@ -486,8 +591,58 @@ async function handleAddToCart() {
     justify-content: center;
     container-type: size;
     @include mobile {
-      height: calc(100% - 136px);
+      height: calc(100% - var(--personaliza-mobile-canvas-offset, 136px));
       align-items: center;
+    }
+  }
+
+  &__mobile-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--personaliza-mobile-nav-height, #{$bottom-navbar-height});
+    background: #ffffff;
+    border-top: 1px solid #f5f5f5;
+    box-shadow: 0 -1px 3px rgba(10, 13, 18, 0.05);
+    z-index: $z-fixed + 1;
+    padding: 16px 24px;
+  }
+
+  &__mobile-panel-content {
+    width: 100%;
+  }
+
+  &__mobile-edit-button {
+    @include button-reset;
+    position: fixed;
+    bottom: 104px;
+    right: 20px;
+    width: 72px;
+    height: 72px;
+    border-radius: 100px;
+    border: none;
+    background: #ffffff;
+    color: #414651;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    z-index: $z-fixed + 3;
+    transition: transform $transition-fast;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  &__mobile-edit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 28px;
+      height: 28px;
     }
   }
 

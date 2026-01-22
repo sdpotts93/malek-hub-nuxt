@@ -3,9 +3,12 @@ import type { PersonalizaPanelType } from '~/stores/personaliza'
 
 interface Props {
   activePanel: PersonalizaPanelType
+  showMarginControls?: boolean
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showMarginControls: true,
+})
 </script>
 
 <template>
@@ -14,7 +17,12 @@ defineProps<Props>()
       <!-- Only keep PanelArchivo alive (has CropperJS that's expensive to reinit) -->
       <KeepAlive include="PersonalizaPanelsPanelArchivo">
         <PersonalizaPanelsPanelArchivo v-if="activePanel === 'archivo'" key="archivo" />
-        <PersonalizaPanelsPanelTexto v-else-if="activePanel === 'texto'" key="texto" />
+        <PersonalizaPanelsPanelTexto
+          v-else-if="activePanel === 'texto'"
+          key="texto"
+          :show-margin-controls="props.showMarginControls"
+        />
+        <PersonalizaPanelsPanelMargen v-else-if="activePanel === 'margen'" key="margen" />
         <PersonalizaPanelsPanelMedidas v-else-if="activePanel === 'medidas'" key="medidas" />
         <PersonalizaPanelsPanelMarco v-else-if="activePanel === 'marco'" key="marco" />
       </KeepAlive>
