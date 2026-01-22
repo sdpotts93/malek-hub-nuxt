@@ -161,6 +161,15 @@ function handleFileSelect() {
   fileInput.value?.click()
 }
 
+// Handle "Cargar Archivos" button - switch to images tab and open file selector
+function handleCargarArchivos() {
+  store.setActiveDisenoTab('imagenes')
+  // Use nextTick to ensure tab switch happens first
+  nextTick(() => {
+    handleFileSelect()
+  })
+}
+
 async function handleFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
@@ -792,11 +801,11 @@ function confirmRellenar() {
         </div>
       </div>
 
-      <!-- Upload button - opens images tab -->
+      <!-- Upload button - opens images tab and file selector -->
       <div class="panel-diseno__section">
         <button
           class="panel-diseno__change-btn"
-          @click="store.setActiveDisenoTab('imagenes')"
+          @click="handleCargarArchivos"
         >
           Cargar Archivos
           <svg width="20" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1520,14 +1529,15 @@ function confirmRellenar() {
   &__change-btn {
     @include button-reset;
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 16px;
     font-family: $font-primary;
     font-size: 14px;
     font-weight: $font-weight-semibold;
-    color: $color-brand;
-    background: transparent;
-    border: 1px solid $color-brand;
+    color: #414651;
+    background: #ffffff;
+    border: 1px solid #d5d7da;
     border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1540,7 +1550,7 @@ function confirmRellenar() {
     }
 
     @include hover {
-      background: $color-brand-light;
+      background: #f5f5f5;
     }
   }
 
@@ -1790,9 +1800,10 @@ function confirmRellenar() {
     @include button-reset;
     width: 100%;
     padding: 10px 16px;
-    background: #252b37;
-    border: 2px solid rgba(255, 255, 255, 0.12);
+    background: #ffffff;
+    border: 1px solid #d5d7da;
     border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1800,12 +1811,12 @@ function confirmRellenar() {
     font-family: $font-primary;
     font-size: 14px;
     font-weight: $font-weight-semibold;
-    color: white;
+    color: #414651;
     cursor: pointer;
     transition: background-color $transition-fast;
 
     @include hover {
-      background: #1a1f28;
+      background: #f5f5f5;
     }
   }
 
