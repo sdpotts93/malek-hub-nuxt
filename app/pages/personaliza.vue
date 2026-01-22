@@ -250,8 +250,15 @@ watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
 
 // Check mobile on mount and initialize cart
 onMounted(async () => {
-  // Initialize Shopify cart and fetch personaliza product variants
-  await Promise.all([
+  // Check mobile FIRST so the upload sheet shows immediately if needed
+  const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
+  // Initialize Shopify cart and fetch personaliza product variants (non-blocking for UI)
+  Promise.all([
     cart.init(),
     cart.fetchPersonalizaProducts(),
   ])
@@ -280,12 +287,6 @@ onMounted(async () => {
 
   // Store initial state to track changes (after autosave restore)
   lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
-
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
 
   // Auto-save on page unload (browser close/refresh)
   // Note: This is synchronous, so we can't convert blob URLs here
