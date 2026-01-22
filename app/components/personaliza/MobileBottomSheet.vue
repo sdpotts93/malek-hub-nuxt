@@ -97,7 +97,7 @@ function handleOverlayClick() {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #f5f5f5;
+    background: #dbdbdb;
     color: $color-text-primary;
     display: flex;
     align-items: center;

@@ -123,7 +123,7 @@ function handleOverlayClick() {
   left: 0;
   right: 0;
   // Fixed height to prevent resizing when switching tabs
-  height: calc(55vh + 70px);  
+  max-height: 80vh;
   background: $color-bg-primary;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
