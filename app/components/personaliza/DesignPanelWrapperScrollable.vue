@@ -30,6 +30,10 @@ const sectionRefs = computed(() => ({
   marco: marcoRef.value,
 }))
 
+// Track if we're in programmatic scroll (ignore observer during this time)
+const isScrollingProgrammatically = ref(false)
+let scrollTimeout: ReturnType<typeof setTimeout> | null = null
+
 // Expose section refs and scroll function for parent
 defineExpose({
   sectionRefs,
@@ -41,6 +45,13 @@ defineExpose({
 function scrollToSection(panel: PersonalizaPanelType) {
   const section = sectionRefs.value[panel]
   if (section && containerRef.value) {
+    // Immediately emit the clicked section as active
+    emit('sectionInView', panel)
+
+    // Ignore observer updates during scroll animation
+    isScrollingProgrammatically.value = true
+    if (scrollTimeout) clearTimeout(scrollTimeout)
+
     const containerTop = containerRef.value.getBoundingClientRect().top
     const sectionTop = section.getBoundingClientRect().top
     const offset = sectionTop - containerTop + containerRef.value.scrollTop - 20 // 20px offset from top
@@ -49,15 +60,60 @@ function scrollToSection(panel: PersonalizaPanelType) {
       top: offset,
       behavior: 'smooth',
     })
+
+    // Re-enable observer after scroll animation completes
+    scrollTimeout = setTimeout(() => {
+      isScrollingProgrammatically.value = false
+    }, 500)
   }
 }
 
 // IntersectionObserver to track which section is in view
 let observer: IntersectionObserver | null = null
 
+// Track if we're in the bottom zone (where we use position-based detection)
+const isInBottomZone = ref(false)
+
+// Handle scroll - use position-based detection for bottom sections
+function handleScroll() {
+  if (!containerRef.value || isScrollingProgrammatically.value) return
+
+  const { scrollTop, scrollHeight, clientHeight } = containerRef.value
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+  const viewportHeight = clientHeight
+
+  // Check if medidas section top is visible (we're in the bottom zone)
+  const medidasSection = sectionRefs.value.medidas
+  const marcoSection = sectionRefs.value.marco
+
+  if (medidasSection && marcoSection) {
+    const medidasTop = medidasSection.offsetTop - scrollTop
+    const marcoTop = marcoSection.offsetTop - scrollTop
+
+    // If medidas top is in the upper half of viewport, we're in bottom zone
+    isInBottomZone.value = medidasTop < viewportHeight * 0.5
+
+    if (isInBottomZone.value) {
+      // At the very bottom → marco
+      if (distanceFromBottom <= 1) {
+        emit('sectionInView', 'marco')
+      }
+      // Marco section top is in upper third → marco
+      else if (marcoTop < viewportHeight * 0.35) {
+        emit('sectionInView', 'marco')
+      }
+      // Otherwise medidas
+      else {
+        emit('sectionInView', 'medidas')
+      }
+    }
+  }
+}
+
 onMounted(() => {
   nextTick(() => {
     setupIntersectionObserver()
+    containerRef.value?.addEventListener('scroll', handleScroll, { passive: true })
   })
 })
 
@@ -65,6 +121,7 @@ onUnmounted(() => {
   if (observer) {
     observer.disconnect()
   }
+  containerRef.value?.removeEventListener('scroll', handleScroll)
 })
 
 function setupIntersectionObserver() {
@@ -77,6 +134,9 @@ function setupIntersectionObserver() {
   }
 
   observer = new IntersectionObserver((entries) => {
+    // Ignore during programmatic scroll or when in bottom zone (position-based there)
+    if (isScrollingProgrammatically.value || isInBottomZone.value) return
+
     for (const entry of entries) {
       if (entry.isIntersecting) {
         const panelId = entry.target.getAttribute('data-panel') as PersonalizaPanelType
