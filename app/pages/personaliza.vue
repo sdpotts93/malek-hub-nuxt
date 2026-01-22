@@ -37,6 +37,15 @@ const cart = useShopifyCart()
 // Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
+// Scrollable panel wrapper ref for desktop scroll navigation
+const scrollablePanelRef = ref<{
+  scrollToSection: (panel: PersonalizaPanelType) => void
+  containerRef: HTMLElement | null
+} | null>(null)
+
+// Active section in view (for desktop scroll mode)
+const activeSectionInView = ref<PersonalizaPanelType>('archivo')
+
 // Computed
 const pricing = computed(() => cart.calculatePersonalizaPrice(personalizaStore.$state))
 
@@ -141,7 +150,14 @@ function handleLoadDesign(state: Partial<PersonalizaState>) {
 
   // If the design has an image, navigate to archivo panel so Cropper can regenerate
   if (state.imageS3Url || state.imageUrl) {
-    personalizaStore.setActivePanel('archivo')
+    if (isMobile.value) {
+      personalizaStore.setActivePanel('archivo')
+    } else {
+      // Desktop: scroll to archivo section
+      nextTick(() => {
+        scrollablePanelRef.value?.scrollToSection('archivo')
+      })
+    }
   }
 }
 
@@ -251,6 +267,7 @@ onMounted(async () => {
       // Navigate to archivo panel if there's an image to restore
       // This ensures the Cropper mounts and regenerates the cropped preview
       if (savedState.imageS3Url || savedState.imageUrl) {
+        // For mobile, set active panel. For desktop, scroll will be automatic since archivo is first
         personalizaStore.setActivePanel('archivo')
         // Mark that we need to generate thumbnail once image is ready
         restoredFromAutosave.value = true
@@ -354,13 +371,26 @@ const navItemsMobile: { id: PersonalizaPanelType; label: string; icon: string }[
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Desktop: Handle sidebar click as scroll navigation (bookmark mode)
+function handleDesktopSidebarSelect(panel: PersonalizaPanelType) {
+  scrollablePanelRef.value?.scrollToSection(panel)
+}
+
+// Desktop: Update active indicator when section comes into view
+function handleSectionInView(panel: PersonalizaPanelType) {
+  activeSectionInView.value = panel
+}
+
 // Handle edit from missing elements modal - navigate to archivo panel
 async function handleEditFromModal() {
-  personalizaStore.setActivePanel('archivo')
   if (isMobile.value) {
+    personalizaStore.setActivePanel('archivo')
     await nextTick()
     isMobileEditorOpen.value = false
     isMobileSheetOpen.value = true
+  } else {
+    // Desktop: scroll to archivo section
+    scrollablePanelRef.value?.scrollToSection('archivo')
   }
   // If there's a size warning, scroll to it
   if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
@@ -417,20 +447,20 @@ async function handleAddToCart() {
       <aside v-if="!isMobile" class="personaliza__sidebar">
         <PersonalizaSidebarNavigation
           :items="navItemsDesktop"
-          :active-panel="personalizaStore.activePanel"
-          @select="personalizaStore.setActivePanel"
+          :active-panel="activeSectionInView"
+          @select="handleDesktopSidebarSelect"
         />
       </aside>
 
-      <!-- Design Panel -->
+      <!-- Design Panel (Desktop: Scrollable with all sections) -->
       <div v-if="!isMobile" class="personaliza__panel-wrapper">
-        <!-- Panel Content (scrollable) -->
-        <div class="personaliza__panel-content">
-          <PersonalizaDesignPanelWrapper
-            :active-panel="personalizaStore.activePanel"
-            :show-margin-controls="false"
-          />
-        </div>
+        <!-- Panel Content (all sections stacked, scrollable) -->
+        <PersonalizaDesignPanelWrapperScrollable
+          ref="scrollablePanelRef"
+          class="personaliza__panel-content"
+          :show-margin-controls="false"
+          @section-in-view="handleSectionInView"
+        />
 
         <!-- Add to Cart Section (fixed at bottom) -->
         <PersonalizaAddToCartSection
