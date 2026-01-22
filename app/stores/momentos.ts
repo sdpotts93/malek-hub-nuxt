@@ -156,9 +156,9 @@ export const MOMENTOS_SIZES: Record<MomentosFormat, Record<string, SizeData>> = 
 
 // Background/margin colors
 export const MARGIN_COLORS = [
-  { id: 'peach', name: 'Durazno', hex: '#f5eadd' },
   { id: 'white', name: 'Blanco', hex: '#ffffff' },
   { id: 'black', name: 'Negro', hex: '#231f20' },
+  { id: 'peach', name: 'Durazno', hex: '#f5eadd' }
 ]
 
 // Filter presets with CSS filter values

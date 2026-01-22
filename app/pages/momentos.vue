@@ -35,6 +35,15 @@ const cart = useShopifyCart()
 // Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
+// Scrollable panel wrapper ref for desktop scroll navigation
+const scrollablePanelRef = ref<{
+  scrollToSection: (section: 'diseno' | 'medidas' | 'marco') => void
+  containerRef: HTMLElement | null
+} | null>(null)
+
+// Active section in view (for desktop scroll mode when diseño tab is active)
+const activeSectionInView = ref<'diseno' | 'medidas' | 'marco'>('diseno')
+
 // Cached thumbnail for beforeunload (can't do async there)
 const cachedThumbnail = ref<string | null>(null)
 
@@ -226,6 +235,35 @@ const navItems: { id: MomentosPanelType; label: string; icon: string }[] = [
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Desktop: Handle sidebar click - scroll to section if on diseño tab, or switch tabs
+function handleDesktopSidebarSelect(panel: MomentosPanelType) {
+  if (panel === 'archivos') {
+    // Switch to imágenes tab
+    momentosStore.setActiveDisenoTab('imagenes')
+    return
+  }
+
+  // For diseno, medidas, marco - scroll to section (will switch to diseño tab if needed)
+  if (panel === 'diseno' || panel === 'medidas' || panel === 'marco') {
+    scrollablePanelRef.value?.scrollToSection(panel)
+  }
+}
+
+// Desktop: Update active indicator when section comes into view
+function handleSectionInView(section: 'diseno' | 'medidas' | 'marco') {
+  activeSectionInView.value = section
+}
+
+// Computed: determine which panel to show as active in sidebar
+const sidebarActivePanel = computed(() => {
+  // When on imágenes tab, show archivos as active
+  if (momentosStore.activeDisenoTab === 'imagenes') {
+    return 'archivos' as MomentosPanelType
+  }
+  // When on diseño tab, map section to panel
+  return activeSectionInView.value as MomentosPanelType
+})
+
 // Handle edit from missing elements modal - navigate to images tab
 async function handleEditFromModal() {
   momentosStore.setActivePanel('diseno')
@@ -293,17 +331,20 @@ async function handleAddToCart() {
       <aside v-if="!isMobile" class="momentos__sidebar">
         <MomentosSidebarNavigation
           :items="navItems"
-          :active-panel="momentosStore.activePanel"
-          @select="momentosStore.setActivePanel"
+          :active-panel="sidebarActivePanel"
+          @select="handleDesktopSidebarSelect"
         />
       </aside>
 
-      <!-- Design Panel -->
+      <!-- Design Panel (Desktop: Scrollable with tabs) -->
       <div v-if="!isMobile" class="momentos__panel-wrapper">
-        <!-- Panel Content (scrollable) -->
-        <div class="momentos__panel-content">
-          <MomentosDesignPanelWrapper :active-panel="momentosStore.activePanel" />
-        </div>
+        <!-- Panel Content (scrollable with tabs) -->
+        <MomentosDesignPanelWrapperScrollable
+          ref="scrollablePanelRef"
+          class="momentos__panel-content"
+          @section-in-view="handleSectionInView"
+          @image-assigned="handleImageAssigned"
+        />
 
         <!-- Add to Cart Section (fixed at bottom) -->
         <MomentosAddToCartSection

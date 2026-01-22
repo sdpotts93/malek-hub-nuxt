@@ -2,12 +2,40 @@
 import type { MomentosFormat, MomentosImageCount, DisenoTabType } from '~/stores/momentos'
 import { IMAGE_COUNTS, MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId } from '~/stores/momentos'
 
+interface Props {
+  // When set, hides tabs and shows only the specified content
+  // Used in desktop scrollable view where tabs are in the wrapper
+  showOnlyContent?: 'diseno' | 'imagenes' | null
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showOnlyContent: null,
+})
+
 const store = useMomentosStore()
 
 // Emit event when image is assigned to cell (for mobile to close bottom sheet)
 const emit = defineEmits<{
   (e: 'image-assigned'): void
 }>()
+
+// Determine which content to show based on prop or store tab
+const showDisenoContent = computed(() => {
+  if (props.showOnlyContent) {
+    return props.showOnlyContent === 'diseno'
+  }
+  return store.activeDisenoTab === 'diseno'
+})
+
+const showImagenesContent = computed(() => {
+  if (props.showOnlyContent) {
+    return props.showOnlyContent === 'imagenes'
+  }
+  return store.activeDisenoTab === 'imagenes'
+})
+
+// Whether to show tabs (hide when showOnlyContent is set)
+const showTabs = computed(() => !props.showOnlyContent)
 
 // Library section ref for scrolling
 const librarySectionRef = ref<HTMLElement | null>(null)
@@ -743,8 +771,8 @@ function confirmRellenar() {
     @dragleave="onPanelDragLeave"
     @drop.prevent="onPanelDrop"
   >
-    <!-- Tabs -->
-    <div class="panel-diseno__tabs">
+    <!-- Tabs (hidden when showOnlyContent is set) -->
+    <div v-if="showTabs" class="panel-diseno__tabs">
       <button
         v-for="tab in tabs"
         :key="tab.id"
@@ -764,7 +792,7 @@ function confirmRellenar() {
     </div>
 
     <!-- Tab: Diseño -->
-    <div v-if="store.activeDisenoTab === 'diseno'" class="panel-diseno__content">
+    <div v-if="showDisenoContent" class="panel-diseno__content">
       <!-- Format selector -->
       <div class="panel-diseno__section">
         <h3 class="panel-diseno__title panel-diseno__title--always-visible">Formato</h3>
@@ -865,7 +893,7 @@ function confirmRellenar() {
 
     <!-- Tab: Imágenes -->
     <div
-      v-if="store.activeDisenoTab === 'imagenes'"
+      v-if="showImagenesContent"
       class="panel-diseno__content"
     >
       <!-- Drop overlay (inside content area only) -->

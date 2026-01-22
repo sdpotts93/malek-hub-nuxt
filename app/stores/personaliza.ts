@@ -69,9 +69,9 @@ export const PERSONALIZA_SIZES: Record<ImageOrientation, Record<string, SizeData
 
 // Background/margin colors
 export const MARGIN_COLORS = [
-  { id: 'peach', name: 'Durazno', hex: '#f5eadd' },
   { id: 'white', name: 'Blanco', hex: '#ffffff' },
   { id: 'black', name: 'Negro', hex: '#231f20' },
+  { id: 'peach', name: 'Durazno', hex: '#f5eadd' }
 ]
 
 // Helper to determine if a color is dark (for text contrast)
