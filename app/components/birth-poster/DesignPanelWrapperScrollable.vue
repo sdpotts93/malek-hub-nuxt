@@ -220,6 +220,7 @@ function setupIntersectionObserver() {
   &__baby-tabs {
     flex-shrink: 0;
     margin: 0 20px;
+    margin-top: 8px;
   }
 
   &__section {
