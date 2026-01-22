@@ -50,6 +50,7 @@ const shouldShowBadge = (babyIndex: number) => {
   &--underline {
     border-bottom: 1px solid #e5e7eb;
     border-radius: 0;
+    overflow: visible;
 
     .baby-tabs__tab {
       min-height: unset;

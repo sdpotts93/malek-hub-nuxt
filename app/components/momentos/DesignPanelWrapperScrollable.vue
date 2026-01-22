@@ -274,7 +274,7 @@ function handleImageAssigned() {
   &__tabs {
     display: flex;
     border-bottom: 1px solid #e5e7eb;
-    padding: 0 20px;
+    margin: 0 20px;
     flex-shrink: 0;
     position: sticky;
     top: 0;
