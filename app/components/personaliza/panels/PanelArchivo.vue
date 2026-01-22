@@ -21,6 +21,14 @@ const emit = defineEmits<{
 }>()
 
 const store = usePersonalizaStore()
+
+function openFileDialog() {
+  fileInput.value?.click()
+}
+
+defineExpose({
+  openFileDialog,
+})
 const { uploadDesignImage } = useS3Upload()
 
 // Refs

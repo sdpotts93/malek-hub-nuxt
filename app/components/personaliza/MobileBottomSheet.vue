@@ -72,6 +72,7 @@ function handleOverlayClick() {
   right: 0;
   height: auto;
   max-height: 100dvh;
+  min-height: 370px;
   background: $color-bg-primary;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   z-index: $z-fixed + 1;

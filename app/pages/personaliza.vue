@@ -60,6 +60,8 @@ const canProceed = computed(() => personalizaStore.hasImage)
 const isMobile = ref(false)
 const isMobileSheetOpen = ref(false)
 const isMobileEditorOpen = ref(false)
+const hasDismissedNoImageSheet = ref(false)
+const archivoPanelRef = ref<{ openFileDialog: () => void } | null>(null)
 const mobileStyleVars = computed<Record<string, string> | undefined>(() => {
   if (!isMobile.value) return undefined
 
@@ -84,8 +86,10 @@ async function handleMobilePanelSelect(panel: PersonalizaPanelType) {
 }
 
 function handleMobileSheetClose() {
-  if (!personalizaStore.hasImage) return
   isMobileSheetOpen.value = false
+  if (!personalizaStore.hasImage) {
+    hasDismissedNoImageSheet.value = true
+  }
 }
 
 function toggleMobileEditor() {
@@ -104,6 +108,13 @@ function closeMobileEditor() {
 function openArchivoSheet() {
   personalizaStore.setActivePanel('archivo')
   isMobileSheetOpen.value = true
+  hasDismissedNoImageSheet.value = false
+}
+
+async function openArchivoSheetAndSelect() {
+  openArchivoSheet()
+  await nextTick()
+  archivoPanelRef.value?.openFileDialog()
 }
 
 // Track if design has been modified since last save
@@ -302,13 +313,16 @@ watch(
 
     if (!hasImage) {
       personalizaStore.setActivePanel('archivo')
-      isMobileSheetOpen.value = true
+      if (!hasDismissedNoImageSheet.value) {
+        isMobileSheetOpen.value = true
+      }
       isMobileEditorOpen.value = false
       return
     }
 
     if (wasMobile && !hadImage && hasImage) {
       isMobileSheetOpen.value = false
+      hasDismissedNoImageSheet.value = false
     }
 
     if (personalizaStore.activePanel === 'margen' && !isMobileEditorOpen.value) {
@@ -479,11 +493,13 @@ async function handleAddToCart() {
       v-if="isMobile && !isMobileEditorOpen && !isMobileSheetOpen"
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
+      :has-image="personalizaStore.hasImage"
       :is-loading="uiStore.isLoading || isRendering"
       :missing-elements="missingElements"
       :can-proceed="canProceed"
       @add-to-cart="handleAddToCart"
       @edit="handleEditFromModal"
+      @upload="openArchivoSheetAndSelect"
     />
 
     <!-- Mobile: Bottom Navbar -->
@@ -501,7 +517,11 @@ async function handleAddToCart() {
       :is-open="isMobileSheetOpen"
       @close="handleMobileSheetClose"
     >
-      <PersonalizaPanelsPanelArchivo show-continue-button @close="handleMobileSheetClose" />
+      <PersonalizaPanelsPanelArchivo
+        ref="archivoPanelRef"
+        show-continue-button
+        @close="handleMobileSheetClose"
+      />
     </PersonalizaMobileBottomSheet>
 
     <!-- Mobile Nav Wrapper (History/Home overlay) -->
@@ -644,6 +664,7 @@ async function handleAddToCart() {
       height: 20px;
     }
   }
+
 
   &__history {
     position: relative;

@@ -5,17 +5,20 @@ interface Props {
   isLoading?: boolean
   missingElements?: string[]
   canProceed?: boolean // If false, only shows "Volver a editar" in modal (no "Continuar" option)
+  hasImage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   missingElements: () => [],
   canProceed: true,
+  hasImage: true,
 })
 
 const emit = defineEmits<{
   'add-to-cart': []
   'edit': []
+  'upload': []
 }>()
 
 const { formatPrice } = useShopifyCart()
@@ -59,30 +62,44 @@ const formattedComparePrice = computed(() => {
 <template>
   <Teleport to="body">
     <div class="mobile-add-to-cart-bar">
-      <!-- Price Info -->
-      <div class="mobile-add-to-cart-bar__info">
-        <div class="mobile-add-to-cart-bar__prices">
-          <span class="mobile-add-to-cart-bar__price">
-            {{ formatPrice(price) }}
-          </span>
-          <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
-            {{ formattedComparePrice }}
+      <template v-if="props.hasImage">
+        <!-- Price Info -->
+        <div class="mobile-add-to-cart-bar__info">
+          <div class="mobile-add-to-cart-bar__prices">
+            <span class="mobile-add-to-cart-bar__price">
+              {{ formatPrice(price) }}
+            </span>
+            <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
+              {{ formattedComparePrice }}
+            </span>
+          </div>
+          <span class="mobile-add-to-cart-bar__shipping">
+            Envio Gratuito 3-5 dias
           </span>
         </div>
-        <span class="mobile-add-to-cart-bar__shipping">
-          Envio Gratuito 3-5 dias
-        </span>
-      </div>
 
-      <!-- Add to Cart Button -->
-      <button
-        class="mobile-add-to-cart-bar__button"
-        :disabled="isLoading"
-        @click="handleAddToCartClick"
-      >
-        <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
-        <span v-else>Agregar al carrito</span>
-      </button>
+        <!-- Add to Cart Button -->
+        <button
+          class="mobile-add-to-cart-bar__button"
+          :disabled="isLoading"
+          @click="handleAddToCartClick"
+        >
+          <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
+          <span v-else>Agregar al carrito</span>
+        </button>
+      </template>
+      <template v-else>
+        <button
+          class="mobile-add-to-cart-bar__button mobile-add-to-cart-bar__button--solo"
+          type="button"
+          @click="emit('upload')"
+        >
+          <span class="mobile-add-to-cart-bar__button-label">Cargar archivos</span>
+          <svg class="mobile-add-to-cart-bar__button-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M6.66699 13.3333L10.0003 10M10.0003 10L13.3337 13.3333M10.0003 10V17.5M16.667 13.9524C17.6849 13.1117 18.3337 11.8399 18.3337 10.4167C18.3337 7.88536 16.2816 5.83333 13.7503 5.83333C13.5682 5.83333 13.3979 5.73833 13.3054 5.58145C12.2187 3.73736 10.2124 2.5 7.91699 2.5C4.46521 2.5 1.66699 5.29822 1.66699 8.75C1.66699 10.4718 2.36372 12.0309 3.48945 13.1613" stroke="currentColor" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </template>
 
     <!-- Warning Modal for Missing Elements -->
     <Transition name="modal">
@@ -214,6 +231,20 @@ const formattedComparePrice = computed(() => {
       opacity: 0.7;
       cursor: not-allowed;
     }
+  }
+
+  &__button--solo {
+    width: 100%;
+    gap: 8px;
+  }
+
+  &__button-label {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__button-icon {
+    flex-shrink: 0;
   }
 
   &__spinner {
