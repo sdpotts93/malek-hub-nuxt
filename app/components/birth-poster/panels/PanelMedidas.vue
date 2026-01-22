@@ -196,11 +196,11 @@ function selectSize(size: PosterSize) {
     }
 
     @include hover {
-      border-color: $color-brand;
+      border-color: #252b37;
     }
 
     &--active {
-      border-color: $color-brand;
+      border-color: #252b37;
       border-width: 2px;
     }
   }

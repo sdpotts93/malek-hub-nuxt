@@ -1555,7 +1555,7 @@ function confirmRellenar() {
     &--active {
       background: $color-brand-light;
       color: $color-brand;
-      border: 1px solid $color-brand;
+      border: 1px solid #252b37;
     }
 
     @include hover {

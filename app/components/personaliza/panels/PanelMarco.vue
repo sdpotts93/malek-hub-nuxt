@@ -144,13 +144,13 @@ function selectFrame(frame: FrameStyle) {
 
     @include hover {
       &::after {
-        box-shadow: inset 0 0 0 1px $color-brand;
+        box-shadow: inset 0 0 0 1px #252b37;
       }
     }
 
     &--active {
       &::after {
-        box-shadow: inset 0 0 0 2px $color-brand;
+        box-shadow: inset 0 0 0 2px #252b37;
       }
     }
   }
