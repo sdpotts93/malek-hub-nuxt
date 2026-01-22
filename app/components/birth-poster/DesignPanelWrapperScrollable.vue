@@ -118,6 +118,19 @@ onUnmounted(() => {
   containerRef.value?.removeEventListener('scroll', handleScroll)
 })
 
+// Re-setup observer when babyCount changes (diseño/datos sections are conditionally rendered)
+watch(() => store.babyCount, () => {
+  // Disconnect old observer
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
+  // Wait for DOM to update, then re-setup
+  nextTick(() => {
+    setupIntersectionObserver()
+  })
+})
+
 function setupIntersectionObserver() {
   if (!containerRef.value) return
 
