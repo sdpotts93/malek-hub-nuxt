@@ -162,30 +162,50 @@ function setupIntersectionObserver() {
       <BirthPosterPanelsPanelGeneral />
     </section>
 
-    <!-- Unified Baby Tabs (only when babyCount > 1) -->
-    <div v-if="store.babyCount > 1" class="design-panel-scrollable__baby-tabs">
-      <BirthPosterBabyTabs underline always-show-badge />
+    <!-- Baby Group: Tabs + Diseño + Datos (when babyCount > 1) -->
+    <div v-if="store.babyCount > 1" class="design-panel-scrollable__baby-group">
+      <!-- Unified Baby Tabs -->
+      <div class="design-panel-scrollable__baby-tabs">
+        <BirthPosterBabyTabs underline always-show-badge />
+      </div>
+
+      <!-- Diseño Section -->
+      <section
+        ref="disenoRef"
+        data-panel="diseno"
+        class="design-panel-scrollable__section design-panel-scrollable__section--grouped"
+      >
+        <BirthPosterPanelsPanelDiseno hide-baby-tabs />
+      </section>
+
+      <!-- Datos Section -->
+      <section
+        ref="datosRef"
+        data-panel="datos"
+        class="design-panel-scrollable__section design-panel-scrollable__section--grouped design-panel-scrollable__section--grouped-last"
+      >
+        <BirthPosterPanelsPanelDatos hide-baby-tabs />
+      </section>
     </div>
 
-    <!-- Diseño Section -->
+    <!-- Diseño Section (when babyCount === 1) -->
     <section
+      v-if="store.babyCount === 1"
       ref="disenoRef"
       data-panel="diseno"
-      :class="[
-        'design-panel-scrollable__section',
-        { 'design-panel-scrollable__section--no-border': store.babyCount > 1 }
-      ]"
+      class="design-panel-scrollable__section"
     >
-      <BirthPosterPanelsPanelDiseno hide-baby-tabs />
+      <BirthPosterPanelsPanelDiseno />
     </section>
 
-    <!-- Datos Section -->
+    <!-- Datos Section (when babyCount === 1) -->
     <section
+      v-if="store.babyCount === 1"
       ref="datosRef"
       data-panel="datos"
       class="design-panel-scrollable__section"
     >
-      <BirthPosterPanelsPanelDatos hide-baby-tabs />
+      <BirthPosterPanelsPanelDatos />
     </section>
 
     <!-- Medidas Section -->
@@ -217,6 +237,33 @@ function setupIntersectionObserver() {
   height: 100%;
   @include custom-scrollbar;
 
+  &__baby-group {
+    flex-shrink: 0;
+    position: relative;
+    border-bottom: 1px solid #e5e7eb;
+    // Add left padding: line position (20px) + line width (3px) + gap (20px) = 43px
+    // Panels have 20px padding, so we add 23px here
+    padding-left: 23px;
+
+    // Left border indicator (at content padding position, 20px gap to content)
+    &::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 16px;
+      bottom: 24px;
+      width: 3px;
+      background: $color-brand;
+      border-radius: 2px;
+    }
+
+    .design-panel-scrollable__baby-tabs {
+      margin-left: 20px;
+      margin-right: 20px;
+      margin-top: 8px;
+    }
+  }
+
   &__baby-tabs {
     flex-shrink: 0;
     margin: 0 20px;
@@ -228,8 +275,13 @@ function setupIntersectionObserver() {
     padding-bottom: 24px;
     border-bottom: 1px solid #e5e7eb;
 
-    &--no-border {
+    &--grouped {
       border-bottom: none;
+      padding-bottom: 16px;
+    }
+
+    &--grouped-last {
+      padding-bottom: 24px;
     }
 
     &:last-child {
