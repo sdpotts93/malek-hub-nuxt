@@ -577,7 +577,7 @@ onBeforeUnmount(() => {
 
       <!-- Format selector -->
       <div class="panel-archivo__section">
-        <h3 class="panel-archivo__section-title">Formato de la imágen</h3>
+        <h3 class="panel-archivo__section-title">Orientación de la imágen</h3>
         <div class="panel-archivo__formats">
           <button
             v-for="format in formatOptions"

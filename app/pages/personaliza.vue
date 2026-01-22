@@ -338,7 +338,7 @@ watch(
     }
 
     if (wasMobile && !hadImage && hasImage) {
-      isMobileSheetOpen.value = false
+      // Keep archivo sheet open after selecting an image so user can adjust crop/format
       hasDismissedNoImageSheet.value = false
     }
 
