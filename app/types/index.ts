@@ -263,13 +263,13 @@ export const BABY_STYLES: BabyStyleConfig[] = [
   { id: 'cr2', name: 'Crayon 2', category: 'crayon', thumbnail: '/posters/thumbnails/cr2_thumbnail.png', image: '/posters/crayon-2.png' },
   { id: 'cr3', name: 'Crayon 3', category: 'crayon', thumbnail: '/posters/thumbnails/cr3_thumbnail.png', image: '/posters/crayon-3.png' },
   // Pluma styles
-  { id: 'pl1', name: 'Pluma 1', category: 'pluma', thumbnail: '/posters/thumbnails/pl1_thumbnail.png', image: '/posters/pluma-1.png' },
-  { id: 'pl2', name: 'Pluma 2', category: 'pluma', thumbnail: '/posters/thumbnails/pl2_thumbnail.png', image: '/posters/pluma-2.png' },
-  { id: 'pl3', name: 'Pluma 3', category: 'pluma', thumbnail: '/posters/thumbnails/pl3_thumbnail.png', image: '/posters/pluma-4.png' },
+  { id: 'pl1', name: 'Pluma 1', category: 'pluma', thumbnail: '/posters/thumbnails/pluma1_thumbnail.png', image: '/posters/pluma-1.png' },
+  { id: 'pl2', name: 'Pluma 2', category: 'pluma', thumbnail: '/posters/thumbnails/pluma2_thumbnail.png', image: '/posters/pluma-2.png' },
+  { id: 'pl3', name: 'Pluma 3', category: 'pluma', thumbnail: '/posters/thumbnails/pluma3_thumbnail.png', image: '/posters/pluma-3.png' },
   // Plumon styles
-  { id: 'plm1', name: 'Plumon 1', category: 'plumon', thumbnail: '/posters/thumbnails/plm1_thumbnail.png', image: '/posters/plumon-1.png' },
-  { id: 'plm2', name: 'Plumon 2', category: 'plumon', thumbnail: '/posters/thumbnails/plm2_thumbnail.png', image: '/posters/plumon-2.png' },
-  { id: 'plm3', name: 'Plumon 3', category: 'plumon', thumbnail: '/posters/thumbnails/plm3_thumbnail.png', image: '/posters/plumon-3.png' },
+  { id: 'plm1', name: 'Plumon 1', category: 'plumon', thumbnail: '/posters/thumbnails/plumon1_thumbnail.png', image: '/posters/plumon-1.png' },
+  { id: 'plm2', name: 'Plumon 2', category: 'plumon', thumbnail: '/posters/thumbnails/plumon2_thumbnail.png', image: '/posters/plumon-2.png' },
+  { id: 'plm3', name: 'Plumon 3', category: 'plumon', thumbnail: '/posters/thumbnails/plumon3_thumbnail.png', image: '/posters/plumon-3.png' },
 ]
 
 // Helper to get style by ID

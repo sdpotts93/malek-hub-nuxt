@@ -16,15 +16,15 @@ interface ValidationErrors {
 }
 
 // Default configurations for each baby position (0-indexed)
-// Baby 1: aq1, derecha (but izquierda if only 1 baby)
-// Baby 2: aq2, izquierda
-// Baby 3: aq3, derecha
-// Baby 4: aq5, izquierda (aq4 doesn't exist)
+// 1 baby: ac1 izquierda
+// 2 babies: ac1 derecha, ac3 izquierda
+// 3 babies: ac1 derecha, ac3 izquierda, ac2 derecha
+// 4 babies: ac1 derecha, ac3 izquierda, ac2 derecha, ac1 izquierda
 const BABY_POSITION_DEFAULTS: Array<{ styleId: string; orientation: BabyOrientation }> = [
-  { styleId: 'aq1', orientation: 'derecha' },
-  { styleId: 'aq2', orientation: 'izquierda' },
-  { styleId: 'aq3', orientation: 'derecha' },
-  { styleId: 'aq5', orientation: 'izquierda' },
+  { styleId: 'ac1', orientation: 'derecha' }, // izquierda when only 1 baby
+  { styleId: 'ac3', orientation: 'izquierda' },
+  { styleId: 'ac2', orientation: 'derecha' },
+  { styleId: 'ac1', orientation: 'izquierda' },
 ]
 
 // Create a baby config with position-specific defaults
