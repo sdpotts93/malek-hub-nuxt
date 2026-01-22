@@ -53,7 +53,7 @@ const formatLabel = computed(() => {
           @change="store.setPosterSize(($event.target as HTMLSelectElement).value as MomentosSize)"
         >
           <option v-for="size in availableSizes" :key="size.id" :value="size.id">
-            {{ getSizeDimensions(size.id).height }} alto x {{ getSizeDimensions(size.id).width }} ancho
+            {{ getSizeDimensions(size.id).height }}cm alto x {{ getSizeDimensions(size.id).width }}cm ancho
           </option>
         </select>
       </div>

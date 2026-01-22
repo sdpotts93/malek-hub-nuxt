@@ -191,11 +191,9 @@ function handleFileSelect() {
 
 // Handle "Cargar Archivos" button - switch to images tab and open file selector
 function handleCargarArchivos() {
+  // Set flag so the imágenes instance opens file selector on mount
+  store.setPendingFileSelector(true)
   store.setActiveDisenoTab('imagenes')
-  // Use nextTick to ensure tab switch happens first
-  nextTick(() => {
-    handleFileSelect()
-  })
 }
 
 async function handleFileChange(e: Event) {
@@ -516,6 +514,14 @@ onMounted(() => {
   img.style.left = '-9999px'
   document.body.appendChild(img)
   emptyDragImg.value = img
+
+  // Check if we should open file selector (triggered from diseño tab's "Cargar Archivos" button)
+  if (props.showOnlyContent === 'imagenes' && store.pendingFileSelector) {
+    store.setPendingFileSelector(false)
+    nextTick(() => {
+      handleFileSelect()
+    })
+  }
 })
 
 onUnmounted(() => {

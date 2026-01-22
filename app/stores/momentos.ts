@@ -292,6 +292,7 @@ export interface MomentosState {
   // UI State
   activePanel: MomentosPanelType
   activeDisenoTab: DisenoTabType
+  pendingFileSelector: boolean
 
   // Undo/Redo
   undoStack: HistoryAction[]
@@ -338,6 +339,7 @@ export const createDefaultMomentosState = (): MomentosState => {
     // UI
     activePanel: 'diseno',
     activeDisenoTab: 'diseno',
+    pendingFileSelector: false,
 
     // History
     undoStack: [],
@@ -870,6 +872,10 @@ export const useMomentosStore = defineStore('momentos', {
 
     setActiveDisenoTab(tab: DisenoTabType) {
       this.activeDisenoTab = tab
+    },
+
+    setPendingFileSelector(pending: boolean) {
+      this.pendingFileSelector = pending
     },
 
     setIsGeneratingImage(isGenerating: boolean) {

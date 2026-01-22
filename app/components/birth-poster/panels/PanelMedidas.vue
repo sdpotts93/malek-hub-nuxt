@@ -43,7 +43,7 @@ function selectSize(size: PosterSize) {
           @change="selectSize(($event.target as HTMLSelectElement).value as PosterSize)"
         >
           <option v-for="size in allSizes" :key="size.id" :value="size.id">
-            {{ getSizeDimensions(size.id).height }} alto x {{ getSizeDimensions(size.id).width }} ancho
+            {{ getSizeDimensions(size.id).height }}cm alto x {{ getSizeDimensions(size.id).width }}cm ancho
           </option>
         </select>
       </div>
