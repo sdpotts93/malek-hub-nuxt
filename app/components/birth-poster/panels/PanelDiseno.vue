@@ -3,6 +3,15 @@ import { ref } from 'vue'
 import { ILLUSTRATION_COLORS, BABY_STYLES } from '~/types'
 import type { BabyOrientation } from '~/types'
 
+interface Props {
+  // Hide the baby tabs (used in desktop scrollable view where unified tabs are shown)
+  hideBabyTabs?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  hideBabyTabs: false,
+})
+
 const store = useBirthPosterStore()
 
 const orientationOptions: { id: BabyOrientation; label: string }[] = [
@@ -29,8 +38,8 @@ const scrollColors = (direction: 'left' | 'right') => {
 <template>
   <div class="panel-diseno">
 
-    <!-- Baby Tabs (if multiple babies) -->
-    <BirthPosterBabyTabs v-if="store.babyCount > 1" class="panel-diseno__tabs" />
+    <!-- Baby Tabs (if multiple babies and not hidden) -->
+    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" class="panel-diseno__tabs" />
 
     <h3 class="panel-diseno__title">
       <svg class="panel-diseno__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">

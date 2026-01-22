@@ -34,6 +34,15 @@ const cart = useShopifyCart()
 // Canvas ref for rendering
 const canvasRef = ref<{ $el: HTMLElement } | null>(null)
 
+// Scrollable panel wrapper ref for desktop scroll navigation
+const scrollablePanelRef = ref<{
+  scrollToSection: (panel: PanelType) => void
+  containerRef: HTMLElement | null
+} | null>(null)
+
+// Active section in view (for desktop scroll mode)
+const activeSectionInView = ref<PanelType>('general')
+
 // Computed
 const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
 
@@ -204,17 +213,31 @@ const navItems: { id: PanelType; label: string; icon: string }[] = [
   { id: 'marco', label: 'Marco', icon: 'frame' },
 ]
 
+// Desktop: Handle sidebar click as scroll navigation (bookmark mode)
+function handleDesktopSidebarSelect(panel: PanelType) {
+  scrollablePanelRef.value?.scrollToSection(panel)
+}
+
+// Desktop: Update active indicator when section comes into view
+function handleSectionInView(panel: PanelType) {
+  activeSectionInView.value = panel
+}
+
 // Handle edit from missing elements modal - navigate to datos panel
 async function handleEditFromModal() {
-  birthPosterStore.setActivePanel('datos')
   // Find first baby with missing name and switch to that tab
   const missingIndex = birthPosterStore.babies.findIndex(b => !b.nombre?.trim())
   if (missingIndex !== -1) {
     birthPosterStore.setActiveBabyTab(missingIndex)
   }
+
   if (isMobile.value) {
+    birthPosterStore.setActivePanel('datos')
     await nextTick()
     isMobileSheetOpen.value = true
+  } else {
+    // Desktop: scroll to datos section
+    scrollablePanelRef.value?.scrollToSection('datos')
   }
   // Trigger focus on nombre input
   birthPosterStore.triggerNombreFocus()
@@ -234,8 +257,6 @@ async function handleAddToCart() {
     // If validation failed, navigate to the missing data and show error
     if ('validation' in result) {
       const { validation } = result
-      // Navigate to datos panel
-      birthPosterStore.setActivePanel('datos')
 
       // Switch to the baby tab with missing name and show error
       if (validation.missingBabyIndex !== null) {
@@ -243,10 +264,14 @@ async function handleAddToCart() {
         birthPosterStore.setNombreError(validation.missingBabyIndex)
       }
 
-      // On mobile, open the bottom sheet to show the datos panel
+      // Navigate to datos panel
       if (isMobile.value) {
+        birthPosterStore.setActivePanel('datos')
         await nextTick()
         isMobileSheetOpen.value = true
+      } else {
+        // Desktop: scroll to datos section
+        scrollablePanelRef.value?.scrollToSection('datos')
       }
 
       // Trigger focus on nombre input after panel is ready
@@ -278,17 +303,19 @@ async function handleAddToCart() {
       <aside v-if="!isMobile" class="birth-poster__sidebar">
         <BirthPosterSidebarNavigation
           :items="navItems"
-          :active-panel="birthPosterStore.activePanel"
-          @select="birthPosterStore.setActivePanel"
+          :active-panel="activeSectionInView"
+          @select="handleDesktopSidebarSelect"
         />
       </aside>
 
-      <!-- Design Panel -->
+      <!-- Design Panel (Desktop: Scrollable with all sections) -->
       <div v-if="!isMobile" class="birth-poster__panel-wrapper">
-        <!-- Panel Content (scrollable) -->
-        <div class="birth-poster__panel-content">
-          <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
-        </div>
+        <!-- Panel Content (all sections stacked, scrollable) -->
+        <BirthPosterDesignPanelWrapperScrollable
+          ref="scrollablePanelRef"
+          class="birth-poster__panel-content"
+          @section-in-view="handleSectionInView"
+        />
 
         <!-- Add to Cart Section (fixed at bottom) -->
         <BirthPosterAddToCartSection

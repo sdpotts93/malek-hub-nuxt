@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import type { HoraNacimiento } from '~/types'
 
+interface Props {
+  // Hide the baby tabs (used in desktop scrollable view where unified tabs are shown)
+  hideBabyTabs?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  hideBabyTabs: false,
+})
+
 const store = useBirthPosterStore()
 
 // Ref for nombre input to focus when error is shown
@@ -191,8 +200,8 @@ function formatMinute(minute: number): string {
 
 <template>
   <div class="panel-datos">
-    <!-- Baby Tabs (if multiple babies) -->
-    <BirthPosterBabyTabs v-if="store.babyCount > 1" class="panel-datos__tabs" />
+    <!-- Baby Tabs (if multiple babies and not hidden) -->
+    <BirthPosterBabyTabs v-if="store.babyCount > 1 && !props.hideBabyTabs" class="panel-datos__tabs" />
 
     <h3 class="panel-datos__title">
       <svg class="panel-datos__title-icon" width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
