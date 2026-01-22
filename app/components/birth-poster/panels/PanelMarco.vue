@@ -41,38 +41,46 @@ function selectFrame(frame: FrameStyle) {
     <!-- Frame options -->
     <div class="panel-marco__frames">
       <!-- No frame option -->
-      <button
-        :class="[
-          'panel-marco__frame-btn',
-          { 'panel-marco__frame-btn--active': !store.frameStyle }
-        ]"
-        @click="store.setFrameStyle(null)"
-      >
-        <NuxtImg
-          src="/frames/sin-marco-thumbnail.webp"
-          alt="Sin marco"
-          class="panel-marco__frame-preview"
-          loading="lazy"
-        />
-      </button>
+      <div class="panel-marco__frame-item">
+        <button
+          :class="[
+            'panel-marco__frame-btn',
+            { 'panel-marco__frame-btn--active': !store.frameStyle }
+          ]"
+          @click="store.setFrameStyle(null)"
+        >
+          <NuxtImg
+            src="/frames/sin-marco-thumbnail.webp"
+            alt="Sin marco"
+            class="panel-marco__frame-preview"
+            loading="lazy"
+          />
+        </button>
+        <span class="panel-marco__frame-label">🚫</span>
+      </div>
 
       <!-- Frame styles -->
-      <button
+      <div
         v-for="frame in frameStyles"
         :key="frame.id"
-        :class="[
-          'panel-marco__frame-btn',
-          { 'panel-marco__frame-btn--active': store.frameStyle?.id === frame.id }
-        ]"
-        @click="selectFrame(frame)"
+        class="panel-marco__frame-item"
       >
-        <NuxtImg
-          :src="frame.image"
-          :alt="`Marco ${frame.name}`"
-          class="panel-marco__frame-preview"
-          loading="lazy"
-        />
-      </button>
+        <button
+          :class="[
+            'panel-marco__frame-btn',
+            { 'panel-marco__frame-btn--active': store.frameStyle?.id === frame.id }
+          ]"
+          @click="selectFrame(frame)"
+        >
+          <NuxtImg
+            :src="frame.image"
+            :alt="`Marco ${frame.name}`"
+            class="panel-marco__frame-preview"
+            loading="lazy"
+          />
+        </button>
+        <span class="panel-marco__frame-label">{{ frame.name }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -128,6 +136,19 @@ function selectFrame(frame: FrameStyle) {
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     padding-inline: 20px;
+  }
+
+  &__frame-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__frame-label {
+    font-family: $font-primary;
+    font-size: 12px;
+    text-align: center;
   }
 
   &__frame-btn {
