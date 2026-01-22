@@ -1019,6 +1019,11 @@ onBeforeUnmount(() => {
   // Change image button
   &__change-section {
     padding-inline: 20px;
+    display: none;
+
+    @include mobile {
+      display: block;
+    }
   }
 
   &__change-btn {
