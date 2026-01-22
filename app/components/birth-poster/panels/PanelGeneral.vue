@@ -187,50 +187,35 @@ const scrollColors = (direction: 'left' | 'right') => {
     }
   }
 
-  // Button group - buttons butted together
+  // Button group - segmented control style
   &__baby-count {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__count-btn {
     @include button-reset;
-    @include flex-center;
+    flex: 1;
     min-height: 40px;
-    padding: 8px 22px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: $font-weight-bold;
-    line-height: 24px;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right: 1px solid #dedede;
-      border-left: 1px solid #dedede;
-      &:last-child {
-        border-right: none;
-      }
-      &:first-child {
-        border-left: none;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
-
-    &:last-child {
-      border-right: none;
-      border-top-right-radius: 8px;
-      border-bottom-right-radius: 8px;
-
-    }
-
-    @include hover {
-      background: #ebebeb;
-    }
-
   }
 
   // Color picker - horizontal scroll container

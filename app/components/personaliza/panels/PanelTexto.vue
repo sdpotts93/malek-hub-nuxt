@@ -261,25 +261,27 @@ function scrollColors(direction: 'left' | 'right') {
   // Text style buttons
   &__styles {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__style-btn {
     @include button-reset;
-    @include flex-center;
     flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
-    font-size: 14px;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     // Font-specific styles for each button
     &--moderno {
       font-family: $font-primary;
-      font-weight: $font-weight-semibold;
+      font-weight: $font-weight-bold;
     }
 
     &--clasico {
@@ -293,36 +295,11 @@ function scrollColors(direction: 'left' | 'right') {
     }
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right: 1px solid #dedede;
-      border-left: 1px solid #dedede;
-
-      &:last-child {
-        border-right: none;
-      }
-
-      &:first-child {
-        border-left: none;
-      }
-    }
-
-    &:last-child {
-      border-top-right-radius: 8px;
-      border-bottom-right-radius: 8px;
-    }
-
-    &:first-child {
-      border-top-left-radius: 8px;
-      border-bottom-left-radius: 8px;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-texto__style-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 
@@ -350,40 +327,31 @@ function scrollColors(direction: 'left' | 'right') {
   // Margin buttons
   &__margin-buttons {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__margin-btn {
     @include button-reset;
-    @include flex-center;
     flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
-    border-right: 1px solid #d5d7da;
-
-    &:last-child {
-      border-right: none;
-    }
+    font-size: 15px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right-color: $color-border;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-texto__margin-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 

@@ -148,40 +148,31 @@ function scrollColors(direction: 'left' | 'right') {
 
   &__margin-buttons {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__margin-btn {
     @include button-reset;
-    @include flex-center;
     flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
-    border-right: 1px solid #d5d7da;
-
-    &:last-child {
-      border-right: none;
-    }
+    font-size: 15px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right-color: $color-border;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-margen__margin-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 

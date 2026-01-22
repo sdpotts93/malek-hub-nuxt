@@ -87,7 +87,7 @@ const scrollColors = (direction: 'left' | 'right') => {
     <!-- Illustration Color -->
     <div class="panel-diseno__section panel-diseno__section--pr0">
       <div class="panel-diseno__color-header">
-        <label class="panel-diseno__label">Color de la ilustración</label>
+        <label class="panel-diseno__label">Color del bebé</label>
         <div class="panel-diseno__color-nav">
           <button
             class="panel-diseno__nav-btn"
@@ -202,38 +202,34 @@ const scrollColors = (direction: 'left' | 'right') => {
     }
   }
 
-  // Orientation - button group style (butted together)
+  // Orientation - segmented control style
   &__orientation {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__orient-btn {
     @include button-reset;
     flex: 1;
     min-height: 40px;
-    padding: 10px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: $font-weight-bold;
-    background: #f5f5f5;
-    color: #414651;
-    border-right: 1px solid #e9eaeb;
-    transition: background-color $transition-fast, color $transition-fast;
-
-    &:last-child {
-      border-right: none;
-    }
-
-    @include hover {
-      background: #ebebeb;
-    }
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right-color: #eaddd3;
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 

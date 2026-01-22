@@ -809,83 +809,6 @@ function confirmRellenar() {
         </button>
       </div>
 
-      <!-- Separator -->
-      <div class="panel-diseno__separator" />
-
-      <!-- Margin selector -->
-      <div class="panel-diseno__section">
-        <label class="panel-diseno__label panel-diseno__label--with-icon">
-          <svg class="panel-diseno__label-icon" width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.4583 3.39583L9.625 7.22917L5.79167 3.39583" fill="currentColor" fill-opacity="0.2"/>
-            <path d="M13.4583 17.7708L9.625 13.9375L5.79167 17.7708" fill="currentColor" fill-opacity="0.2"/>
-            <path d="M1 10.5833H18.25M9.625 1V7.22917M9.625 7.22917L13.4583 3.39583M9.625 7.22917L5.79167 3.39583M9.625 20.1667V13.9375M9.625 13.9375L13.4583 17.7708M9.625 13.9375L5.79167 17.7708" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Margen
-        </label>
-        <div class="panel-diseno__margin-buttons">
-          <button
-            :class="[
-              'panel-diseno__margin-btn',
-              { 'panel-diseno__margin-btn--active': store.hasMargin }
-            ]"
-            @click="store.setHasMargin(true)"
-          >
-            Con margen
-          </button>
-          <button
-            :class="[
-              'panel-diseno__margin-btn',
-              { 'panel-diseno__margin-btn--active': !store.hasMargin }
-            ]"
-            @click="store.setHasMargin(false)"
-          >
-            Sin margen
-          </button>
-        </div>
-      </div>
-
-      <!-- Margin color (only if margin is enabled) -->
-      <div v-if="store.hasMargin" class="panel-diseno__section panel-diseno__section--pr0">
-        <div class="panel-diseno__color-header">
-          <label class="panel-diseno__label">Color del fondo</label>
-          <div class="panel-diseno__color-nav">
-            <button
-              class="panel-diseno__nav-btn"
-              aria-label="Scroll left"
-              @click="scrollColors('left')"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8.75 10.5L5.25 7L8.75 3.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <button
-              class="panel-diseno__nav-btn"
-              aria-label="Scroll right"
-              @click="scrollColors('right')"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div ref="colorScrollRef" class="panel-diseno__colors-scroll">
-          <div class="panel-diseno__colors">
-            <button
-              v-for="color in MARGIN_COLORS"
-              :key="color.id"
-              :class="[
-                'panel-diseno__color-btn',
-                { 'panel-diseno__color-btn--active': store.marginColor === color.hex }
-              ]"
-              :style="{ backgroundColor: color.hex }"
-              :aria-label="color.name"
-              :title="color.name"
-              @click="store.setMarginColor(color.hex)"
-            />
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Tab: Imágenes -->
@@ -1478,92 +1401,66 @@ function confirmRellenar() {
     height: 18px;
   }
 
-  // Format style buttons
+  // Format style buttons - segmented control style
   &__styles {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__style-btn {
     @include button-reset;
-    @include flex-center;
     flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
+    font-size: 15px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right: 1px solid #dedede;
-      border-left: 1px solid #dedede;
-
-      &:last-child {
-        border-right: none;
-      }
-
-      &:first-child {
-        border-left: none;
-      }
-    }
-
-    &:last-child {
-      border-top-right-radius: 8px;
-      border-bottom-right-radius: 8px;
-    }
-
-    &:first-child {
-      border-top-left-radius: 8px;
-      border-bottom-left-radius: 8px;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-diseno__style-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 
   // Image count buttons
+  // Image count buttons - segmented control style
   &__image-counts {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    background: #f5f5f5;
+    border-radius: 8px;
+    overflow: hidden;
+    gap: 0;
   }
 
   &__count-btn {
     @include button-reset;
-    @include flex-center;
-    min-width: 48px;
+    flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    background: #f5f5f5;
-    color: #414651;
-    border-radius: 8px;
-    transition: background-color $transition-fast, color $transition-fast;
+    font-size: 15px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border: 1px solid #252b37;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-diseno__count-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 
@@ -1595,43 +1492,34 @@ function confirmRellenar() {
     }
   }
 
-  // Margin buttons
+  // Margin buttons - segmented control style
   &__margin-buttons {
     display: flex;
+    align-items: center;
+    background: #f5f5f5;
     border-radius: 8px;
     overflow: hidden;
+    gap: 0;
   }
 
   &__margin-btn {
     @include button-reset;
-    @include flex-center;
     flex: 1;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 14px;
-    font-weight: $font-weight-semibold;
-    background: #f5f5f5;
-    color: #414651;
-    transition: background-color $transition-fast, color $transition-fast;
-    border-right: 1px solid #d5d7da;
-
-    &:last-child {
-      border-right: none;
-    }
+    font-size: 15px;
+    font-weight: $font-weight-bold;
+    color: #181d27;
+    text-align: center;
+    position: relative;
 
     &--active {
-      background: $color-brand-light;
-      color: $color-brand;
-      border-right-color: $color-border;
-    }
-
-    @include hover {
-      background: #ebebeb;
-
-      &.panel-diseno__margin-btn--active {
-        background: $color-brand-light;
-      }
+      background: #ffffff;
+      border: 1px solid #d5d7da;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      border-radius: 8px;
     }
   }
 
