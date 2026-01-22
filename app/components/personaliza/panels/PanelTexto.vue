@@ -67,7 +67,7 @@ function scrollColors(direction: 'left' | 'right') {
 
     <!-- Title input -->
     <div class="panel-texto__section">
-      <label class="panel-texto__label">Titulo (opcional)</label>
+      <label class="panel-texto__label">Título (opcional)</label>
       <input
         type="text"
         :value="store.title"
@@ -80,7 +80,7 @@ function scrollColors(direction: 'left' | 'right') {
 
     <!-- Subtitle input -->
     <div class="panel-texto__section">
-      <label class="panel-texto__label">Subtitulo (opcional)</label>
+      <label class="panel-texto__label">Subtítulo (opcional)</label>
       <input
         type="text"
         :value="store.subtitle"

@@ -49,7 +49,7 @@ const missingElements = computed(() => {
   }
   // Check if image has quality issues (warning, can proceed)
   else if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
-    missing.push('Tu imagen tiene una resolucion menor a la recomendada para el tamano seleccionado.')
+    missing.push('Tu imagen tiene una resolucion menor a la recomendada para el tamaño seleccionado.')
   }
   return missing
 })
@@ -66,8 +66,6 @@ const mobileStyleVars = computed<Record<string, string> | undefined>(() => {
   let canvasOffset = '88px'
   if (isMobileSheetOpen.value || !personalizaStore.hasImage) {
     canvasOffset = '0px'
-  } else if (isMobileEditorOpen.value) {
-    canvasOffset = '260px'
   }
 
   return {
@@ -469,10 +467,7 @@ async function handleAddToCart() {
       @click="toggleMobileEditor"
     >
       <span class="personaliza__mobile-edit-icon" aria-hidden="true">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 17.25V21h3.75L17.8 9.95l-3.75-3.75L3 17.25Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M14.06 6.19 17.81 9.94" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <img src="/personaliza-icons/icon/edit-icon.svg" alt="">
       </span>
     </button>
 
@@ -503,7 +498,7 @@ async function handleAddToCart() {
       :is-open="isMobileSheetOpen"
       @close="handleMobileSheetClose"
     >
-      <PersonalizaPanelsPanelArchivo />
+      <PersonalizaPanelsPanelArchivo show-continue-button @close="handleMobileSheetClose" />
     </PersonalizaMobileBottomSheet>
 
     <!-- Mobile Nav Wrapper (History/Home overlay) -->
@@ -592,7 +587,7 @@ async function handleAddToCart() {
     container-type: size;
     @include mobile {
       height: calc(100% - var(--personaliza-mobile-canvas-offset, 136px));
-      align-items: center;
+      align-items: flex-start;
     }
   }
 
@@ -617,8 +612,8 @@ async function handleAddToCart() {
     position: fixed;
     bottom: 104px;
     right: 20px;
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
     border-radius: 100px;
     border: none;
     background: #ffffff;
@@ -640,9 +635,9 @@ async function handleAddToCart() {
     align-items: center;
     justify-content: center;
 
-    svg {
-      width: 28px;
-      height: 28px;
+    img {
+      width: 20px;
+      height: 20px;
     }
   }
 

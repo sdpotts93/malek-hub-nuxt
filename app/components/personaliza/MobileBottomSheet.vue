@@ -8,50 +8,6 @@ const emit = defineEmits<{
   close: []
 }>()
 
-// Touch handling for drag to close
-const isDragging = ref(false)
-const dragStartY = ref(0)
-const currentTranslateY = ref(0)
-
-const CLOSE_THRESHOLD = 100 // pixels to drag before closing
-
-function handleTouchStart(e: TouchEvent) {
-  const touch = e.touches[0]
-  if (!touch) return
-  // Prevent pull-to-refresh
-  e.preventDefault()
-  isDragging.value = true
-  dragStartY.value = touch.clientY
-  currentTranslateY.value = 0
-}
-
-function handleTouchMove(e: TouchEvent) {
-  if (!isDragging.value) return
-  // Prevent pull-to-refresh
-  e.preventDefault()
-
-  const touch = e.touches[0]
-  if (!touch) return
-
-  const deltaY = touch.clientY - dragStartY.value
-  // Only allow dragging down (positive deltaY)
-  if (deltaY > 0) {
-    currentTranslateY.value = deltaY
-  }
-}
-
-function handleTouchEnd() {
-  isDragging.value = false
-
-  // If dragged down more than threshold, close the sheet
-  if (currentTranslateY.value > CLOSE_THRESHOLD) {
-    emit('close')
-  }
-
-  // Reset position
-  currentTranslateY.value = 0
-}
-
 function handleOverlayClick() {
   emit('close')
 }
@@ -69,23 +25,15 @@ function handleOverlayClick() {
     <!-- Sheet - always in DOM, controlled by CSS transform -->
     <div
       class="mobile-bottom-sheet"
-      :class="{
-        'mobile-bottom-sheet--open': isOpen,
-        'mobile-bottom-sheet--dragging': isDragging
-      }"
-      :style="{
-        transform: isDragging ? `translateY(${currentTranslateY}px)` : undefined
-      }"
+      :class="{ 'mobile-bottom-sheet--open': isOpen }"
     >
-      <!-- Drag handle area -->
-      <div
-        class="mobile-bottom-sheet__handle"
-        @touchstart="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-      >
-        <div class="mobile-bottom-sheet__handle-bar" />
-      </div>
+      <button class="mobile-bottom-sheet__close" type="button" aria-label="Cerrar" @click="emit('close')">
+        <span class="mobile-bottom-sheet__close-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </button>
 
       <!-- Content -->
       <div class="mobile-bottom-sheet__content">
@@ -118,19 +66,17 @@ function handleOverlayClick() {
 
 .mobile-bottom-sheet {
   position: fixed;
+  top: 0;
   bottom: 0;
   left: 0;
   right: 0;
-  // Fixed height to prevent resizing when switching tabs
-  height: calc(55vh + 70px);
+  height: 100dvh;
   background: $color-bg-primary;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-radius: 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   z-index: $z-fixed + 1;
   display: flex;
   flex-direction: column;
-  touch-action: pan-y;
   will-change: transform;
   // Start off-screen (slid down)
   transform: translateY(100%);
@@ -142,30 +88,20 @@ function handleOverlayClick() {
     visibility: visible;
   }
 
-  &--dragging {
-    transition: none !important;
-  }
-
-  &__handle {
+  &__close {
+    @include button-reset;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #f5f5f5;
+    color: $color-text-primary;
     display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 16px 0 32px;
-    flex-shrink: 0;
-    cursor: grab;
-    // Prevent browser gestures (pull-to-refresh) on drag handle
-    touch-action: none;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  &__handle-bar {
-    width: 93px;
-    height: 6px;
-    background: #d9d9d9;
-    border-radius: 100px;
+    justify-content: center;
+    z-index: 2;
   }
 
   &__content {
@@ -175,6 +111,7 @@ function handleOverlayClick() {
     @include custom-scrollbar;
     padding: $space-xl;
     padding-inline: 0;
+    padding-top: 64px;
     // Hide content when sheet is closed to prevent showing old panel on reopen
     opacity: 0;
     transition: opacity 0.15s ease;

@@ -164,7 +164,7 @@ const formattedComparePrice = computed(() => {
   }
 
   &__price {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: $font-weight-semibold;
     color: #181d27;
     line-height: 1.3;
@@ -177,7 +177,7 @@ const formattedComparePrice = computed(() => {
   }
 
   &__shipping {
-    font-size: 12px;
+    font-size: 9.5px;
     font-weight: $font-weight-medium;
     color: #181d27;
   }
@@ -187,15 +187,27 @@ const formattedComparePrice = computed(() => {
     @include flex-center;
     flex: 1 0 0;
     padding: 10px 16px;
-    background: #414651;
+    background: #252b37;
     color: #ffffff;
     font-size: 16px;
     font-weight: $font-weight-semibold;
     border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
     transition: background-color $transition-fast, opacity $transition-fast;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0px 0px 0px 1px rgba(10, 13, 18, 0.18), inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
+    }
 
     @include hover {
-      background: #343741;
+      background: #1a1f28;
     }
 
     &:disabled {

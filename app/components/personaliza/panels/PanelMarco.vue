@@ -27,7 +27,7 @@ function selectFrame(frame: FrameStyle) {
         Marco del poster
       </h3>
       <p class="panel-marco__description">
-        Anade un marco de madera de alta calidad a tu poster
+        Añade un marco de madera de alta calidad a tu poster
       </p>
     </div>
 

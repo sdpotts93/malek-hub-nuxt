@@ -8,6 +8,18 @@ defineOptions({
   name: 'PersonalizaPanelsPanelArchivo',
 })
 
+interface Props {
+  showContinueButton?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showContinueButton: false,
+})
+
+const emit = defineEmits<{
+  close: []
+}>()
+
 const store = usePersonalizaStore()
 const { uploadDesignImage } = useS3Upload()
 
@@ -542,7 +554,7 @@ onBeforeUnmount(() => {
         <div class="panel-archivo__warning-content">
           <p class="panel-archivo__warning-title">Resolucion baja</p>
           <p class="panel-archivo__warning-text">
-            Tu imagen tiene una resolucion menor a la recomendada para el tamano seleccionado.
+            Tu imagen tiene una resolucion menor a la recomendada para el tamaño seleccionado.
             El resultado podria verse pixelado.
           </p>
           <label class="panel-archivo__warning-checkbox">
@@ -555,8 +567,6 @@ onBeforeUnmount(() => {
           </label>
         </div>
       </div>
-
-      <div class="panel-archivo__separator" />
 
       <!-- Format selector -->
       <div class="panel-archivo__section">
@@ -582,7 +592,6 @@ onBeforeUnmount(() => {
 
       <!-- Zoom & Crop -->
       <div class="panel-archivo__section">
-        <h3 class="panel-archivo__section-title">Zoom &amp; Crop</h3>
         <div
           class="panel-archivo__slider-wrapper"
           :style="{ '--progress': store.zoomLevel + '%', '--zoom': store.zoomLevel / 100 }"
@@ -599,13 +608,16 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Change image button -->
+      <!-- Change image / Continue button -->
       <div class="panel-archivo__change-section">
         <button
-          class="panel-archivo__change-btn"
-          @click="handleChangeImage"
+          :class="[
+            'panel-archivo__change-btn',
+            { 'panel-archivo__change-btn--compact': props.showContinueButton }
+          ]"
+          @click="props.showContinueButton ? emit('close') : handleChangeImage()"
         >
-          Cambiar imagen
+          {{ props.showContinueButton ? 'Continuar' : 'Cambiar imagen' }}
         </button>
       </div>
     </template>
@@ -1017,6 +1029,27 @@ onBeforeUnmount(() => {
 
     @include hover {
       background: $color-brand-light;
+    }
+  }
+
+  &__change-btn--compact {
+    background: #252b37;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    box-shadow: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0px 0px 0px 1px rgba(10, 13, 18, 0.18), inset 0px -2px 0px 0px rgba(10, 13, 18, 0.05);
+    }
+
+    @include hover {
+      background: #1a1f28;
     }
   }
 

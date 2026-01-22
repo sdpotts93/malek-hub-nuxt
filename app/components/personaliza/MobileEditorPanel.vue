@@ -38,7 +38,7 @@ const textStyles: { id: TextStyle; label: string }[] = [
 ]
 
 const marginOptions = [
-  { id: 'none', label: 'Sin fondo', color: null },
+  { id: 'none', label: '🚫', color: null },
   { id: 'white', label: 'Blanco', color: '#ffffff' },
   { id: 'black', label: 'Negro', color: '#000000' },
   { id: 'beige', label: 'Beige', color: '#f8f6f2' },
@@ -53,7 +53,7 @@ const frameStyles: FrameStyle[] = [
 
 const frameOptions = computed(() => {
   return [
-    { id: 'none', label: 'Sin marco', frame: null as FrameStyle | null },
+    { id: 'none', label: '🚫', frame: null as FrameStyle | null },
     ...frameStyles.map(frame => ({ id: frame.id, label: frame.name, frame })),
   ]
 })
@@ -120,23 +120,23 @@ function isMarginActive(option: typeof marginOptions[number]) {
       </div>
       <div class="mobile-panel__inputs">
         <label class="mobile-panel__input">
-          <span class="mobile-panel__input-label">Titulo</span>
+          <span class="mobile-panel__input-label">Título</span>
           <input
             class="mobile-panel__input-field"
             type="text"
             :value="store.title"
-            placeholder="Anade un titulo"
+            placeholder="Añade un título"
             maxlength="50"
             @input="store.setTitle(($event.target as HTMLInputElement).value)"
           >
         </label>
         <label class="mobile-panel__input">
-          <span class="mobile-panel__input-label">Subtitulo</span>
+          <span class="mobile-panel__input-label">Subtítulo</span>
           <input
             class="mobile-panel__input-field"
             type="text"
             :value="store.subtitle"
-            placeholder="Subtitulo"
+            placeholder="Subtítulo"
             maxlength="100"
             @input="store.setSubtitle(($event.target as HTMLInputElement).value)"
           >
@@ -192,6 +192,7 @@ function isMarginActive(option: typeof marginOptions[number]) {
 
   &__archivo {
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 16px;
   }
@@ -254,6 +255,7 @@ function isMarginActive(option: typeof marginOptions[number]) {
       border: 1px solid #d5d7da;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
       z-index: 1;
+      border-radius: 8px;
     }
 
     &--clasico {
@@ -284,6 +286,10 @@ function isMarginActive(option: typeof marginOptions[number]) {
     font-size: 13px;
     font-weight: $font-weight-medium;
     color: #2f3038;
+    position: absolute;
+    background: white;
+    left: 10px;
+    top: -8px;
   }
 
   &__input-field {
