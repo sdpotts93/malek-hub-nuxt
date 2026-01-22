@@ -90,7 +90,7 @@ const store = usePersonalizaStore()
   left: 0;
   right: 0;
   height: 88px;
-  background: #ffffff;
+  background: #F5F5F5;
   border-top: 1px solid #f5f5f5;
   display: flex;
   align-items: center;
@@ -105,13 +105,17 @@ const store = usePersonalizaStore()
     @include button-reset;
     width: 40px;
     height: 40px;
-    border-radius: 12px;
-    background: #f5f5f5;
+    border-radius: 50%;
+    background: #fff;
     color: $color-text-primary;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    svg {
+      width: 24px;
+      height: 24px;
+    }
   }
 
   &__item {

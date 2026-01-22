@@ -65,14 +65,14 @@ function handleOverlayClick() {
 }
 
 .mobile-bottom-sheet {
+  border-radius: 16px 16px 0px 0px;
   position: fixed;
-  top: 0;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100dvh;
+  height: auto;
+  max-height: 100dvh;
   background: $color-bg-primary;
-  border-radius: 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   z-index: $z-fixed + 1;
   display: flex;
@@ -95,7 +95,7 @@ function handleOverlayClick() {
     right: 16px;
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: 50%;
     background: #f5f5f5;
     color: $color-text-primary;
     display: flex;
@@ -105,7 +105,7 @@ function handleOverlayClick() {
   }
 
   &__content {
-    flex: 1;
+    flex: 0 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
     @include custom-scrollbar;

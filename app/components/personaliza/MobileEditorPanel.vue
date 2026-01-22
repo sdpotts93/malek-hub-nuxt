@@ -283,13 +283,15 @@ function isMarginActive(option: typeof marginOptions[number]) {
 
   &__input-label {
     font-family: $font-primary;
-    font-size: 13px;
+    font-size: 9px;
     font-weight: $font-weight-medium;
     color: #2f3038;
     position: absolute;
     background: white;
     left: 10px;
-    top: -8px;
+    top: -5px;
+    padding-inline: 4px;
+    text-transform: uppercase;
   }
 
   &__input-field {

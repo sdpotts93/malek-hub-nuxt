@@ -552,10 +552,9 @@ onBeforeUnmount(() => {
           </svg>
         </div>
         <div class="panel-archivo__warning-content">
-          <p class="panel-archivo__warning-title">Resolucion baja</p>
+          <p class="panel-archivo__warning-title">La resolución de tu imagen es baja</p>
           <p class="panel-archivo__warning-text">
-            Tu imagen tiene una resolucion menor a la recomendada para el tamaño seleccionado.
-            El resultado podria verse pixelado.
+            La impresión podría verse pixeleada.
           </p>
           <label class="panel-archivo__warning-checkbox">
             <input
@@ -632,7 +631,7 @@ onBeforeUnmount(() => {
   padding-top: 20px;
 
   @include mobile {
-    padding-top: 0;
+    padding-top: 40px;
   }
 
   &__section {

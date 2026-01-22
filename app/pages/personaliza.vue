@@ -429,7 +429,10 @@ async function handleAddToCart() {
       <!-- Canvas Area -->
       <div class="personaliza__canvas-area">
         <div class="personaliza__canvas-container">
-          <PersonalizaCanvas ref="canvasRef" />
+          <PersonalizaCanvas
+            ref="canvasRef"
+            :mobile-panel-open="isMobile && isMobileEditorOpen && !isMobileSheetOpen"
+          />
         </div>
       </div>
 
@@ -587,8 +590,9 @@ async function handleAddToCart() {
     container-type: size;
     @include mobile {
       height: calc(100% - var(--personaliza-mobile-canvas-offset, 136px));
-      align-items: flex-start;
+      align-items: center;
     }
+
   }
 
   &__mobile-panel {

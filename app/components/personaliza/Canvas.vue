@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { isColorDark } from '~/stores/personaliza'
 
+interface Props {
+  mobilePanelOpen?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  mobilePanelOpen: false,
+})
+
 const store = usePersonalizaStore()
 
 // Check if image is loading (has source but no cropped preview yet)
@@ -71,6 +79,7 @@ const paddingMultiplierType = computed(() => {
       'personaliza-canvas',
       aspectClass,
       textStyleClass,
+      { 'personaliza-canvas--mobile-panel-open': props.mobilePanelOpen },
       {
         'personaliza-canvas--has-frame': store.frameStyle,
         'personaliza-canvas--has-text': hasText,
@@ -152,6 +161,19 @@ $padding-bottom-with-text: 12.143%;
   overflow: hidden;
   box-shadow: 0 0 20px -5px #adadad;
   container-type: size; // Use size for both width and height queries
+  transition: transform 0.25s ease, width 0.25s ease;
+
+  &--mobile-panel-open {
+    @include mobile {
+      transform: translateY(-50px);
+    }
+  }
+
+  &--mobile-panel-open.personaliza-canvas--vertical {
+    @include mobile {
+      width: 60%;
+    }
+  }
 
   // When frame is active, allow overflow and remove shadow
   &--has-frame {
