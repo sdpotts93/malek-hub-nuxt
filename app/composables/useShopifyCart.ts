@@ -549,6 +549,7 @@ export function useShopifyCart() {
         }
       }
 
+      const thumbStart = performance.now()
       let thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
 
       // Restore original blob URL (optional - keeps memory usage lower)
@@ -807,64 +808,177 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
-      // On iOS Safari, blob URLs can fail on first render attempt.
-      // Pre-swap blob URLs with S3 URLs or convert to data URLs for reliable rendering.
       const { useMomentosStore } = await import('~/stores/momentos')
       const momentosStore = useMomentosStore()
+      const originalUrls = new Map<string, string>()
 
-      // Store original URLs to restore later
-      const originalUrls = momentosStore.uploadedImages.map(img => ({
-        id: img.id,
-        mediumResUrl: img.mediumResUrl,
-      }))
+      const swapToLowResUrls = async (): Promise<boolean> => {
+        let swappedAny = false
+        for (const img of momentosStore.uploadedImages) {
+          const lowResUrl = img.lowResUrl || img.s3LowResUrl
+          if (!lowResUrl || img.mediumResUrl === lowResUrl) continue
+          if (!originalUrls.has(img.id)) {
+            originalUrls.set(img.id, img.mediumResUrl)
+          }
+          momentosStore.updateUploadedImage(img.id, { mediumResUrl: lowResUrl })
+          swappedAny = true
+        }
 
-      // Temporarily replace blob URLs with S3 URLs or data URLs for reliable rendering
-      let swappedAny = false
-      for (const img of momentosStore.uploadedImages) {
-        if (img.mediumResUrl?.startsWith('blob:')) {
-          if (img.s3MediumResUrl) {
-            // Prefer S3 URL if available
-            momentosStore.updateUploadedImage(img.id, { mediumResUrl: img.s3MediumResUrl })
-            swappedAny = true
-          } else {
-            // S3 not ready - convert blob to data URL directly
-            try {
-              const response = await fetch(img.mediumResUrl)
-              const blob = await response.blob()
-              const dataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onloadend = () => resolve(reader.result as string)
-                reader.onerror = reject
-                reader.readAsDataURL(blob)
-              })
-              momentosStore.updateUploadedImage(img.id, { mediumResUrl: dataUrl })
-              swappedAny = true
-            } catch (e) {
-              console.error(`[ShopifyCart] Failed to convert blob URL for image ${img.id}:`, e)
+        if (swappedAny) {
+          await nextTick()
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+
+        return swappedAny
+      }
+
+      const swapBlobUrlsToDataUrls = async (): Promise<boolean> => {
+        let swappedAny = false
+        for (const img of momentosStore.uploadedImages) {
+          if (!img.mediumResUrl?.startsWith('blob:')) continue
+          try {
+            const response = await fetch(img.mediumResUrl)
+            const blob = await response.blob()
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            })
+            if (!originalUrls.has(img.id)) {
+              originalUrls.set(img.id, img.mediumResUrl)
             }
+            momentosStore.updateUploadedImage(img.id, { mediumResUrl: dataUrl })
+            swappedAny = true
+          } catch (e) {
+            console.error(`[ShopifyCart] Failed to convert blob URL for image ${img.id}:`, e)
+          }
+        }
+
+        if (swappedAny) {
+          await nextTick()
+          await new Promise(resolve => setTimeout(resolve, 150))
+        }
+
+        return swappedAny
+      }
+
+      const restoreOriginalUrls = () => {
+        for (const [id, mediumResUrl] of originalUrls.entries()) {
+          const current = momentosStore.uploadedImages.find(img => img.id === id)
+          if (current && current.mediumResUrl !== mediumResUrl) {
+            momentosStore.updateUploadedImage(id, { mediumResUrl })
           }
         }
       }
 
-      if (swappedAny) {
-        // Wait for Vue to re-render with new URLs
-        await nextTick()
-        await new Promise(resolve => setTimeout(resolve, 100))
+      const isWebKitMobile = (() => {
+        if (typeof navigator === 'undefined') return false
+        const ua = navigator.userAgent
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+        const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
+        return isIOS || isSafari
+      })()
+
+      const canvasBackground = window.getComputedStyle(canvasElement).backgroundColor
+      const expectedImageCount = state.canvasCells.filter(cell => cell.imageId).length
+      const waitForMomentosImages = async (timeoutMs = 5000) => {
+        const start = performance.now()
+        let images: HTMLImageElement[] = []
+
+        // Ensure the DOM has all expected image elements before waiting on loads
+        for (let i = 0; i < 5; i++) {
+          images = Array.from(canvasElement.querySelectorAll('.momentos-canvas__cell-image'))
+          const loadedCount = images.filter(img => img.complete && img.naturalWidth > 0).length
+          if (expectedImageCount === 0 || images.length >= expectedImageCount || loadedCount >= expectedImageCount) {
+            break
+          }
+          await new Promise(resolve => {
+            requestAnimationFrame(() => setTimeout(resolve, 100))
+          })
+        }
+
+        console.log('[ShopifyCart] Momentos image load check:', {
+          expected: expectedImageCount,
+          found: images.length,
+          loaded: images.filter(img => img.complete && img.naturalWidth > 0).length,
+        })
+
+        const remaining = Math.max(0, timeoutMs - (performance.now() - start))
+        await Promise.all(images.map((img) => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve()
+          return new Promise<void>((resolve) => {
+            let settled = false
+            const finish = () => {
+              if (settled) return
+              settled = true
+              resolve()
+            }
+            const timeoutId = setTimeout(finish, remaining)
+            const cleanup = () => {
+              clearTimeout(timeoutId)
+              finish()
+            }
+            img.onload = cleanup
+            img.onerror = cleanup
+            if (typeof img.decode === 'function') {
+              img.decode().then(cleanup).catch(() => {})
+            }
+          })
+        }))
+
+        await new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve))
+        })
       }
 
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+      const generateMomentosThumbnail = async () => {
+        const renderResult = await renderer.renderElement(canvasElement, {
+          scale: 1,
+          backgroundColor: canvasBackground,
+        })
+        return renderer.resizeToThumbnail(renderResult.dataUrl, 200, canvasBackground)
+      }
 
-      // Restore original blob URLs (keeps local preview fast)
-      for (const orig of originalUrls) {
-        const current = momentosStore.uploadedImages.find(img => img.id === orig.id)
-        if (current && current.mediumResUrl !== orig.mediumResUrl) {
-          momentosStore.updateUploadedImage(orig.id, { mediumResUrl: orig.mediumResUrl })
-        }
+      const swappedToLowRes = await swapToLowResUrls()
+      let thumbnailDataUrl = await generateMomentosThumbnail()
+      if (swappedToLowRes) {
+        restoreOriginalUrls()
       }
 
       // Convert thumbnail data URL to blob
-      const thumbnailResponse = await fetch(thumbnailDataUrl)
-      const thumbnailBlob = await thumbnailResponse.blob()
+      let thumbnailResponse = await fetch(thumbnailDataUrl)
+      let thumbnailBlob = await thumbnailResponse.blob()
+
+      // Safari can return a blank first render; retry once if blob is suspiciously small.
+      if (thumbnailBlob.size < 5000) {
+        console.warn(`[ShopifyCart] Momentos thumbnail blob too small (${thumbnailBlob.size} bytes). Retrying render...`)
+        await new Promise(resolve => setTimeout(resolve, 200))
+        const swappedAgain = await swapToLowResUrls()
+        if (isWebKitMobile) {
+          await waitForMomentosImages()
+        }
+        thumbnailDataUrl = await generateMomentosThumbnail()
+        if (swappedAgain) {
+          restoreOriginalUrls()
+        }
+        thumbnailResponse = await fetch(thumbnailDataUrl)
+        thumbnailBlob = await thumbnailResponse.blob()
+        console.log(`[ShopifyCart] Momentos thumbnail retry size: ${thumbnailBlob.size} bytes`)
+      }
+
+      if (thumbnailBlob.size < 5000 && isWebKitMobile) {
+        console.warn('[ShopifyCart] Momentos thumbnail still blank. Converting blob URLs to data URLs and retrying...')
+        const swappedAny = await swapBlobUrlsToDataUrls()
+        if (swappedAny) {
+          await waitForMomentosImages()
+          thumbnailDataUrl = await generateMomentosThumbnail()
+          thumbnailResponse = await fetch(thumbnailDataUrl)
+          thumbnailBlob = await thumbnailResponse.blob()
+          console.log(`[ShopifyCart] Momentos thumbnail data URL retry size: ${thumbnailBlob.size} bytes`)
+          restoreOriginalUrls()
+        }
+      }
 
       // 4. Get design config snapshot from store
       const designConfig = momentosStore.getSnapshot()
