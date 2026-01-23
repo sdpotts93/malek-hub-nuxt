@@ -882,6 +882,11 @@ export function useShopifyCart() {
 
       const canvasBackground = window.getComputedStyle(canvasElement).backgroundColor
       const expectedImageCount = state.canvasCells.filter(cell => cell.imageId).length
+      const getMomentosImageStats = () => {
+        const images = Array.from(canvasElement.querySelectorAll('.momentos-canvas__cell-image'))
+        const loaded = images.filter(img => img.complete && img.naturalWidth > 0).length
+        return { found: images.length, loaded }
+      }
       const waitForMomentosImages = async (timeoutMs = 5000) => {
         const start = performance.now()
         let images: HTMLImageElement[] = []
@@ -932,15 +937,22 @@ export function useShopifyCart() {
         })
       }
 
+      const thumbnailMaxSize = isWebKitMobile ? 100 : 200
       const generateMomentosThumbnail = async () => {
         const renderResult = await renderer.renderElement(canvasElement, {
           scale: 1,
           backgroundColor: canvasBackground,
         })
-        return renderer.resizeToThumbnail(renderResult.dataUrl, 200, canvasBackground)
+        return renderer.resizeToThumbnail(renderResult.dataUrl, thumbnailMaxSize, canvasBackground)
       }
 
       const swappedToLowRes = await swapToLowResUrls()
+      if (isWebKitMobile) {
+        const stats = getMomentosImageStats()
+        if (expectedImageCount > 0 && (stats.found < expectedImageCount || stats.loaded < expectedImageCount)) {
+          await waitForMomentosImages(2500)
+        }
+      }
       let thumbnailDataUrl = await generateMomentosThumbnail()
       if (swappedToLowRes) {
         restoreOriginalUrls()

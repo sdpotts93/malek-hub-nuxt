@@ -2,6 +2,9 @@
 import type { MomentosFormat, MomentosImageCount, DisenoTabType } from '~/stores/momentos'
 import { IMAGE_COUNTS, MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId } from '~/stores/momentos'
 
+const LOW_RES_MAX = 200
+const MEDIUM_RES_MAX = 1500
+
 interface Props {
   // When set, hides tabs and shows only the specified content
   // Used in desktop scrollable view where tabs are in the wrapper
@@ -341,8 +344,8 @@ async function processUploadQueue() {
 async function uploadToS3WithRetry(id: string, file: File, blobUrl: string, retries = 2) {
   try {
     const [lowResBlob, mediumResBlob] = await Promise.all([
-      resizeImage(file, 200),
-      resizeImage(file, 2000),
+      resizeImage(file, LOW_RES_MAX),
+      resizeImage(file, MEDIUM_RES_MAX),
     ])
 
     const current = store.uploadedImages.find(img => img.id === id)
