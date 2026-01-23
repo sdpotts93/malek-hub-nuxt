@@ -155,20 +155,30 @@ function calculateZoomLimits() {
 function resetToInitialState() {
   if (!cropper) return
 
-  calculateZoomLimits()
+  // Use isRestoringCrop flag to prevent zoom event from triggering debounced preview
+  // (we call generatePreview() directly in ready() callback)
+  isRestoringCrop.value = true
 
-  // Set to fit ratio so image fills the container
-  cropper.zoomTo(minZoom)
+  try {
+    calculateZoomLimits()
 
-  const containerData = cropper.getContainerData()
-  const imageData = cropper.getImageData()
+    // Set to fit ratio so image fills the container
+    cropper.zoomTo(minZoom)
 
-  cropper.moveTo(
-    (containerData.width - imageData.naturalWidth * minZoom) / 2,
-    (containerData.height - imageData.naturalHeight * minZoom) / 2
-  )
+    const containerData = cropper.getContainerData()
+    const imageData = cropper.getImageData()
 
-  store.setZoomLevel(0)
+    cropper.moveTo(
+      (containerData.width - imageData.naturalWidth * minZoom) / 2,
+      (containerData.height - imageData.naturalHeight * minZoom) / 2
+    )
+
+    store.setZoomLevel(0)
+  } finally {
+    setTimeout(() => {
+      isRestoringCrop.value = false
+    }, 100)
+  }
 }
 
 // Handle zoom slider
@@ -386,8 +396,9 @@ watch(cropperImageSrc, (newSrc, oldSrc) => {
     // Wait for image to load then init cropper
     nextTick(() => {
       if (imageRef.value) {
-        // If image already loaded, init immediately
-        if (imageRef.value.complete) {
+        // Only init if DOM has updated to new src AND image is loaded
+        // (prevents double-init: watcher checking old image's complete status + @load for new image)
+        if (imageRef.value.src === newSrc && imageRef.value.complete) {
           initCropper()
         }
         // Otherwise wait for load event (handled by @load)
