@@ -335,10 +335,12 @@ async function handleAddToCart() {
     // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
     await cart.addMomentosToCart(canvasElement, momentosStore.$state)
 
-    // Success - save to history and open cart
-    const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(momentosStore.getSnapshot() as MomentosState, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(momentosStore.getSnapshot()) // Mark as saved
+    // Success - save to history and open cart (only if images were assigned)
+    if (hasContent.value) {
+      const thumbnail = await generateThumbnail(canvasElement)
+      saveDesign(momentosStore.getSnapshot() as MomentosState, thumbnail, getDesignName())
+      lastSavedState.value = JSON.stringify(momentosStore.getSnapshot()) // Mark as saved
+    }
 
     uiStore.openCart()
   } catch (error) {

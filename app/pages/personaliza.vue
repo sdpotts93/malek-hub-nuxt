@@ -522,10 +522,12 @@ async function handleAddToCart() {
     // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
     await cart.addPersonalizaToCart(canvasElement, personalizaStore.$state)
 
-    // Success - save to history and open cart
-    const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot()) // Mark as saved
+    // Success - save to history and open cart (only if image was uploaded)
+    if (personalizaStore.hasImage) {
+      const thumbnail = await generateThumbnail(canvasElement)
+      saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
+      lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot()) // Mark as saved
+    }
 
     uiStore.openCart()
   } catch (error) {
