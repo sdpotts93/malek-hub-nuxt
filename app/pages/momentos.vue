@@ -69,6 +69,9 @@ const missingElements = computed(() => {
   if (smallImageCount > 0) {
     missing.push(`${smallImageCount} ${smallImageCount === 1 ? 'imagen con resolución baja' : 'imágenes con resolución baja'}`)
   }
+  if (uploadingCount.value > 0) {
+    missing.push(`${uploadingCount.value} ${uploadingCount.value === 1 ? 'imagen' : 'imágenes'} aún se están cargando`)
+  }
   return missing
 })
 

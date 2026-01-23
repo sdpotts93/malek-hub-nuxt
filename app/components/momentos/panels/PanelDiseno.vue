@@ -1072,7 +1072,11 @@ function confirmRellenar() {
               v-if="getImageUsageCount(img.id) > 0 && !store.selectedCellId"
               class="panel-diseno__library-overlay"
             />
-            <div v-if="img.isUploading" class="panel-diseno__library-loading">
+            <div v-if="img.isUploading" class="panel-diseno__library-loading" role="status" aria-live="polite">
+              <div class="panel-diseno__library-loading-content">
+                <span class="panel-diseno__library-loading-spinner" aria-hidden="true" />
+                <span>Cargando...</span>
+              </div>
               <div class="panel-diseno__library-progress" :style="{ width: img.uploadProgress + '%' }" />
             </div>
             <!-- Warning badge for small images -->
@@ -2041,15 +2045,41 @@ function confirmRellenar() {
 
   &__library-loading {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: rgba(0, 0, 0, 0.2);
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    color: #ffffff;
+    font-family: $font-primary;
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  &__library-loading-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__library-loading-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: panel-diseno-spin 0.8s linear infinite;
   }
 
   &__library-progress {
-    height: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
     background: $color-brand;
     transition: width 0.3s ease;
   }
@@ -2180,6 +2210,12 @@ function confirmRellenar() {
     }
     50% {
       opacity: 0.7;
+    }
+  }
+
+  @keyframes panel-diseno-spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 
