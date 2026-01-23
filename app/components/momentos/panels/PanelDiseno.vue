@@ -345,6 +345,26 @@ async function uploadToS3WithRetry(id: string, file: File, blobUrl: string, retr
       resizeImage(file, 2000),
     ])
 
+    const current = store.uploadedImages.find(img => img.id === id)
+    if (!current) {
+      return
+    }
+
+    const lowResObjectUrl = URL.createObjectURL(lowResBlob)
+    const mediumResObjectUrl = URL.createObjectURL(mediumResBlob)
+
+    if (current.lowResUrl?.startsWith('blob:') && current.lowResUrl !== current.highResUrl) {
+      URL.revokeObjectURL(current.lowResUrl)
+    }
+    if (current.mediumResUrl?.startsWith('blob:') && current.mediumResUrl !== current.highResUrl) {
+      URL.revokeObjectURL(current.mediumResUrl)
+    }
+
+    store.updateUploadedImage(id, {
+      lowResUrl: lowResObjectUrl,
+      mediumResUrl: mediumResObjectUrl,
+    })
+
     // Upload sequentially to avoid overwhelming the endpoint
     const lowResResult = await uploadDesignImage(lowResBlob, 'momentos-low', 'momentos-malek')
     const mediumResResult = await uploadDesignImage(mediumResBlob, 'momentos-med', 'momentos-malek')
@@ -357,8 +377,6 @@ async function uploadToS3WithRetry(id: string, file: File, blobUrl: string, retr
       s3LowResUrl: lowResResult.url,
       s3MediumResUrl: mediumResResult.url,
       s3HighResUrl: highResResult.url,
-      // DON'T replace display URLs - keep using blob URLs for the canvas
-      // lowResUrl, mediumResUrl, highResUrl stay as blob URLs
       uploadProgress: 100,
       isUploading: false,
     })
