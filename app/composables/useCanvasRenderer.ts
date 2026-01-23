@@ -421,13 +421,18 @@ export function useCanvasRenderer() {
             img.style.maxHeight = 'none'
           }
 
-          // Safari fix: Force the image to be fully rasterized
+          // Safari/iOS WebKit fix: Force the image to be fully rasterized
           // Safari often reports decode complete before actually rasterizing, especially for blob URLs
           // CRITICAL: We must create a FRESH Image element and wait for onload, because
           // Safari's decode() lies about completion and canvas.drawImage draws blank
+          // NOTE: ALL iOS browsers (Chrome, Firefox, etc.) use WebKit under the hood, so we detect iOS
           const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+          // Detect iOS/iPadOS - includes iPad in desktop mode (which reports as Macintosh)
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+          const needsWebKitFix = isSafari || isIOS
 
-          if (isSafari && dataUrl) {
+          if (needsWebKitFix && dataUrl) {
             const safarDataUrl = dataUrl // Capture for closure (guaranteed non-null here)
             try {
               // Create a completely fresh Image element for Safari
