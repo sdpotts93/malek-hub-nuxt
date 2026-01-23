@@ -635,6 +635,143 @@ export function useShopifyCart() {
     }
   }
 
+  async function generatePersonalizaThumbnail(
+    canvasElement: HTMLElement,
+    state: PersonalizaState
+  ): Promise<string> {
+    const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
+    const renderer = useCanvasRenderer()
+
+    const { usePersonalizaStore } = await import('~/stores/personaliza')
+    const personalizaStore = usePersonalizaStore()
+
+    const blobToDataUrl = (blob: Blob): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+    }
+
+    const preloadDataUrl = async (dataUrl: string): Promise<void> => {
+      const preloadImg = new Image()
+      await new Promise<void>((resolve) => {
+        preloadImg.onload = () => resolve()
+        preloadImg.onerror = () => resolve()
+        preloadImg.src = dataUrl
+      })
+      try {
+        await preloadImg.decode()
+      } catch {
+        // Continue anyway
+      }
+    }
+
+    const waitForCanvasImage = async (dataUrl: string): Promise<void> => {
+      const domImg = canvasElement.querySelector('.personaliza-canvas__image') as HTMLImageElement | null
+      if (!domImg) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return
+      }
+      if (domImg.src !== dataUrl || !domImg.complete) {
+        await new Promise<void>((resolve) => {
+          const checkLoaded = () => {
+            if (domImg.complete && domImg.naturalWidth > 0) {
+              resolve()
+            } else {
+              requestAnimationFrame(checkLoaded)
+            }
+          }
+          domImg.onload = () => resolve()
+          domImg.onerror = () => resolve()
+          checkLoaded()
+          setTimeout(resolve, 500)
+        })
+      }
+    }
+
+    const applyDataUrl = async (dataUrl: string) => {
+      await preloadDataUrl(dataUrl)
+      personalizaStore.$patch({ croppedImageUrl: dataUrl })
+      await nextTick()
+      await waitForCanvasImage(dataUrl)
+    }
+
+    const orientation = getOrientationFromFormat(state.imageFormat)
+    const compositeMaxDimension = 1200
+    const compositeBackgroundColor = state.hasMargin ? state.marginColor : '#ffffff'
+
+    const croppedBlob = personalizaStore.croppedBlob
+    const croppedImageUrl = personalizaStore.croppedImageUrl
+    let originalCroppedImageUrl: string | null = null
+
+    if (croppedBlob) {
+      const dataUrl = await blobToDataUrl(croppedBlob)
+      originalCroppedImageUrl = croppedImageUrl
+      await applyDataUrl(dataUrl)
+    } else if (croppedImageUrl?.startsWith('blob:')) {
+      try {
+        const response = await fetch(croppedImageUrl)
+        const blob = await response.blob()
+        const dataUrl = await blobToDataUrl(blob)
+        originalCroppedImageUrl = croppedImageUrl
+        await applyDataUrl(dataUrl)
+      } catch (e) {
+        console.error('[ShopifyCart] Failed to convert cropped blob URL:', e)
+      }
+    }
+
+    let thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+
+    if (originalCroppedImageUrl) {
+      personalizaStore.$patch({ croppedImageUrl: originalCroppedImageUrl })
+    }
+
+    let thumbnailBlob = await (await fetch(thumbnailDataUrl)).blob()
+
+    if (thumbnailBlob.size < 5000) {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+      thumbnailBlob = await (await fetch(thumbnailDataUrl)).blob()
+    }
+
+    if (thumbnailBlob.size < 5000) {
+      let compositeSourceBlob: Blob | null = croppedBlob || null
+      if (!compositeSourceBlob && croppedImageUrl) {
+        try {
+          const response = await fetch(croppedImageUrl)
+          compositeSourceBlob = await response.blob()
+        } catch (e) {
+          console.error('[ShopifyCart] Failed to load cropped image for composite:', e)
+        }
+      }
+
+      if (compositeSourceBlob) {
+        try {
+          const compositeBlob = await generateHighResComposite(
+            compositeSourceBlob,
+            {
+              orientation,
+              hasMargin: state.hasMargin,
+              marginColor: state.marginColor,
+              title: state.title || '',
+              subtitle: state.subtitle || '',
+              textStyle: state.textStyle,
+            },
+            compositeMaxDimension
+          )
+          const compositeDataUrl = await blobToDataUrl(compositeBlob)
+          thumbnailDataUrl = await renderer.resizeToThumbnail(compositeDataUrl, 200, compositeBackgroundColor)
+        } catch (e) {
+          console.error('[ShopifyCart] Composite thumbnail fallback failed:', e)
+        }
+      }
+    }
+
+    return thumbnailDataUrl
+  }
+
   // ==========================================================================
   // Momentos Methods
   // ==========================================================================
@@ -752,13 +889,15 @@ export function useShopifyCart() {
 
   async function generateMomentosThumbnailData(
     canvasElement: HTMLElement,
-    state: MomentosState
+    state: MomentosState,
+    options: { preferComposite?: boolean } = {}
   ): Promise<{ dataUrl: string; blob: Blob }> {
     const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
     const renderer = useCanvasRenderer()
 
     const { useMomentosStore } = await import('~/stores/momentos')
     const momentosStore = useMomentosStore()
+    const uploadedImages = state.uploadedImages || []
     const originalUrls = new Map<string, string>()
 
     const swapToLowResUrls = async (): Promise<boolean> => {
@@ -984,7 +1123,9 @@ export function useShopifyCart() {
       return async (src: string): Promise<HTMLImageElement | null> => {
         if (cache.has(src)) return cache.get(src) || null
         const img = new Image()
-        img.crossOrigin = 'anonymous'
+        if (/^https?:/i.test(src)) {
+          img.crossOrigin = 'anonymous'
+        }
         img.decoding = 'async'
         const loaded = await new Promise<boolean>((resolve) => {
           img.onload = () => resolve(true)
@@ -1050,7 +1191,7 @@ export function useShopifyCart() {
         const cellX = padding + col * (cellWidth + gap)
         const cellY = padding + row * (cellHeight + gap)
 
-        const imageMeta = momentosStore.uploadedImages.find(img => img.id === cell.imageId)
+        const imageMeta = uploadedImages.find(img => img.id === cell.imageId)
         if (!imageMeta) continue
         const src = getCompositeImageUrl(imageMeta)
         if (!src) continue
@@ -1088,6 +1229,23 @@ export function useShopifyCart() {
     }
 
     const thumbnailMaxSize = isWebKitMobile ? 100 : 200
+    const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${timeoutMs}ms`))
+        }, timeoutMs)
+      })
+      try {
+        return await Promise.race([promise, timeoutPromise])
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+      }
+    }
+
+    const renderTimeoutMs = Math.min(12000, Math.max(4000, imageWaitMs + 2000))
     const generateMomentosThumbnail = async () => {
       const renderResult = await renderer.renderElement(canvasElement, {
         scale: 1,
@@ -1095,84 +1253,102 @@ export function useShopifyCart() {
       })
       return renderer.resizeToThumbnail(renderResult.dataUrl, thumbnailMaxSize, canvasBackground)
     }
-
-    const swappedToLowRes = await swapToLowResUrls()
-    if (!swappedToLowRes) {
-      await nextTick()
-    }
-    const stats = getMomentosImageStats()
-    if (expectedImageCount > 0 && (stats.found < expectedImageCount || stats.loaded < expectedImageCount)) {
-      await waitForMomentosImages(imageWaitMs)
-    } else if (expectedImageCount > 0) {
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-    }
-    let thumbnailDataUrl = await generateMomentosThumbnail()
-    if (swappedToLowRes) {
-      restoreOriginalUrls()
+    const renderMomentosThumbnail = async () => {
+      return withTimeout(generateMomentosThumbnail(), renderTimeoutMs, 'Momentos thumbnail render')
     }
 
-    // Convert thumbnail data URL to blob
-    let thumbnailResponse = await fetch(thumbnailDataUrl)
-    let thumbnailBlob = await thumbnailResponse.blob()
-    let thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
+    try {
+      if (options.preferComposite) {
+        const compositeDataUrl = await generateMomentosCompositeThumbnail()
+        const compositeBlob = await (await fetch(compositeDataUrl)).blob()
+        return { dataUrl: compositeDataUrl, blob: compositeBlob }
+      }
 
-    // Safari can return a blank first render; retry once if blob is suspiciously small.
-    if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
-      console.warn('[ShopifyCart] Momentos thumbnail retrying...', {
-        size: thumbnailBlob.size,
-        blank: thumbnailLooksBlank,
-      })
-      await new Promise(resolve => setTimeout(resolve, 200))
-      const swappedAgain = await swapToLowResUrls()
-      if (!swappedAgain) {
+      const swappedToLowRes = await swapToLowResUrls()
+      if (!swappedToLowRes) {
         await nextTick()
       }
-      const retryStats = getMomentosImageStats()
-      if (expectedImageCount > 0 && (retryStats.found < expectedImageCount || retryStats.loaded < expectedImageCount)) {
+      const stats = getMomentosImageStats()
+      if (expectedImageCount > 0 && (stats.found < expectedImageCount || stats.loaded < expectedImageCount)) {
         await waitForMomentosImages(imageWaitMs)
       } else if (expectedImageCount > 0) {
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
       }
-      thumbnailDataUrl = await generateMomentosThumbnail()
-      if (swappedAgain) {
+      let thumbnailDataUrl = await renderMomentosThumbnail()
+      if (swappedToLowRes) {
         restoreOriginalUrls()
       }
-      thumbnailResponse = await fetch(thumbnailDataUrl)
-      thumbnailBlob = await thumbnailResponse.blob()
-      thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
-      console.log(`[ShopifyCart] Momentos thumbnail retry size: ${thumbnailBlob.size} bytes`)
-    }
 
-    if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
-      console.warn('[ShopifyCart] Momentos thumbnail still blank. Converting blob URLs to data URLs and retrying...', {
-        size: thumbnailBlob.size,
-        blank: thumbnailLooksBlank,
-      })
-      const swappedAny = await swapBlobUrlsToDataUrls()
-      if (swappedAny) {
-        await waitForMomentosImages(imageWaitMs)
-        thumbnailDataUrl = await generateMomentosThumbnail()
+      // Convert thumbnail data URL to blob
+      let thumbnailResponse = await fetch(thumbnailDataUrl)
+      let thumbnailBlob = await thumbnailResponse.blob()
+      let thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
+
+      // Safari can return a blank first render; retry once if blob is suspiciously small.
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail retrying...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
+        await new Promise(resolve => setTimeout(resolve, 200))
+        const swappedAgain = await swapToLowResUrls()
+        if (!swappedAgain) {
+          await nextTick()
+        }
+        const retryStats = getMomentosImageStats()
+        if (expectedImageCount > 0 && (retryStats.found < expectedImageCount || retryStats.loaded < expectedImageCount)) {
+          await waitForMomentosImages(imageWaitMs)
+        } else if (expectedImageCount > 0) {
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+        }
+        thumbnailDataUrl = await renderMomentosThumbnail()
+        if (swappedAgain) {
+          restoreOriginalUrls()
+        }
         thumbnailResponse = await fetch(thumbnailDataUrl)
         thumbnailBlob = await thumbnailResponse.blob()
         thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
-        console.log(`[ShopifyCart] Momentos thumbnail data URL retry size: ${thumbnailBlob.size} bytes`)
-        restoreOriginalUrls()
+        console.log(`[ShopifyCart] Momentos thumbnail retry size: ${thumbnailBlob.size} bytes`)
       }
-    }
 
-    if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
-      console.warn('[ShopifyCart] Momentos thumbnail fallback to composite render...', {
-        size: thumbnailBlob.size,
-        blank: thumbnailLooksBlank,
-      })
-      thumbnailDataUrl = await generateMomentosCompositeThumbnail()
-      thumbnailResponse = await fetch(thumbnailDataUrl)
-      thumbnailBlob = await thumbnailResponse.blob()
-    }
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail still blank. Converting blob URLs to data URLs and retrying...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
+        const swappedAny = await swapBlobUrlsToDataUrls()
+        if (swappedAny) {
+          await waitForMomentosImages(imageWaitMs)
+          thumbnailDataUrl = await renderMomentosThumbnail()
+          thumbnailResponse = await fetch(thumbnailDataUrl)
+          thumbnailBlob = await thumbnailResponse.blob()
+          thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
+          console.log(`[ShopifyCart] Momentos thumbnail data URL retry size: ${thumbnailBlob.size} bytes`)
+          restoreOriginalUrls()
+        }
+      }
 
-    return {
-      dataUrl: thumbnailDataUrl,
-      blob: thumbnailBlob,
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail fallback to composite render...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
+        thumbnailDataUrl = await generateMomentosCompositeThumbnail()
+        thumbnailResponse = await fetch(thumbnailDataUrl)
+        thumbnailBlob = await thumbnailResponse.blob()
+      }
+
+      return {
+        dataUrl: thumbnailDataUrl,
+        blob: thumbnailBlob,
+      }
+    } catch (err) {
+      console.warn('[ShopifyCart] Momentos thumbnail render failed, falling back to composite:', err)
+      const fallbackDataUrl = await generateMomentosCompositeThumbnail()
+      const fallbackBlob = await (await fetch(fallbackDataUrl)).blob()
+      return { dataUrl: fallbackDataUrl, blob: fallbackBlob }
+    } finally {
+      restoreOriginalUrls()
     }
   }
 
@@ -1277,6 +1453,14 @@ export function useShopifyCart() {
   }
 
   async function generateMomentosThumbnail(
+    canvasElement: HTMLElement,
+    state: MomentosState
+  ): Promise<string> {
+    const { dataUrl } = await generateMomentosThumbnailData(canvasElement, state)
+    return dataUrl
+  }
+
+  async function generateMomentosHistoryThumbnail(
     canvasElement: HTMLElement,
     state: MomentosState
   ): Promise<string> {
@@ -1473,6 +1657,7 @@ export function useShopifyCart() {
     calculatePersonalizaPrice,
     validatePersonalizaForCart,
     addPersonalizaToCart,
+    generatePersonalizaThumbnail,
 
     // Momentos Actions
     momentosProduct: computed(() => momentosProduct.value),
@@ -1484,6 +1669,7 @@ export function useShopifyCart() {
     validateMomentosForCart,
     addMomentosToCart,
     generateMomentosThumbnail,
+    generateMomentosHistoryThumbnail,
 
     // Cart actions (pass-through)
     updateQuantity: cartStore.updateQuantity.bind(cartStore),

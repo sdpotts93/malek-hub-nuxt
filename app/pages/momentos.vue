@@ -158,7 +158,7 @@ async function saveCurrentDesign() {
 
   try {
     // Always generate fresh thumbnail
-    const thumbnail = await cart.generateMomentosThumbnail(canvasElement, momentosStore.$state)
+    const thumbnail = await cart.generateMomentosHistoryThumbnail(canvasElement, momentosStore.$state)
 
     const persistentState = momentosStore.getSnapshot()
 

@@ -30,7 +30,7 @@ const personalizaStore = usePersonalizaStore()
 const uiStore = useUIStore()
 
 // Composables
-const { isRendering, generateThumbnail, warmup } = useCanvasRenderer()
+const { isRendering, warmup } = useCanvasRenderer()
 const { saveDesign, deleteDesign, designs } = useDesignHistory<PersonalizaState>('personaliza')
 const cart = useShopifyCart()
 
@@ -232,7 +232,7 @@ async function saveCurrentDesign() {
   if (!canvasElement || !isDirty.value || !personalizaStore.hasImage) return
 
   try {
-    const thumbnail = await generateThumbnail(canvasElement)
+    const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
     const persistentState = prepareStateForPersistence()
     if (!persistentState) return
 
@@ -282,7 +282,7 @@ watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
   }
 
   try {
-    const thumbnail = await generateThumbnail(canvasElement)
+    const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
     const persistentState = prepareStateForPersistence()
     if (persistentState) {
       saveDesign(persistentState, thumbnail, getDesignName())
@@ -524,7 +524,7 @@ async function handleAddToCart() {
 
     // Success - save to history and open cart (only if image was uploaded)
     if (personalizaStore.hasImage) {
-      const thumbnail = await generateThumbnail(canvasElement)
+      const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
       saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
       lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot()) // Mark as saved
     }
