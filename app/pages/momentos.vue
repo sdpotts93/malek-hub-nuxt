@@ -28,7 +28,7 @@ const momentosStore = useMomentosStore()
 const uiStore = useUIStore()
 
 // Composables
-const { isRendering, generateThumbnail } = useCanvasRenderer()
+const { isRendering, generateThumbnail, warmup } = useCanvasRenderer()
 const { saveDesign, deleteDesign, designs } = useDesignHistory<MomentosState>('momentos')
 const cart = useShopifyCart()
 
@@ -170,10 +170,13 @@ const AUTOSAVE_KEY = 'studiomalek_autosave_momentos'
 
 // Check mobile on mount and initialize cart
 onMounted(async () => {
-  // Initialize Shopify cart and fetch momentos product variants
+  // Initialize Shopify cart, fetch momentos product variants, and warm up renderer
+  // Warming up html-to-image early prevents slow first render during add-to-cart
+  // Note: We use initCartOnly() to avoid fetching birth poster product (not needed here)
   await Promise.all([
-    cart.init(),
+    cart.initCartOnly(),
     cart.fetchMomentosProduct(),
+    warmup(),
   ])
 
   // Restore from autosave if exists (from browser refresh/crash)

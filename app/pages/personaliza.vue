@@ -30,7 +30,7 @@ const personalizaStore = usePersonalizaStore()
 const uiStore = useUIStore()
 
 // Composables
-const { isRendering, generateThumbnail } = useCanvasRenderer()
+const { isRendering, generateThumbnail, warmup } = useCanvasRenderer()
 const { saveDesign, deleteDesign, designs } = useDesignHistory<PersonalizaState>('personaliza')
 const cart = useShopifyCart()
 
@@ -248,19 +248,43 @@ watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
   }
 })
 
+// Event handlers defined at module level for cleanup
+let checkMobile: (() => void) | null = null
+let handleBeforeUnload: (() => void) | null = null
+let handlePageHide: ((e: PageTransitionEvent) => void) | null = null
+let handleVisibilityChange: (() => void) | null = null
+
+// Register onUnmounted BEFORE onMounted to avoid lifecycle issues
+onUnmounted(() => {
+  // Remove event listeners with proper null guards
+  const cm = checkMobile
+  const hbu = handleBeforeUnload
+  const hph = handlePageHide
+  const hvc = handleVisibilityChange
+  if (cm) window.removeEventListener('resize', cm)
+  if (hbu) window.removeEventListener('beforeunload', hbu)
+  if (hph) window.removeEventListener('pagehide', hph)
+  if (hvc) document.removeEventListener('visibilitychange', hvc)
+  // Save when navigating away within the app
+  saveCurrentDesign()
+})
+
 // Check mobile on mount and initialize cart
 onMounted(async () => {
   // Check mobile FIRST so the upload sheet shows immediately if needed
-  const checkMobile = () => {
+  checkMobile = () => {
     isMobile.value = window.innerWidth < 768
   }
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
-  // Initialize Shopify cart and fetch personaliza product variants (non-blocking for UI)
-  Promise.all([
-    cart.init(),
+  // Initialize Shopify cart, fetch personaliza product variants, and warm up renderer
+  // Warming up html-to-image early prevents slow first render during add-to-cart
+  // Note: We use initCartOnly() to avoid fetching birth poster product (not needed here)
+  await Promise.all([
+    cart.initCartOnly(),
     cart.fetchPersonalizaProducts(),
+    warmup(),
   ])
 
   // Restore from autosave if exists (from browser refresh/crash)
@@ -306,12 +330,12 @@ onMounted(async () => {
   }
 
   // Auto-save on page unload (browser close/refresh)
-  const handleBeforeUnload = () => {
+  handleBeforeUnload = () => {
     saveAutosave()
   }
 
   // pagehide is more reliable than beforeunload on mobile Safari
-  const handlePageHide = (e: PageTransitionEvent) => {
+  handlePageHide = (e: PageTransitionEvent) => {
     // Only save if page is actually being unloaded (not just hidden for bfcache)
     if (!e.persisted) {
       saveAutosave()
@@ -319,7 +343,7 @@ onMounted(async () => {
   }
 
   // visibilitychange fires when user switches tabs or minimizes - save proactively
-  const handleVisibilityChange = () => {
+  handleVisibilityChange = () => {
     if (document.visibilityState === 'hidden') {
       saveAutosave()
     }
@@ -328,15 +352,6 @@ onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
   window.addEventListener('pagehide', handlePageHide)
   document.addEventListener('visibilitychange', handleVisibilityChange)
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', checkMobile)
-    window.removeEventListener('beforeunload', handleBeforeUnload)
-    window.removeEventListener('pagehide', handlePageHide)
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-    // Save when navigating away within the app
-    saveCurrentDesign()
-  })
 })
 
 watch(

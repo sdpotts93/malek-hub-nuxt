@@ -65,6 +65,7 @@ interface CartState {
   isApplyingDiscount: boolean
   error: string | null
   discountError: string | null
+  _initialized: boolean // Track if init has been called
 }
 
 export const useCartStore = defineStore('cart', {
@@ -82,6 +83,7 @@ export const useCartStore = defineStore('cart', {
     isApplyingDiscount: false,
     error: null,
     discountError: null,
+    _initialized: false,
   }),
 
   getters: {
@@ -147,9 +149,13 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
-    // Initialize cart from localStorage
+    // Initialize cart from localStorage (idempotent - only runs once)
     async init() {
       if (!import.meta.client) return
+
+      // Prevent duplicate initialization
+      if (this._initialized) return
+      this._initialized = true
 
       const storedCartId = localStorage.getItem(CART_STORAGE_KEY)
       if (storedCartId) {

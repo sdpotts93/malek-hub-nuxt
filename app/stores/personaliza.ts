@@ -357,8 +357,8 @@ export async function generateHighResCrop(): Promise<Blob | null> {
     const canvas = _cropperInstance!.getCroppedCanvas(HIGH_RES_CROP_OPTIONS)
     canvas.toBlob(
       (blob) => resolve(blob),
-      'image/png',
-      1 // Max quality
+      'image/jpeg',
+      0.92 // High quality JPEG (much smaller than PNG)
     )
   })
 }
@@ -549,8 +549,8 @@ export async function generateHighResComposite(
         if (blob) resolve(blob)
         else reject(new Error('Failed to create blob from canvas'))
       },
-      'image/png',
-      1 // Max quality
+      'image/jpeg',
+      0.92 // High quality JPEG (much smaller than PNG)
     )
   })
 }

@@ -23,6 +23,14 @@ interface UploadResult {
   filename: string
 }
 
+interface PreparedUpload {
+  filename: string
+  presignedUrl: string
+  contentType: string
+  bucket: S3Bucket
+  finalUrl: string
+}
+
 export function useS3Upload() {
   const isUploading = ref(false)
   const uploadProgress = ref(0)
@@ -68,10 +76,61 @@ export function useS3Upload() {
   /**
    * Generate unique filename for design image
    */
-  function generateFilename(prefix: string = 'design'): string {
+  function generateFilename(prefix: string = 'design', extension: string = 'png'): string {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
-    return `${prefix}-${timestamp}-${random}.png`
+    return `${prefix}-${timestamp}-${random}.${extension}`
+  }
+
+  /**
+   * Prepare an image upload by generating filename and fetching presigned URL.
+   * Call this early to parallelize with other async work (e.g., thumbnail generation).
+   * Then call completeUpload() with the blob when ready.
+   *
+   * @param prefix - Filename prefix
+   * @param bucket - S3 bucket
+   * @param contentType - MIME type (default: 'image/jpeg')
+   */
+  async function prepareImageUpload(
+    prefix: string = 'design',
+    bucket: S3Bucket = 'birth-poster',
+    contentType: 'image/jpeg' | 'image/png' = 'image/jpeg'
+  ): Promise<PreparedUpload> {
+    const extension = contentType === 'image/jpeg' ? 'jpg' : 'png'
+    const filename = generateFilename(prefix, extension)
+    const presignedUrl = await getPresignedUrl(filename, contentType, bucket)
+    const finalUrl = `${getS3BaseUrl(bucket)}/${filename}`
+    return { filename, presignedUrl, contentType, bucket, finalUrl }
+  }
+
+  /**
+   * Prepare a config upload by generating filename and fetching presigned URL.
+   * Call this early to parallelize with other async work.
+   * Then call completeConfigUpload() with the config when ready.
+   */
+  async function prepareConfigUpload(
+    prefix: string = 'config',
+    bucket: S3Bucket = 'momentos-malek'
+  ): Promise<PreparedUpload> {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    const filename = `${prefix}-${timestamp}-${random}.txt`
+    const contentType = 'text/plain'
+    const presignedUrl = await getPresignedUrl(filename, contentType, bucket)
+    const finalUrl = `${getS3BaseUrl(bucket)}/${filename}`
+    return { filename, presignedUrl, contentType, bucket, finalUrl }
+  }
+
+  /**
+   * Complete an upload using a prepared upload object.
+   * Use this after prepareImageUpload() or prepareConfigUpload().
+   */
+  async function completeUpload(
+    prepared: PreparedUpload,
+    blob: Blob
+  ): Promise<UploadResult> {
+    await uploadToS3(blob, prepared.presignedUrl, prepared.contentType)
+    return { url: prepared.finalUrl, filename: prepared.filename }
   }
 
   /**
@@ -91,8 +150,10 @@ export function useS3Upload() {
     error.value = null
 
     try {
-      const filename = generateFilename(prefix)
-      const contentType = 'image/png'
+      // Auto-detect content type from blob, default to JPEG
+      const contentType = blob.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const extension = contentType === 'image/png' ? 'png' : 'jpg'
+      const filename = generateFilename(prefix, extension)
 
       // Get presigned URL
       uploadProgress.value = 20
@@ -166,5 +227,10 @@ export function useS3Upload() {
     // Actions
     uploadDesignImage,
     uploadConfig,
+
+    // Optimized upload (for parallel presigned URL fetching)
+    prepareImageUpload,
+    prepareConfigUpload,
+    completeUpload,
   }
 }

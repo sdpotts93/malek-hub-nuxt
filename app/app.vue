@@ -6,10 +6,6 @@
 </template>
 
 <script setup lang="ts">
-// Initialize cart on app mount
-const cart = useShopifyCart()
-
-onMounted(() => {
-  cart.init()
-})
+// Cart initialization is handled by each tool page (birth-poster, personaliza, momentos)
+// to avoid duplicate fetches and allow each page to fetch only the products it needs
 </script>
