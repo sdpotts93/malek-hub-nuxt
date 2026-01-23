@@ -77,7 +77,7 @@ const missingElements = computed(() => {
 
 // Can proceed with warnings - false if ALL cells are empty (must have at least one image)
 const canProceedWithWarnings = computed(() => {
-  return momentosStore.filledCellCount > 0
+  return momentosStore.filledCellCount > 0 && uploadingCount.value === 0
 })
 
 const isMobile = ref(false)
