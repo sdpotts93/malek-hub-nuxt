@@ -908,6 +908,17 @@ export const useMomentosStore = defineStore('momentos', {
         if (img.highResUrl.startsWith('blob:')) URL.revokeObjectURL(img.highResUrl)
       })
 
+      // Prefer S3 URLs for blob URLs (which won't work after reload)
+      // Only replace if S3 URL exists, otherwise keep original for restore detection
+      if (state.uploadedImages) {
+        state.uploadedImages = state.uploadedImages.map(img => ({
+          ...img,
+          lowResUrl: (img.lowResUrl?.startsWith('blob:') && img.s3LowResUrl) ? img.s3LowResUrl : img.lowResUrl,
+          mediumResUrl: (img.mediumResUrl?.startsWith('blob:') && img.s3MediumResUrl) ? img.s3MediumResUrl : img.mediumResUrl,
+          highResUrl: (img.highResUrl?.startsWith('blob:') && img.s3HighResUrl) ? img.s3HighResUrl : img.highResUrl,
+        }))
+      }
+
       this.$patch(state)
     },
 
@@ -915,12 +926,13 @@ export const useMomentosStore = defineStore('momentos', {
     getSnapshot(): Omit<MomentosState, 'undoStack' | 'redoStack' | 'isGeneratingImage'> {
       const { undoStack, redoStack, isGeneratingImage, ...rest } = this.$state
 
-      // Filter out blob URLs from uploadedImages - only keep S3 URLs
+      // Prefer S3 URLs for persistence (blob URLs won't work after reload)
+      // But keep original URLs if S3 isn't ready, so restore knows there were images
       const cleanedImages = rest.uploadedImages.map(img => ({
         ...img,
-        lowResUrl: img.s3LowResUrl || '',
-        mediumResUrl: img.s3MediumResUrl || '',
-        highResUrl: img.s3HighResUrl || '',
+        lowResUrl: img.s3LowResUrl || img.lowResUrl,
+        mediumResUrl: img.s3MediumResUrl || img.mediumResUrl,
+        highResUrl: img.s3HighResUrl || img.highResUrl,
         file: null as unknown as File, // Can't serialize File objects
         isUploading: false,
         uploadProgress: 100,

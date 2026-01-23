@@ -59,7 +59,12 @@ const gridDimensions = computed(() => store.gridDimensions)
 function getCellImageUrl(cell: CanvasCell): string | null {
   if (!cell.imageId) return null
   const img = store.getImageById(cell.imageId)
-  return img?.mediumResUrl || null
+  if (!img?.mediumResUrl) return null
+  // If mediumResUrl is empty, try S3 URL as fallback (for loaded history items)
+  if (img.mediumResUrl === '') {
+    return img.s3MediumResUrl || null
+  }
+  return img.mediumResUrl
 }
 
 // Get CSS filter for a cell

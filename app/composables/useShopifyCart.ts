@@ -371,8 +371,37 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
+      // On iOS Safari, blob URLs can fail on first render attempt.
+      // Pre-convert the cropped blob to data URL and update the store temporarily.
+      // This ensures the canvas has a data URL (not blob URL) when we render.
+      const croppedBlob = personalizaStore.croppedBlob
+      let originalCroppedImageUrl: string | null = null
+
+      if (croppedBlob) {
+        console.log('[ShopifyCart] Pre-converting blob to data URL for reliable rendering...')
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(croppedBlob)
+        })
+
+        // Temporarily replace blob URL with data URL
+        originalCroppedImageUrl = personalizaStore.croppedImageUrl
+        personalizaStore.$patch({ croppedImageUrl: dataUrl })
+
+        // Wait for Vue to re-render with data URL
+        await nextTick()
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+
       console.log('[ShopifyCart] Generating thumbnail for Personaliza...')
       const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+
+      // Restore original blob URL (optional - keeps memory usage lower)
+      if (originalCroppedImageUrl) {
+        personalizaStore.$patch({ croppedImageUrl: originalCroppedImageUrl })
+      }
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
@@ -589,17 +618,50 @@ export function useShopifyCart() {
       const { useCanvasRenderer } = await import('~/composables/useCanvasRenderer')
       const renderer = useCanvasRenderer()
 
+      // On iOS Safari, blob URLs can fail on first render attempt.
+      // Pre-swap blob URLs with S3 URLs in the store before rendering.
+      const { useMomentosStore } = await import('~/stores/momentos')
+      const momentosStore = useMomentosStore()
+
+      // Store original URLs to restore later
+      const originalUrls = momentosStore.uploadedImages.map(img => ({
+        id: img.id,
+        mediumResUrl: img.mediumResUrl,
+      }))
+
+      // Temporarily replace blob URLs with S3 URLs for reliable rendering
+      let swappedAny = false
+      for (const img of momentosStore.uploadedImages) {
+        if (img.mediumResUrl.startsWith('blob:') && img.s3MediumResUrl) {
+          console.log(`[ShopifyCart] Swapping blob URL with S3 URL for image ${img.id}`)
+          momentosStore.updateUploadedImage(img.id, { mediumResUrl: img.s3MediumResUrl })
+          swappedAny = true
+        }
+      }
+
+      if (swappedAny) {
+        // Wait for Vue to re-render with S3 URLs
+        await nextTick()
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+
       console.log('[ShopifyCart] Generating thumbnail...')
       const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+
+      // Restore original blob URLs (keeps local preview fast)
+      for (const orig of originalUrls) {
+        const current = momentosStore.uploadedImages.find(img => img.id === orig.id)
+        if (current && current.mediumResUrl !== orig.mediumResUrl) {
+          momentosStore.updateUploadedImage(orig.id, { mediumResUrl: orig.mediumResUrl })
+        }
+      }
 
       // Convert thumbnail data URL to blob
       const thumbnailResponse = await fetch(thumbnailDataUrl)
       const thumbnailBlob = await thumbnailResponse.blob()
       console.log(`[ShopifyCart] Thumbnail generated: ${(thumbnailBlob.size / 1024).toFixed(1)}KB`)
 
-      // 3. Get design config snapshot from store
-      const { useMomentosStore } = await import('~/stores/momentos')
-      const momentosStore = useMomentosStore()
+      // 3. Get design config snapshot from store (momentosStore already imported above)
       const designConfig = momentosStore.getSnapshot()
 
       // 4. Upload config + thumbnail to S3 (fast! ~100KB total vs 40MB before)

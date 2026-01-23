@@ -863,13 +863,24 @@ export const usePersonalizaStore = defineStore('personaliza', {
       if (this.imageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.imageUrl)
       if (this.croppedImageUrl?.startsWith('blob:')) URL.revokeObjectURL(this.croppedImageUrl)
 
+      // Prefer S3 URL if the saved state has a blob URL (which won't work after reload)
+      // But keep the blob URL as fallback so restore logic knows there was an image
+      if (state.imageUrl?.startsWith('blob:') && state.imageS3Url) {
+        state.imageUrl = state.imageS3Url
+      }
+
       this.$patch(state)
     },
 
     // Get state snapshot for saving (excluding File, Blob, and transient state)
+    // Prefers S3 URL for persistence (blob URLs don't survive page reload)
     getSnapshot(): Omit<PersonalizaState, 'imageFile' | 'croppedBlob' | 'croppedImageUrl' | 'isUploadingToS3'> {
       const { imageFile, croppedBlob, croppedImageUrl, isUploadingToS3, ...rest } = this.$state
-      return rest
+      return {
+        ...rest,
+        // Use S3 URL if available, otherwise keep original (even if blob URL - it won't work after reload but restore logic needs to know there was an image)
+        imageUrl: rest.imageS3Url || rest.imageUrl,
+      }
     },
   },
 })

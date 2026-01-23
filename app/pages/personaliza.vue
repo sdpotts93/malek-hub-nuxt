@@ -288,11 +288,8 @@ onMounted(async () => {
   // Store initial state to track changes (after autosave restore)
   lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
 
-  // Auto-save on page unload (browser close/refresh)
-  // Note: This is synchronous, so we can't convert blob URLs here
-  // The image will need to be re-uploaded if user returns after browser close
-  // But other settings (format, size, text, etc.) will be preserved
-  const handleBeforeUnload = () => {
+  // Save state for crash recovery
+  const saveAutosave = () => {
     try {
       const snapshot = personalizaStore.getSnapshot()
       // Clear blob URL since it won't work after page reload
@@ -304,14 +301,39 @@ onMounted(async () => {
       snapshot.isImageReady = false
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
     } catch (e) {
-      console.error('[Personaliza] Failed to save on unload:', e)
+      console.error('[Personaliza] Failed to save autosave:', e)
     }
   }
+
+  // Auto-save on page unload (browser close/refresh)
+  const handleBeforeUnload = () => {
+    saveAutosave()
+  }
+
+  // pagehide is more reliable than beforeunload on mobile Safari
+  const handlePageHide = (e: PageTransitionEvent) => {
+    // Only save if page is actually being unloaded (not just hidden for bfcache)
+    if (!e.persisted) {
+      saveAutosave()
+    }
+  }
+
+  // visibilitychange fires when user switches tabs or minimizes - save proactively
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      saveAutosave()
+    }
+  }
+
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('pagehide', handlePageHide)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   onUnmounted(() => {
     window.removeEventListener('resize', checkMobile)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.removeEventListener('pagehide', handlePageHide)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
     // Save when navigating away within the app
     saveCurrentDesign()
   })

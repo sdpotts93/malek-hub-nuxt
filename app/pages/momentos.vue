@@ -198,24 +198,52 @@ onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
+  // Save state for crash recovery
+  const saveAutosave = () => {
+    try {
+      const snapshot = momentosStore.getSnapshot()
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
+    } catch (e) {
+      console.error('[Momentos] Failed to save autosave:', e)
+    }
+  }
+
   // Save to history on page unload (browser close/refresh)
   const handleBeforeUnload = () => {
     try {
       // Save to history with cached thumbnail
       saveCurrentDesignSync()
-
       // Also save raw state as backup for crash recovery
-      const snapshot = momentosStore.getSnapshot()
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
+      saveAutosave()
     } catch (e) {
       console.error('[Momentos] Failed to save on unload:', e)
     }
   }
+
+  // pagehide is more reliable than beforeunload on mobile Safari
+  const handlePageHide = (e: PageTransitionEvent) => {
+    // Only save if page is actually being unloaded (not just hidden for bfcache)
+    if (!e.persisted) {
+      saveAutosave()
+    }
+  }
+
+  // visibilitychange fires when user switches tabs or minimizes - save proactively
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      saveAutosave()
+    }
+  }
+
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('pagehide', handlePageHide)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   onUnmounted(() => {
     window.removeEventListener('resize', checkMobile)
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.removeEventListener('pagehide', handlePageHide)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
     // Save to history when navigating away within the app
     saveCurrentDesign()
   })
