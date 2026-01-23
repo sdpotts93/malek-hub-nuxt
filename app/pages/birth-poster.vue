@@ -120,6 +120,13 @@ const pendingHistorySave = ref(false)
 
 // Check mobile on mount and initialize cart
 onMounted(() => {
+  // Check mobile FIRST so the UI renders correctly immediately
+  const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
   // Initialize Shopify cart and fetch product variants
   cart.init()
 
@@ -172,12 +179,6 @@ onMounted(() => {
       pendingHistorySave.value = false
     })
   }
-
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
 
   // Auto-save on page unload (browser close/refresh)
   // Always save state - cheaper to save unnecessarily than to lose user work
@@ -417,11 +418,15 @@ async function handleAddToCart() {
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-wrapper {
     background: $color-bg-primary;
-    
+
     border: 1px solid $color-border;
     border-radius: 12px;
     box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
@@ -430,6 +435,10 @@ async function handleAddToCart() {
     overflow: hidden;
     height: calc(100% - 12px);
     margin-top: auto;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-content {
@@ -472,6 +481,10 @@ async function handleAddToCart() {
     width: 106px; // Fixed width: 82px panel + 24px margin
     background: $color-canvas;
     flex-shrink: 0;
+
+    @include mobile {
+      display: none;
+    }
   }
 }
 </style>

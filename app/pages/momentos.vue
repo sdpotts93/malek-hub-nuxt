@@ -170,10 +170,17 @@ const AUTOSAVE_KEY = 'studiomalek_autosave_momentos'
 
 // Check mobile on mount and initialize cart
 onMounted(async () => {
-  // Initialize Shopify cart, fetch momentos product variants, and warm up renderer
+  // Check mobile FIRST so the UI renders correctly immediately
+  const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
+  // Initialize Shopify cart, fetch momentos product variants, and warm up renderer (non-blocking for UI)
   // Warming up html-to-image early prevents slow first render during add-to-cart
   // Note: We use initCartOnly() to avoid fetching birth poster product (not needed here)
-  await Promise.all([
+  Promise.all([
     cart.initCartOnly(),
     cart.fetchMomentosProduct(),
     warmup(),
@@ -194,12 +201,6 @@ onMounted(async () => {
 
   // Store initial state to track changes (after autosave restore)
   lastSavedState.value = JSON.stringify(momentosStore.getSnapshot())
-
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
 
   // Save state for crash recovery
   const saveAutosave = () => {
@@ -503,6 +504,10 @@ async function handleAddToCart() {
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-wrapper {
@@ -516,6 +521,10 @@ async function handleAddToCart() {
     overflow: hidden;
     height: calc(100% - 12px);
     margin-top: auto;
+
+    @include mobile {
+      display: none;
+    }
   }
 
   &__panel-content {
@@ -592,6 +601,10 @@ async function handleAddToCart() {
     width: 106px; // Fixed width: 82px panel + 24px margin
     background: $color-canvas;
     flex-shrink: 0;
+
+    @include mobile {
+      display: none;
+    }
   }
 }
 </style>

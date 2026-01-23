@@ -385,7 +385,8 @@ export interface CompositeOptions {
  */
 export async function generateHighResComposite(
   cropBlob: Blob,
-  options: CompositeOptions
+  options: CompositeOptions,
+  maxDimension: number = HIGH_RES_OUTPUT.maxDimension
 ): Promise<Blob> {
   const { orientation, hasMargin, marginColor, title, subtitle, textStyle } = options
   const hasText = !!(title || subtitle)
@@ -397,11 +398,11 @@ export async function generateHighResComposite(
 
   if (aspectRatio >= 1) {
     // Horizontal or square: width is the max dimension
-    width = HIGH_RES_OUTPUT.maxDimension
+    width = maxDimension
     height = Math.round(width / aspectRatio)
   } else {
     // Vertical: height is the max dimension
-    height = HIGH_RES_OUTPUT.maxDimension
+    height = maxDimension
     width = Math.round(height * aspectRatio)
   }
 
