@@ -368,7 +368,8 @@ watch(
 
     if (!hasImage) {
       personalizaStore.setActivePanel('archivo')
-      if (!hasDismissedNoImageSheet.value) {
+      // Don't auto-open archivo sheet if there's history (user can load a saved design)
+      if (!hasDismissedNoImageSheet.value && designs.value.length === 0) {
         isMobileSheetOpen.value = true
       }
       isMobileEditorOpen.value = false
