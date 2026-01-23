@@ -144,8 +144,54 @@ function getDesignName(): string {
 }
 
 // Handle loading a design from history
-// Navigate to archivo panel to ensure Cropper regenerates the cropped image
-function handleLoadDesign(state: Partial<PersonalizaState>) {
+// Fetches S3 image and caches as blob for instant orientation changes
+// Uses loadRequestId to handle race conditions when user rapidly switches designs
+let loadRequestId = 0
+
+async function handleLoadDesign(originalState: Partial<PersonalizaState>) {
+  const thisRequestId = ++loadRequestId
+
+  // Clone state to avoid mutating the saved design in history
+  // (otherwise the blob URL we set gets revoked on next load, but history still references it)
+  const state = { ...originalState }
+
+  // If the design has an S3 URL, always fetch and cache as blob
+  // Don't trust existing blob URLs - they may have been revoked
+  const needsCache = !!state.imageS3Url
+
+  if (needsCache) {
+    try {
+      const response = await fetch(state.imageS3Url!, { mode: 'cors' })
+
+      // Check if a newer request was started while we were fetching
+      if (thisRequestId !== loadRequestId) {
+        return // Discard stale result
+      }
+
+      if (response.ok) {
+        const blob = await response.blob()
+
+        // Check again after blob conversion (could be slow for large images)
+        if (thisRequestId !== loadRequestId) {
+          return
+        }
+
+        state.imageUrl = URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('[Personaliza] Failed to cache S3 image as blob:', error)
+    }
+  }
+
+  // Final check before loading state
+  if (thisRequestId !== loadRequestId) {
+    // Clean up orphaned blob if we created one
+    if (state.imageUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(state.imageUrl)
+    }
+    return
+  }
+
   personalizaStore.loadState(state)
 
   // If the design has an image, navigate to archivo panel so Cropper can regenerate
@@ -292,6 +338,21 @@ onMounted(async () => {
     const autosaved = localStorage.getItem(AUTOSAVE_KEY)
     if (autosaved) {
       const savedState = JSON.parse(autosaved)
+
+      // Cache S3 image as blob for instant orientation changes (same as handleLoadDesign)
+      const needsCache = savedState.imageS3Url && (!savedState.imageUrl || !savedState.imageUrl.startsWith('blob:'))
+      if (needsCache) {
+        try {
+          const response = await fetch(savedState.imageS3Url, { mode: 'cors' })
+          if (response.ok) {
+            const blob = await response.blob()
+            savedState.imageUrl = URL.createObjectURL(blob)
+          }
+        } catch (error) {
+          console.error('[Personaliza] Failed to cache autosave image as blob:', error)
+        }
+      }
+
       personalizaStore.loadState(savedState)
       localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
 

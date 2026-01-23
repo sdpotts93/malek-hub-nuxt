@@ -49,6 +49,7 @@ const isRestoringCrop = ref(false)
 // Track when cropper is ready (to avoid flash of unstyled image)
 const isCropperReady = ref(false)
 
+
 // Debounce timer for preview generation
 let previewDebounceTimer: ReturnType<typeof setTimeout> | null = null
 const PREVIEW_DEBOUNCE_MS = 200
@@ -419,21 +420,8 @@ watch(
   { deep: true }
 )
 
-// Watch for image format changes from loading saved state
-// This handles when user loads a history item with different aspect ratio
-watch(
-  () => store.imageFormat,
-  (newFormat, oldFormat) => {
-    // Only act if cropper exists and format actually changed
-    if (cropper && isCropperReady.value && newFormat !== oldFormat && imageRef.value) {
-      // Destroy and recreate cropper with new aspect ratio
-      destroyCropper()
-      nextTick(() => {
-        initCropper()
-      })
-    }
-  }
-)
+// Note: Format changes from loading saved state are handled by the cropperImageSrc watcher
+// (which fires when imageUrl changes). User-initiated format changes are handled by selectFormat().
 
 // Watch for scroll to warning trigger
 watch(
