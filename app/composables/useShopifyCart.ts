@@ -882,6 +882,14 @@ export function useShopifyCart() {
 
       const canvasBackground = window.getComputedStyle(canvasElement).backgroundColor
       const expectedImageCount = state.canvasCells.filter(cell => cell.imageId).length
+      const imageWaitMs = (() => {
+        if (expectedImageCount === 0) return 0
+        const minWait = 2500
+        const maxWait = 8000
+        const baseWait = 1500
+        const perImageWait = 120
+        return Math.min(maxWait, Math.max(minWait, baseWait + expectedImageCount * perImageWait))
+      })()
       const getMomentosImageStats = () => {
         const images = Array.from(canvasElement.querySelectorAll('.momentos-canvas__cell-image'))
         const loaded = images.filter(img => img.complete && img.naturalWidth > 0).length
@@ -947,11 +955,14 @@ export function useShopifyCart() {
       }
 
       const swappedToLowRes = await swapToLowResUrls()
-      if (isWebKitMobile) {
-        const stats = getMomentosImageStats()
-        if (expectedImageCount > 0 && (stats.found < expectedImageCount || stats.loaded < expectedImageCount)) {
-          await waitForMomentosImages(2500)
-        }
+      if (!swappedToLowRes) {
+        await nextTick()
+      }
+      const stats = getMomentosImageStats()
+      if (expectedImageCount > 0 && (stats.found < expectedImageCount || stats.loaded < expectedImageCount)) {
+        await waitForMomentosImages(imageWaitMs)
+      } else if (expectedImageCount > 0) {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
       }
       let thumbnailDataUrl = await generateMomentosThumbnail()
       if (swappedToLowRes) {
@@ -967,8 +978,14 @@ export function useShopifyCart() {
         console.warn(`[ShopifyCart] Momentos thumbnail blob too small (${thumbnailBlob.size} bytes). Retrying render...`)
         await new Promise(resolve => setTimeout(resolve, 200))
         const swappedAgain = await swapToLowResUrls()
-        if (isWebKitMobile) {
-          await waitForMomentosImages()
+        if (!swappedAgain) {
+          await nextTick()
+        }
+        const retryStats = getMomentosImageStats()
+        if (expectedImageCount > 0 && (retryStats.found < expectedImageCount || retryStats.loaded < expectedImageCount)) {
+          await waitForMomentosImages(imageWaitMs)
+        } else if (expectedImageCount > 0) {
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
         }
         thumbnailDataUrl = await generateMomentosThumbnail()
         if (swappedAgain) {

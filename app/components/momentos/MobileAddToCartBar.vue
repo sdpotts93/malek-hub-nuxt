@@ -3,12 +3,14 @@ interface Props {
   price: number
   compareAtPrice: number | null
   isLoading?: boolean
+  statusMessage?: string
   missingElements?: string[]
   canProceed?: boolean // If false, only shows "Volver a editar" in modal (no "Continuar" option)
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
+  statusMessage: '',
   missingElements: () => [],
   canProceed: true,
 })
@@ -64,76 +66,80 @@ const discountPercent = computed(() => {
 <template>
   <Teleport to="body">
     <div class="mobile-add-to-cart-bar">
-    <!-- Price Info -->
-    <div class="mobile-add-to-cart-bar__info">
-      <div class="mobile-add-to-cart-bar__prices">
-        <span class="mobile-add-to-cart-bar__price">
-          {{ formatPrice(price) }}
-        </span>
-        <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
-          {{ formattedComparePrice }}
+      <div v-if="statusMessage && !isLoading" class="mobile-add-to-cart-bar__status" role="status" aria-live="polite">
+        <span class="mobile-add-to-cart-bar__status-spinner" aria-hidden="true" />
+        <span>{{ statusMessage }}</span>
+      </div>
+      <!-- Price Info -->
+      <div class="mobile-add-to-cart-bar__info">
+        <div class="mobile-add-to-cart-bar__prices">
+          <span class="mobile-add-to-cart-bar__price">
+            {{ formatPrice(price) }}
+          </span>
+          <span v-if="showComparePrice" class="mobile-add-to-cart-bar__compare-price">
+            {{ formattedComparePrice }}
+          </span>
+        </div>
+        <span v-if="discountPercent > 0" class="mobile-add-to-cart-bar__discount">
+          -{{ discountPercent }}%
         </span>
       </div>
-      <span v-if="discountPercent > 0" class="mobile-add-to-cart-bar__discount">
-        -{{ discountPercent }}%
-      </span>
-    </div>
 
-    <!-- Add to Cart Button -->
-    <button
-      class="mobile-add-to-cart-bar__button"
-      :disabled="isLoading"
-      @click="handleAddToCartClick"
-    >
-      <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
-      <span v-else>Agregar al carrito</span>
-    </button>
-
-    <!-- Warning Modal for Missing Elements -->
-    <Transition name="modal">
-      <div
-        v-if="showWarningModal"
-        class="mobile-add-to-cart-bar__modal-overlay"
-        @click="handleCancel"
+      <!-- Add to Cart Button -->
+      <button
+        class="mobile-add-to-cart-bar__button"
+        :disabled="isLoading"
+        @click="handleAddToCartClick"
       >
-        <div class="mobile-add-to-cart-bar__modal" @click.stop>
-          <div class="mobile-add-to-cart-bar__modal-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-              <path d="M12 9v4"/>
-              <path d="M12 17h.01"/>
-            </svg>
-          </div>
-          <h3 class="mobile-add-to-cart-bar__modal-title">Elementos faltantes</h3>
-          <p class="mobile-add-to-cart-bar__modal-text">
-            Tu diseño tiene los siguientes elementos pendientes:
-          </p>
-          <ul class="mobile-add-to-cart-bar__modal-list">
-            <li v-for="(element, index) in missingElements" :key="index">
-              {{ element }}
-            </li>
-          </ul>
-          <p v-if="canProceed" class="mobile-add-to-cart-bar__modal-question">
-            ¿Deseas continuar de todas formas?
-          </p>
-          <div :class="['mobile-add-to-cart-bar__modal-actions', { 'mobile-add-to-cart-bar__modal-actions--single': !canProceed }]">
-            <button
-              class="mobile-add-to-cart-bar__modal-btn mobile-add-to-cart-bar__modal-btn--secondary"
-              @click="handleCancel"
-            >
-              Volver a editar
-            </button>
-            <button
-              v-if="canProceed"
-              class="mobile-add-to-cart-bar__modal-btn mobile-add-to-cart-bar__modal-btn--primary"
-              @click="handleProceedAnyway"
-            >
-              Continuar
-            </button>
+        <span v-if="isLoading" class="mobile-add-to-cart-bar__spinner" />
+        <span v-else>Agregar al carrito</span>
+      </button>
+
+      <!-- Warning Modal for Missing Elements -->
+      <Transition name="modal">
+        <div
+          v-if="showWarningModal"
+          class="mobile-add-to-cart-bar__modal-overlay"
+          @click="handleCancel"
+        >
+          <div class="mobile-add-to-cart-bar__modal" @click.stop>
+            <div class="mobile-add-to-cart-bar__modal-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+              </svg>
+            </div>
+            <h3 class="mobile-add-to-cart-bar__modal-title">Elementos faltantes</h3>
+            <p class="mobile-add-to-cart-bar__modal-text">
+              Tu diseño tiene los siguientes elementos pendientes:
+            </p>
+            <ul class="mobile-add-to-cart-bar__modal-list">
+              <li v-for="(element, index) in missingElements" :key="index">
+                {{ element }}
+              </li>
+            </ul>
+            <p v-if="canProceed" class="mobile-add-to-cart-bar__modal-question">
+              ¿Deseas continuar de todas formas?
+            </p>
+            <div :class="['mobile-add-to-cart-bar__modal-actions', { 'mobile-add-to-cart-bar__modal-actions--single': !canProceed }]">
+              <button
+                class="mobile-add-to-cart-bar__modal-btn mobile-add-to-cart-bar__modal-btn--secondary"
+                @click="handleCancel"
+              >
+                Volver a editar
+              </button>
+              <button
+                v-if="canProceed"
+                class="mobile-add-to-cart-bar__modal-btn mobile-add-to-cart-bar__modal-btn--primary"
+                @click="handleProceedAnyway"
+              >
+                Continuar
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
     </div>
   </Teleport>
 </template>
@@ -153,6 +159,33 @@ const discountPercent = computed(() => {
   justify-content: space-between;
   gap: $space-lg;
   z-index: $z-fixed + 1;
+
+  &__status {
+    position: absolute;
+    top: -28px;
+    left: $space-xl;
+    right: $space-xl;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #ffffff;
+    border: 1px solid $color-border;
+    border-radius: 999px;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: $color-text-muted;
+    box-shadow: 0 2px 6px rgba(10, 13, 18, 0.08);
+  }
+
+  &__status-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(37, 43, 55, 0.18);
+    border-top-color: #252b37;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
 
   &__info {
     display: flex;

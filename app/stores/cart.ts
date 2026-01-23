@@ -2,6 +2,19 @@ import { defineStore } from 'pinia'
 
 const CART_STORAGE_KEY = 'studiomalek_hub_cart_id'
 
+// Line-level cost from Shopify (actual amount being charged)
+interface LineCost {
+  amountPerQuantity: number
+  totalAmount: number
+  compareAtAmountPerQuantity: number | null
+}
+
+// Line-level discount
+interface LineDiscount {
+  amount: number
+  title: string
+}
+
 // Types for Shopify cart responses
 interface ShopifyCartLine {
   id: string
@@ -9,7 +22,9 @@ interface ShopifyCartLine {
   variantId: string
   variantTitle: string
   productTitle: string
-  price: number
+  price: number // Catalog price (may differ from actual charge)
+  lineCost: LineCost // Actual amount being charged
+  lineDiscounts: LineDiscount[] // Line-level discounts applied
   image: string | null
   attributes: Array<{ key: string; value: string }>
 }
@@ -44,7 +59,9 @@ export interface CartLine {
   variantId: string
   variantTitle: string
   productTitle: string
-  price: number
+  price: number // Catalog price (may differ from actual charge)
+  lineCost: LineCost // Actual amount being charged by Shopify
+  lineDiscounts: LineDiscount[] // Discounts applied to this line
   shopifyImage: string | null // Original Shopify product image
   designImage: string | null // Custom design image from S3 (_imagen attribute)
   thumbnailImage: string | null // Low-res thumbnail from S3 (_thumbnail attribute)
@@ -115,6 +132,8 @@ export const useCartStore = defineStore('cart', {
           variantTitle: line.variantTitle,
           productTitle: line.productTitle,
           price: line.price,
+          lineCost: line.lineCost,
+          lineDiscounts: line.lineDiscounts || [],
           shopifyImage: line.image,
           designImage: imagenAttr?.value || null,
           thumbnailImage: thumbnailAttr?.value || null,

@@ -4,6 +4,7 @@ interface Props {
   compareAtPrice: number | null
   isLoading?: boolean
   compact?: boolean
+  statusMessage?: string
   missingElements?: string[]
   canProceed?: boolean // If false, only shows "Volver a editar" in modal (no "Continuar" option)
 }
@@ -11,6 +12,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   compact: false,
+  statusMessage: '',
   missingElements: () => [],
   canProceed: true,
 })
@@ -60,6 +62,11 @@ function handleCancel() {
           {{ formatPrice(price) }}
         </span>
       </div>
+    </div>
+
+    <div v-if="statusMessage && !isLoading" class="add-to-cart__status" role="status" aria-live="polite">
+      <span class="add-to-cart__status-spinner" aria-hidden="true" />
+      <span>{{ statusMessage }}</span>
     </div>
 
     <!-- Warning when images missing -->
@@ -299,6 +306,25 @@ function handleCancel() {
     &--hidden {
       visibility: hidden;
     }
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: $font-primary;
+    font-size: 12px;
+    font-weight: $font-weight-medium;
+    color: #535862;
+  }
+
+  &__status-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(37, 43, 55, 0.18);
+    border-top-color: #252b37;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
   &__spinner {

@@ -49,6 +49,13 @@ const cachedThumbnail = ref<string | null>(null)
 
 // Computed
 const pricing = computed(() => cart.calculateMomentosPrice(momentosStore.$state))
+const uploadingCount = computed(() => momentosStore.uploadedImages.filter(img => img.isUploading).length)
+const uploadStatusMessage = computed(() => {
+  if (uploadingCount.value === 0) return ''
+  return uploadingCount.value === 1
+    ? 'Procesando 1 imagen...'
+    : `Procesando ${uploadingCount.value} imagenes...`
+})
 
 // Missing elements for cart warning modal
 const missingElements = computed(() => {
@@ -381,15 +388,16 @@ async function handleAddToCart() {
         />
 
         <!-- Add to Cart Section (fixed at bottom) -->
-        <MomentosAddToCartSection
-          :price="pricing.price"
-          :compare-at-price="pricing.compareAtPrice"
-          :is-loading="uiStore.isLoading || isRendering"
-          :missing-elements="missingElements"
-          :can-proceed="canProceedWithWarnings"
-          @add-to-cart="handleAddToCart"
-          @edit="handleEditFromModal"
-        />
+      <MomentosAddToCartSection
+        :price="pricing.price"
+        :compare-at-price="pricing.compareAtPrice"
+        :is-loading="uiStore.isLoading || isRendering"
+        :status-message="uploadStatusMessage"
+        :missing-elements="missingElements"
+        :can-proceed="canProceedWithWarnings"
+        @add-to-cart="handleAddToCart"
+        @edit="handleEditFromModal"
+      />
       </div>
 
       <!-- Canvas Area -->
@@ -443,6 +451,7 @@ async function handleAddToCart() {
       :price="pricing.price"
       :compare-at-price="pricing.compareAtPrice"
       :is-loading="uiStore.isLoading || isRendering"
+      :status-message="uploadStatusMessage"
       :missing-elements="missingElements"
       :can-proceed="canProceedWithWarnings"
       @add-to-cart="handleAddToCart"

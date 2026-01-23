@@ -128,6 +128,17 @@ onMounted(() => {
               <div class="cart-item__details">
                 <h3 class="cart-item__title">{{ item.productTitle }}</h3>
 
+                <!-- Line-level discount tags -->
+                <div v-if="item.lineDiscounts?.length" class="cart-item__discounts">
+                  <span
+                    v-for="discount in item.lineDiscounts"
+                    :key="discount.title"
+                    class="cart-item__discount-tag"
+                  >
+                    {{ discount.title }}
+                  </span>
+                </div>
+
                 <!-- Custom attributes (visible ones only, not _prefixed) -->
                 <div v-if="getVisibleAttributes(item.attributes).length" class="cart-item__attrs">
                   <span
@@ -140,9 +151,18 @@ onMounted(() => {
 
                 <!-- Price & Quantity -->
                 <div class="cart-item__footer">
-                  <span class="cart-item__price">
-                    {{ formatPrice(item.price) }}
-                  </span>
+                  <!-- Show compare-at price when there's a discount -->
+                  <div class="cart-item__prices">
+                    <span
+                      v-if="item.lineDiscounts?.length && item.lineCost.totalAmount !== item.price * item.quantity"
+                      class="cart-item__compare-at"
+                    >
+                      {{ formatPrice(item.price * item.quantity) }}
+                    </span>
+                    <span class="cart-item__price">
+                      {{ formatPrice(item.lineCost.totalAmount) }}
+                    </span>
+                  </div>
 
                   <div class="cart-item__quantity">
                     <button
@@ -610,6 +630,38 @@ onMounted(() => {
   &__footer {
     @include flex-between;
     margin-top: auto;
+  }
+
+  &__discounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-xs;
+    margin-top: $space-xs;
+  }
+
+  &__discount-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #252b37;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: $font-weight-semibold;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  &__prices {
+    display: flex;
+    gap: $space-sm;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  &__compare-at {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    text-decoration: line-through;
   }
 
   &__price {
