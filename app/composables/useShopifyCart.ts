@@ -11,7 +11,7 @@ import type { BirthPosterState, PosterSize } from '~/types'
 import type { PersonalizaState, ImageOrientation, PersonalizaSize } from '~/stores/personaliza'
 import { PRODUCT_IDS as PERSONALIZA_PRODUCT_IDS, generateHighResCrop, generateHighResComposite, isCropperReady, waitForCropper, getOrientationFromFormat } from '~/stores/personaliza'
 import type { MomentosState, MomentosSize } from '~/stores/momentos'
-import { MOMENTOS_PRODUCT_ID } from '~/stores/momentos'
+import { MOMENTOS_PRODUCT_ID, calculateGridDimensions, IMAGE_FILTERS } from '~/stores/momentos'
 
 // Validation result
 interface ValidationResult {
@@ -945,6 +945,199 @@ export function useShopifyCart() {
         })
       }
 
+      const parseRgb = (color: string): { r: number; g: number; b: number } | null => {
+        const rgbMatch = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+        if (rgbMatch) {
+          return {
+            r: Number(rgbMatch[1]),
+            g: Number(rgbMatch[2]),
+            b: Number(rgbMatch[3]),
+          }
+        }
+        const hexMatch = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+        if (hexMatch) {
+          const hex = hexMatch[1]
+          if (hex) {
+            if (hex.length === 3) {
+              return {
+                r: parseInt(hex[0] + hex[0], 16),
+                g: parseInt(hex[1] + hex[1], 16),
+                b: parseInt(hex[2] + hex[2], 16),
+              }
+            }
+            return {
+              r: parseInt(hex.slice(0, 2), 16),
+              g: parseInt(hex.slice(2, 4), 16),
+              b: parseInt(hex.slice(4, 6), 16),
+            }
+          }
+        }
+        return null
+      }
+
+      const isThumbnailMostlyBackground = async (dataUrl: string): Promise<boolean> => {
+        if (expectedImageCount === 0) return false
+        const bg = parseRgb(canvasBackground)
+        if (!bg) return false
+
+        try {
+          const img = new Image()
+          await new Promise<void>((resolve) => {
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            img.src = dataUrl
+          })
+
+          if (!img.naturalWidth || !img.naturalHeight) return false
+
+          const sampleSize = 40
+          const canvas = document.createElement('canvas')
+          canvas.width = sampleSize
+          canvas.height = sampleSize
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return false
+          ctx.drawImage(img, 0, 0, sampleSize, sampleSize)
+
+          const { data } = ctx.getImageData(0, 0, sampleSize, sampleSize)
+          const step = 4 * 5
+          let matchCount = 0
+          let totalCount = 0
+          for (let i = 0; i < data.length; i += step) {
+            const r = data[i] ?? 0
+            const g = data[i + 1] ?? 0
+            const b = data[i + 2] ?? 0
+            const diff = Math.abs(r - bg.r) + Math.abs(g - bg.g) + Math.abs(b - bg.b)
+            if (diff < 24) {
+              matchCount++
+            }
+            totalCount++
+          }
+
+          return totalCount > 0 && matchCount / totalCount > 0.9
+        } catch (e) {
+          console.warn('[ShopifyCart] Thumbnail background check failed:', e)
+          return false
+        }
+      }
+
+      const getCompositeImageUrl = (img: MomentosState['uploadedImages'][number]): string | null => {
+        return img.mediumResUrl ||
+          img.lowResUrl ||
+          img.s3MediumResUrl ||
+          img.s3LowResUrl ||
+          img.highResUrl ||
+          img.s3HighResUrl ||
+          null
+      }
+
+      const loadCompositeImage = (() => {
+        const cache = new Map<string, HTMLImageElement>()
+        return async (src: string): Promise<HTMLImageElement | null> => {
+          if (cache.has(src)) return cache.get(src) || null
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.decoding = 'async'
+          const loaded = await new Promise<boolean>((resolve) => {
+            img.onload = () => resolve(true)
+            img.onerror = () => resolve(false)
+            img.src = src
+          })
+          if (!loaded) return null
+          cache.set(src, img)
+          return img
+        }
+      })()
+
+      const getGapRatio = () => {
+        if (snapshot.imageCount === 4 || snapshot.imageCount === 12) return 0.035
+        if (snapshot.imageCount === 25 || snapshot.imageCount === 35) return 0.025
+        if (snapshot.imageCount === 64 || snapshot.imageCount === 88) return 0.0175
+        return 0.025
+      }
+
+      const generateMomentosCompositeThumbnail = async (): Promise<string> => {
+        const format = snapshot.format
+        const aspectRatio = format === 'square' ? 1 : format === 'horizontal' ? 7 / 5 : 5 / 7
+        let width: number
+        let height: number
+        if (aspectRatio >= 1) {
+          width = thumbnailMaxSize
+          height = Math.round(width / aspectRatio)
+        } else {
+          height = thumbnailMaxSize
+          width = Math.round(height * aspectRatio)
+        }
+
+        const baseUnit = format === 'horizontal' ? height : width
+        const padding = state.hasMargin ? baseUnit * 0.05 : 0
+        const gap = baseUnit * getGapRatio()
+        const backgroundFill = state.hasMargin ? state.marginColor : canvasBackground
+
+        const { cols, rows } = calculateGridDimensions(snapshot.imageCount, format)
+        const contentWidth = Math.max(1, width - padding * 2)
+        const contentHeight = Math.max(1, height - padding * 2)
+        const cellWidth = (contentWidth - gap * (cols - 1)) / cols
+        const cellHeight = (contentHeight - gap * (rows - 1)) / rows
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('Failed to get canvas context')
+
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.fillStyle = backgroundFill || '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+
+        for (let index = 0; index < state.canvasCells.length; index++) {
+          const cell = state.canvasCells[index]
+          if (!cell?.imageId) continue
+
+          const row = Math.floor(index / cols)
+          const col = index % cols
+          if (row >= rows) continue
+
+          const cellX = padding + col * (cellWidth + gap)
+          const cellY = padding + row * (cellHeight + gap)
+
+          const imageMeta = momentosStore.uploadedImages.find(img => img.id === cell.imageId)
+          if (!imageMeta) continue
+          const src = getCompositeImageUrl(imageMeta)
+          if (!src) continue
+
+          const img = await loadCompositeImage(src)
+          if (!img?.naturalWidth || !img?.naturalHeight) continue
+
+          const scale = Math.max(cellWidth / img.naturalWidth, cellHeight / img.naturalHeight)
+          const drawWidth = img.naturalWidth * scale
+          const drawHeight = img.naturalHeight * scale
+          const panX = cell.panX ?? 50
+          const panY = cell.panY ?? 50
+          const offsetX = cellX + (cellWidth - drawWidth) * (panX / 100)
+          const offsetY = cellY + (cellHeight - drawHeight) * (panY / 100)
+
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(cellX, cellY, cellWidth, cellHeight)
+          ctx.clip()
+
+          const centerX = cellX + cellWidth / 2
+          const centerY = cellY + cellHeight / 2
+          ctx.translate(centerX, centerY)
+          ctx.rotate((cell.rotation || 0) * Math.PI / 180)
+          ctx.scale(cell.zoom || 1, cell.zoom || 1)
+          ctx.translate(-centerX, -centerY)
+
+          const filter = IMAGE_FILTERS[cell.filter]?.cssFilter || 'none'
+          ctx.filter = filter
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
+          ctx.restore()
+        }
+
+        return canvas.toDataURL('image/jpeg', 0.7)
+      }
+
       const thumbnailMaxSize = isWebKitMobile ? 100 : 200
       const generateMomentosThumbnail = async () => {
         const renderResult = await renderer.renderElement(canvasElement, {
@@ -972,10 +1165,14 @@ export function useShopifyCart() {
       // Convert thumbnail data URL to blob
       let thumbnailResponse = await fetch(thumbnailDataUrl)
       let thumbnailBlob = await thumbnailResponse.blob()
+      let thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
 
       // Safari can return a blank first render; retry once if blob is suspiciously small.
-      if (thumbnailBlob.size < 5000) {
-        console.warn(`[ShopifyCart] Momentos thumbnail blob too small (${thumbnailBlob.size} bytes). Retrying render...`)
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail retrying...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
         await new Promise(resolve => setTimeout(resolve, 200))
         const swappedAgain = await swapToLowResUrls()
         if (!swappedAgain) {
@@ -993,20 +1190,35 @@ export function useShopifyCart() {
         }
         thumbnailResponse = await fetch(thumbnailDataUrl)
         thumbnailBlob = await thumbnailResponse.blob()
+        thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
         console.log(`[ShopifyCart] Momentos thumbnail retry size: ${thumbnailBlob.size} bytes`)
       }
 
-      if (thumbnailBlob.size < 5000 && isWebKitMobile) {
-        console.warn('[ShopifyCart] Momentos thumbnail still blank. Converting blob URLs to data URLs and retrying...')
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail still blank. Converting blob URLs to data URLs and retrying...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
         const swappedAny = await swapBlobUrlsToDataUrls()
         if (swappedAny) {
-          await waitForMomentosImages()
+          await waitForMomentosImages(imageWaitMs)
           thumbnailDataUrl = await generateMomentosThumbnail()
           thumbnailResponse = await fetch(thumbnailDataUrl)
           thumbnailBlob = await thumbnailResponse.blob()
+          thumbnailLooksBlank = await isThumbnailMostlyBackground(thumbnailDataUrl)
           console.log(`[ShopifyCart] Momentos thumbnail data URL retry size: ${thumbnailBlob.size} bytes`)
           restoreOriginalUrls()
         }
+      }
+
+      if (thumbnailBlob.size < 5000 || thumbnailLooksBlank) {
+        console.warn('[ShopifyCart] Momentos thumbnail fallback to composite render...', {
+          size: thumbnailBlob.size,
+          blank: thumbnailLooksBlank,
+        })
+        thumbnailDataUrl = await generateMomentosCompositeThumbnail()
+        thumbnailResponse = await fetch(thumbnailDataUrl)
+        thumbnailBlob = await thumbnailResponse.blob()
       }
 
       // 4. Get design config snapshot from store
