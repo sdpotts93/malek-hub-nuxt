@@ -534,7 +534,7 @@ export function useShopifyCart() {
         naturalHeight: debugImg?.naturalHeight,
       })
       console.log('[ShopifyCart] Generating thumbnail for Personaliza...')
-      const thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+      let thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
       timings.thumbnail = performance.now() - thumbStart
       console.log(`[ShopifyCart] Thumbnail generated in ${timings.thumbnail.toFixed(0)}ms, length: ${thumbnailDataUrl.length}`)
 
@@ -544,8 +544,18 @@ export function useShopifyCart() {
       }
 
       // Convert thumbnail data URL to blob
-      const thumbnailResponse = await fetch(thumbnailDataUrl)
-      const thumbnailBlob = await thumbnailResponse.blob()
+      let thumbnailResponse = await fetch(thumbnailDataUrl)
+      let thumbnailBlob = await thumbnailResponse.blob()
+
+      // Mobile Safari can return a blank first render; retry once if blob is suspiciously small.
+      if (thumbnailBlob.size < 5000) {
+        console.warn(`[ShopifyCart] Thumbnail blob too small (${thumbnailBlob.size} bytes). Retrying render...`)
+        await new Promise(resolve => setTimeout(resolve, 200))
+        thumbnailDataUrl = await renderer.generateThumbnail(canvasElement)
+        thumbnailResponse = await fetch(thumbnailDataUrl)
+        thumbnailBlob = await thumbnailResponse.blob()
+        console.log(`[ShopifyCart] Thumbnail retry size: ${thumbnailBlob.size} bytes`)
+      }
 
       // 5. Get design config snapshot from store
       const designConfig = personalizaStore.getSnapshot()

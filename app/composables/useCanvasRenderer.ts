@@ -174,17 +174,34 @@ export function useCanvasRenderer() {
   /**
    * Wait for all images in an element to load
    */
-  async function waitForImages(element: HTMLElement): Promise<void> {
+  async function waitForImages(element: HTMLElement, timeoutMs = 3000): Promise<void> {
     const images = element.querySelectorAll('img')
 
-    // Wait for all images to load
+    // Wait for all images to load or decode
     const imagePromises = Array.from(images).map((img) => {
       if (img.complete && img.naturalWidth > 0) return Promise.resolve()
       return new Promise<void>((resolve) => {
-        img.onload = () => resolve()
-        img.onerror = () => resolve() // Don't fail on image error
-        // Timeout fallback in case events don't fire
-        setTimeout(resolve, 1000)
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          resolve()
+        }
+
+        const timeoutId = setTimeout(finish, timeoutMs)
+        const cleanup = () => {
+          clearTimeout(timeoutId)
+          finish()
+        }
+
+        img.onload = cleanup
+        img.onerror = cleanup // Don't fail on image error
+
+        if (typeof img.decode === 'function') {
+          img.decode().then(cleanup).catch(() => {
+            // Keep waiting for onload or timeout
+          })
+        }
       })
     })
     await Promise.all(imagePromises)
@@ -285,12 +302,19 @@ export function useCanvasRenderer() {
     const clonedImages = clone.querySelectorAll('img')
     const originalImages = element.querySelectorAll('img')
 
+    console.log(`[CanvasRenderer] Processing ${clonedImages.length} images in clone`)
+
     for (let i = 0; i < clonedImages.length; i++) {
       const img = clonedImages[i]
       if (!img) continue // TypeScript guard
 
       const originalImg = originalImages[i] // Corresponding original image (already loaded)
       let originalSrc = img.src
+      const srcType = originalSrc.startsWith('blob:') ? 'blob' :
+                      originalSrc.startsWith('data:') ? 'data' :
+                      originalSrc.startsWith('http') ? 'http' : 'other'
+
+      console.log(`[CanvasRenderer] Image ${i}: type=${srcType}, originalComplete=${originalImg?.complete}, naturalWidth=${originalImg?.naturalWidth}`)
 
       // Skip empty or placeholder images
       if (!originalSrc || originalSrc === 'undefined' || originalSrc === 'null') {
@@ -321,6 +345,26 @@ export function useCanvasRenderer() {
             }
           }
         }
+        // Handle data URLs - extract fresh from original image for Safari compatibility
+        else if (originalSrc.startsWith('data:')) {
+          // On Safari, cloned elements with data URLs may not render properly
+          // Extract a fresh data URL from the original loaded image
+          if (originalImg && originalImg.complete && originalImg.naturalWidth > 0) {
+            const freshDataUrl = imageToDataUrl(originalImg)
+            if (freshDataUrl) {
+              dataUrl = freshDataUrl
+              console.log(`[CanvasRenderer] Image ${i}: extracted fresh data URL from original, length=${freshDataUrl.length}`)
+            } else {
+              // Canvas extraction failed, use the existing data URL
+              dataUrl = originalSrc
+              console.log(`[CanvasRenderer] Image ${i}: canvas extraction failed, keeping original data URL`)
+            }
+          } else {
+            // Original not loaded, use existing data URL
+            dataUrl = originalSrc
+            console.log(`[CanvasRenderer] Image ${i}: original not loaded, keeping data URL`)
+          }
+        }
         // Handle S3/remote URLs - try canvas extraction only (NO network requests!)
         else if (originalSrc.startsWith('https://') || originalSrc.startsWith('http://')) {
           // Try extracting from already-loaded original image via canvas
@@ -334,16 +378,131 @@ export function useCanvasRenderer() {
 
         // If we got a data URL, use it
         if (dataUrl) {
-          img.src = dataUrl
+          // Clear src first, then set new value to force reload
+          img.removeAttribute('src')
           img.removeAttribute('crossorigin')
+
+          // Set the new source
+          img.src = dataUrl
+
+          // Wait for image to be ready
+          const loadStart = performance.now()
           try {
             await img.decode()
-          } catch {
+            console.log(`[CanvasRenderer] Image ${i}: decoded in ${(performance.now() - loadStart).toFixed(0)}ms`)
+          } catch (decodeErr) {
+            console.log(`[CanvasRenderer] Image ${i}: decode failed, waiting for load...`)
             await new Promise<void>((resolve) => {
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-              setTimeout(resolve, 1000)
+              let resolved = false
+              const done = () => {
+                if (!resolved) {
+                  resolved = true
+                  resolve()
+                }
+              }
+              img.onload = done
+              img.onerror = done
+              setTimeout(done, 3000)
             })
+            console.log(`[CanvasRenderer] Image ${i}: load wait complete in ${(performance.now() - loadStart).toFixed(0)}ms, complete=${img.complete}, naturalWidth=${img.naturalWidth}`)
+          }
+
+          // Debug: Check computed dimensions of the image in the clone
+          const computedStyle = window.getComputedStyle(img)
+          const imgRect = img.getBoundingClientRect()
+          console.log(`[CanvasRenderer] Image ${i}: clone dimensions - rect=${imgRect.width}x${imgRect.height}, computed=${computedStyle.width}x${computedStyle.height}, display=${computedStyle.display}, visibility=${computedStyle.visibility}, opacity=${computedStyle.opacity}`)
+
+          // If image has 0 dimensions, force explicit dimensions from natural size
+          if (imgRect.width === 0 || imgRect.height === 0) {
+            console.log(`[CanvasRenderer] Image ${i}: fixing 0 dimensions, setting to ${img.naturalWidth}x${img.naturalHeight}`)
+            img.style.width = `${img.naturalWidth}px`
+            img.style.height = `${img.naturalHeight}px`
+            img.style.maxWidth = 'none'
+            img.style.maxHeight = 'none'
+          }
+
+          // Safari fix: Force the image to be fully rasterized
+          // Safari often reports decode complete before actually rasterizing, especially for blob URLs
+          // CRITICAL: We must create a FRESH Image element and wait for onload, because
+          // Safari's decode() lies about completion and canvas.drawImage draws blank
+          const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+          if (isSafari && dataUrl) {
+            const safarDataUrl = dataUrl // Capture for closure (guaranteed non-null here)
+            try {
+              // Create a completely fresh Image element for Safari
+              // This bypasses any caching/timing issues with the cloned element
+              const freshImg = new Image()
+
+              // Wait for the fresh image to ACTUALLY load (onload is more reliable than decode)
+              await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                  console.warn(`[CanvasRenderer] Image ${i}: Safari fresh image load timeout`)
+                  resolve()
+                }, 5000)
+
+                freshImg.onload = () => {
+                  clearTimeout(timeout)
+                  resolve()
+                }
+                freshImg.onerror = () => {
+                  clearTimeout(timeout)
+                  reject(new Error('Fresh image load failed'))
+                }
+                freshImg.src = safarDataUrl
+              })
+
+              // Now draw the FRESH image to canvas (not the cloned one)
+              if (freshImg.naturalWidth > 0 && freshImg.naturalHeight > 0) {
+                const tempCanvas = document.createElement('canvas')
+                tempCanvas.width = freshImg.naturalWidth
+                tempCanvas.height = freshImg.naturalHeight
+                const tempCtx = tempCanvas.getContext('2d')
+                if (tempCtx) {
+                  // Draw full image from our fresh, loaded Image element
+                  tempCtx.drawImage(freshImg, 0, 0)
+
+                  // Read center pixel to force full rasterization
+                  tempCtx.getImageData(
+                    Math.floor(freshImg.naturalWidth / 2),
+                    Math.floor(freshImg.naturalHeight / 2),
+                    1, 1
+                  )
+
+                  // Get a fresh data URL from our rasterized canvas
+                  const isLarge = freshImg.naturalWidth * freshImg.naturalHeight > 500000
+                  const rasterizedDataUrl = isLarge
+                    ? tempCanvas.toDataURL('image/jpeg', 0.92)
+                    : tempCanvas.toDataURL('image/png')
+
+                  // Replace the cloned image source with our guaranteed-rasterized version
+                  img.src = rasterizedDataUrl
+
+                  // Wait for cloned img to update
+                  await img.decode().catch(() => {})
+
+                  console.log(`[CanvasRenderer] Image ${i}: Safari fresh rasterization complete (${freshImg.naturalWidth}x${freshImg.naturalHeight})`)
+                }
+              }
+
+              // Force layout recalculation
+              void img.offsetHeight
+
+              // Wait for actual paint via double requestAnimationFrame
+              await new Promise<void>(resolve => {
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => resolve())
+                })
+              })
+
+              // Extra delay for Safari
+              await new Promise(resolve => setTimeout(resolve, 100))
+            } catch (e) {
+              console.warn(`[CanvasRenderer] Image ${i}: Safari rasterization failed:`, e)
+            }
+          } else if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            // Non-Safari: just a small delay
+            await new Promise(resolve => setTimeout(resolve, 50))
           }
         } else if (originalSrc.startsWith('blob:')) {
           // Blob URL conversion failed - try one more time with original image
@@ -353,34 +512,23 @@ export function useCanvasRenderer() {
               img.src = dataUrl
               img.removeAttribute('crossorigin')
             } else {
+              console.log(`[CanvasRenderer] Image ${i}: removing (blob extraction failed)`)
               img.remove()
             }
           } else {
+            console.log(`[CanvasRenderer] Image ${i}: removing (blob, original not loaded)`)
             img.remove()
-          }
-        } else if (originalSrc.startsWith('data:')) {
-          // Already a data URL - force a fresh load for cloned elements
-          const dataUrlSrc = originalSrc
-          img.removeAttribute('src')
-          img.src = dataUrlSrc
-
-          try {
-            await img.decode()
-          } catch {
-            await new Promise<void>((resolve) => {
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-              setTimeout(resolve, 2000)
-            })
           }
         } else if (!originalSrc.startsWith('http')) {
           // Local path - keep as is
         } else {
           // Remote URL - all methods failed
+          console.log(`[CanvasRenderer] Image ${i}: removing (remote, all methods failed)`)
           img.remove()
         }
-      } catch {
+      } catch (err) {
         // Error processing image - keep original src and let html-to-image try
+        console.error(`[CanvasRenderer] Image ${i}: error processing`, err)
       }
     }
 
