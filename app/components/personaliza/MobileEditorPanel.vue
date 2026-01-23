@@ -300,7 +300,7 @@ function isMarginActive(option: typeof marginOptions[number]) {
     border-radius: 8px;
     padding: 10px 12px;
     font-family: $font-primary;
-    font-size: 15px;
+    font-size: 16px;
     color: #2f3038;
     background: #ffffff;
     box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
