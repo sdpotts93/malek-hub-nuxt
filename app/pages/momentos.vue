@@ -28,7 +28,7 @@ const momentosStore = useMomentosStore()
 const uiStore = useUIStore()
 
 // Composables
-const { isRendering, generateThumbnail, warmup } = useCanvasRenderer()
+const { isRendering, warmup } = useCanvasRenderer()
 const { saveDesign, deleteDesign, designs } = useDesignHistory<MomentosState>('momentos')
 const cart = useShopifyCart()
 
@@ -158,7 +158,7 @@ async function saveCurrentDesign() {
 
   try {
     // Always generate fresh thumbnail
-    const thumbnail = await generateThumbnail(canvasElement)
+    const thumbnail = await cart.generateMomentosThumbnail(canvasElement, momentosStore.$state)
 
     const persistentState = momentosStore.getSnapshot()
 
@@ -335,11 +335,11 @@ async function handleAddToCart() {
     uiStore.setLoading(true)
 
     // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
-    await cart.addMomentosToCart(canvasElement, momentosStore.$state)
+    const addResult = await cart.addMomentosToCart(canvasElement, momentosStore.$state)
 
     // Success - save to history and open cart (only if images were assigned)
     if (hasContent.value) {
-      const thumbnail = await generateThumbnail(canvasElement)
+      const thumbnail = addResult?.thumbnail ?? await cart.generateMomentosThumbnail(canvasElement, momentosStore.$state)
       saveDesign(momentosStore.getSnapshot() as MomentosState, thumbnail, getDesignName())
       lastSavedState.value = historyKey.value // Mark as saved
     }
