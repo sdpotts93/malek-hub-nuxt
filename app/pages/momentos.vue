@@ -44,9 +44,6 @@ const scrollablePanelRef = ref<{
 // Active section in view (for desktop scroll mode when diseño tab is active)
 const activeSectionInView = ref<'diseno' | 'medidas' | 'marco'>('diseno')
 
-// Cached thumbnail for beforeunload (can't do async there)
-const cachedThumbnail = ref<string | null>(null)
-
 // Computed
 const pricing = computed(() => cart.calculateMomentosPrice(momentosStore.$state))
 const uploadingCount = computed(() => momentosStore.uploadedImages.filter(img => img.isUploading).length)
@@ -97,10 +94,6 @@ function handleMobileSheetClose() {
 
 // Track if design has been modified since last save
 const lastSavedState = ref<string | null>(null)
-const isDirty = computed(() => {
-  const currentState = JSON.stringify(momentosStore.getSnapshot())
-  return lastSavedState.value !== currentState
-})
 
 // Check if there's any meaningful content to save
 // Must have actual displayable images (with valid URLs), not just array entries
@@ -139,22 +132,10 @@ const historySaveKey = computed(() => ({
   ),
 }))
 
-let historySaveTimer: ReturnType<typeof setTimeout> | null = null
+const historyKey = computed(() => JSON.stringify(historySaveKey.value))
 
-function scheduleHistorySave() {
-  if (!hasContent.value) return
-  if (historySaveTimer) {
-    clearTimeout(historySaveTimer)
-  }
-  historySaveTimer = setTimeout(() => {
-    saveCurrentDesign()
-  }, 1200)
-}
-
-watch(historySaveKey, () => {
-  if (isDirty.value && hasContent.value) {
-    scheduleHistorySave()
-  }
+const isDirty = computed(() => {
+  return lastSavedState.value !== historyKey.value
 })
 
 // Generate design name
@@ -178,38 +159,13 @@ async function saveCurrentDesign() {
   try {
     // Always generate fresh thumbnail
     const thumbnail = await generateThumbnail(canvasElement)
-    // Cache it for beforeunload (which can't do async)
-    cachedThumbnail.value = thumbnail
 
     const persistentState = momentosStore.getSnapshot()
 
     saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(momentosStore.getSnapshot())
+    lastSavedState.value = historyKey.value
   } catch (error) {
     console.error('[Momentos] Auto-save failed:', error)
-  }
-}
-
-// Synchronous save for beforeunload (uses cached thumbnail)
-function saveCurrentDesignSync() {
-  // Don't save if no content or no changes
-  if (!isDirty.value || !hasContent.value) return
-
-  // Don't save without a valid thumbnail - prevents empty history items
-  if (!cachedThumbnail.value) {
-    console.log('[Momentos] Skipping sync save - no cached thumbnail')
-    return
-  }
-
-  try {
-    const persistentState = momentosStore.getSnapshot()
-    const thumbnail = cachedThumbnail.value
-
-    saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(persistentState)
-    console.log('[Momentos] Saved to history on unload')
-  } catch (error) {
-    console.error('[Momentos] Sync save failed:', error)
   }
 }
 
@@ -248,7 +204,7 @@ onMounted(async () => {
   }
 
   // Store initial state to track changes (after autosave restore)
-  lastSavedState.value = JSON.stringify(momentosStore.getSnapshot())
+  lastSavedState.value = historyKey.value
 
   // Save state for crash recovery
   const saveAutosave = () => {
@@ -263,9 +219,7 @@ onMounted(async () => {
   // Save to history on page unload (browser close/refresh)
   const handleBeforeUnload = () => {
     try {
-      // Save to history with cached thumbnail
-      saveCurrentDesignSync()
-      // Also save raw state as backup for crash recovery
+      // Save raw state as backup for crash recovery
       saveAutosave()
     } catch (e) {
       console.error('[Momentos] Failed to save on unload:', e)
@@ -296,10 +250,6 @@ onMounted(async () => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('pagehide', handlePageHide)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
-    if (historySaveTimer) {
-      clearTimeout(historySaveTimer)
-      historySaveTimer = null
-    }
     // Save to history when navigating away within the app
     saveCurrentDesign()
   })
@@ -391,7 +341,7 @@ async function handleAddToCart() {
     if (hasContent.value) {
       const thumbnail = await generateThumbnail(canvasElement)
       saveDesign(momentosStore.getSnapshot() as MomentosState, thumbnail, getDesignName())
-      lastSavedState.value = JSON.stringify(momentosStore.getSnapshot()) // Mark as saved
+      lastSavedState.value = historyKey.value // Mark as saved
     }
 
     uiStore.openCart()

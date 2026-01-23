@@ -162,7 +162,7 @@ const discountPercent = computed(() => {
 
   &__status {
     position: absolute;
-    top: -28px;
+    top: -40px;
     left: $space-xl;
     right: $space-xl;
     display: flex;
