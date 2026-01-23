@@ -29,7 +29,7 @@ const uiStore = useUIStore()
 
 // Composables
 const { isRendering, warmup } = useCanvasRenderer()
-const { saveDesign, deleteDesign, designs } = useDesignHistory<MomentosState>('momentos')
+const { saveDesign, updateDesign, deleteDesign, designs } = useDesignHistory<MomentosState>('momentos')
 const cart = useShopifyCart()
 
 // Canvas ref for rendering
@@ -94,6 +94,7 @@ function handleMobileSheetClose() {
 
 // Track if design has been modified since last save
 const lastSavedState = ref<string | null>(null)
+const lastSavedThumbnail = ref<string | null>(null)
 
 // Check if there's any meaningful content to save
 // Must have actual displayable images (with valid URLs), not just array entries
@@ -150,20 +151,58 @@ function handleLoadDesign(state: Partial<MomentosState>) {
   momentosStore.loadState(state)
 }
 
+type SaveMode = 'blocking' | 'background'
+
+function createPlaceholderThumbnail(backgroundColor: string): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = 80
+  canvas.height = 80
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return ''
+  ctx.fillStyle = backgroundColor || '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.6)
+}
+
 // Save design to history (on navigation away, add-to-cart)
-async function saveCurrentDesign() {
-  const canvasElement = canvasRef.value?.$el
+async function saveCurrentDesign(options: { mode?: SaveMode } = {}) {
+  const mode = options.mode ?? 'blocking'
   // Don't save if no content or no changes
-  if (!canvasElement || !isDirty.value || !hasContent.value) return
+  if (!isDirty.value || !hasContent.value) return
+
+  const persistentState = momentosStore.getSnapshot()
+  const backgroundColor = persistentState.hasMargin ? persistentState.marginColor : '#ffffff'
+
+  if (mode === 'background') {
+    const fallbackThumbnail = lastSavedThumbnail.value || createPlaceholderThumbnail(backgroundColor)
+    const design = saveDesign(persistentState as MomentosState, fallbackThumbnail, getDesignName())
+    lastSavedState.value = historyKey.value
+    lastSavedThumbnail.value = fallbackThumbnail
+
+    setTimeout(() => {
+      void (async () => {
+        try {
+          const thumbnail = await cart.generateMomentosHistoryThumbnailFromState(persistentState as MomentosState)
+          updateDesign(design.id, persistentState as MomentosState, thumbnail, getDesignName())
+          lastSavedThumbnail.value = thumbnail
+        } catch (error) {
+          console.warn('[Momentos] Background thumbnail failed:', error)
+        }
+      })()
+    }, 0)
+    return
+  }
+
+  const canvasElement = canvasRef.value?.$el
+  if (!canvasElement) return
 
   try {
     // Always generate fresh thumbnail
     const thumbnail = await cart.generateMomentosHistoryThumbnail(canvasElement, momentosStore.$state)
 
-    const persistentState = momentosStore.getSnapshot()
-
     saveDesign(persistentState as MomentosState, thumbnail, getDesignName())
     lastSavedState.value = historyKey.value
+    lastSavedThumbnail.value = thumbnail
   } catch (error) {
     console.error('[Momentos] Auto-save failed:', error)
   }
@@ -251,13 +290,13 @@ onMounted(async () => {
     window.removeEventListener('pagehide', handlePageHide)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     // Save to history when navigating away within the app
-    saveCurrentDesign()
+    saveCurrentDesign({ mode: 'background' })
   })
 })
 
 // Save to history when navigating via Vue Router
-onBeforeRouteLeave(async () => {
-  await saveCurrentDesign()
+onBeforeRouteLeave(() => {
+  saveCurrentDesign({ mode: 'background' })
   return true
 })
 
@@ -342,6 +381,7 @@ async function handleAddToCart() {
       const thumbnail = addResult?.thumbnail ?? await cart.generateMomentosThumbnail(canvasElement, momentosStore.$state)
       saveDesign(momentosStore.getSnapshot() as MomentosState, thumbnail, getDesignName())
       lastSavedState.value = historyKey.value // Mark as saved
+      lastSavedThumbnail.value = thumbnail
     }
 
     uiStore.openCart()

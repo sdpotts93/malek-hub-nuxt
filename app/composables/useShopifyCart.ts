@@ -1468,6 +1468,138 @@ export function useShopifyCart() {
     return dataUrl
   }
 
+  async function generateMomentosHistoryThumbnailFromState(
+    state: MomentosState
+  ): Promise<string> {
+    const isWebKitMobile = (() => {
+      if (typeof navigator === 'undefined') return false
+      const ua = navigator.userAgent
+      const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+      const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
+      return isIOS || isSafari
+    })()
+    const thumbnailMaxSize = isWebKitMobile ? 100 : 200
+
+    const format = state.format
+    const aspectRatio = format === 'square' ? 1 : format === 'horizontal' ? 7 / 5 : 5 / 7
+    let width: number
+    let height: number
+    if (aspectRatio >= 1) {
+      width = thumbnailMaxSize
+      height = Math.round(width / aspectRatio)
+    } else {
+      height = thumbnailMaxSize
+      width = Math.round(height * aspectRatio)
+    }
+
+    const baseUnit = format === 'horizontal' ? height : width
+    const padding = state.hasMargin ? baseUnit * 0.05 : 0
+    const gapRatio = (() => {
+      if (state.imageCount === 4 || state.imageCount === 12) return 0.035
+      if (state.imageCount === 25 || state.imageCount === 35) return 0.025
+      if (state.imageCount === 64 || state.imageCount === 88) return 0.0175
+      return 0.025
+    })()
+    const gap = baseUnit * gapRatio
+    const backgroundFill = state.hasMargin ? state.marginColor : '#ffffff'
+
+    const { cols, rows } = calculateGridDimensions(state.imageCount, format)
+    const contentWidth = Math.max(1, width - padding * 2)
+    const contentHeight = Math.max(1, height - padding * 2)
+    const cellWidth = (contentWidth - gap * (cols - 1)) / cols
+    const cellHeight = (contentHeight - gap * (rows - 1)) / rows
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Failed to get canvas context')
+
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.fillStyle = backgroundFill || '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+
+    const uploadedImages = state.uploadedImages || []
+    const getCompositeImageUrl = (img: MomentosState['uploadedImages'][number]): string | null => {
+      return img.mediumResUrl ||
+        img.lowResUrl ||
+        img.s3MediumResUrl ||
+        img.s3LowResUrl ||
+        img.highResUrl ||
+        img.s3HighResUrl ||
+        null
+    }
+
+    const loadCompositeImage = (() => {
+      const cache = new Map<string, HTMLImageElement>()
+      return async (src: string): Promise<HTMLImageElement | null> => {
+        if (cache.has(src)) return cache.get(src) || null
+        const img = new Image()
+        if (/^https?:/i.test(src)) {
+          img.crossOrigin = 'anonymous'
+        }
+        img.decoding = 'async'
+        const loaded = await new Promise<boolean>((resolve) => {
+          img.onload = () => resolve(true)
+          img.onerror = () => resolve(false)
+          img.src = src
+        })
+        if (!loaded) return null
+        cache.set(src, img)
+        return img
+      }
+    })()
+
+    for (let index = 0; index < state.canvasCells.length; index++) {
+      const cell = state.canvasCells[index]
+      if (!cell?.imageId) continue
+
+      const row = Math.floor(index / cols)
+      const col = index % cols
+      if (row >= rows) continue
+
+      const cellX = padding + col * (cellWidth + gap)
+      const cellY = padding + row * (cellHeight + gap)
+
+      const imageMeta = uploadedImages.find(img => img.id === cell.imageId)
+      if (!imageMeta) continue
+      const src = getCompositeImageUrl(imageMeta)
+      if (!src) continue
+
+      const img = await loadCompositeImage(src)
+      if (!img?.naturalWidth || !img?.naturalHeight) continue
+
+      const scale = Math.max(cellWidth / img.naturalWidth, cellHeight / img.naturalHeight)
+      const drawWidth = img.naturalWidth * scale
+      const drawHeight = img.naturalHeight * scale
+      const panX = cell.panX ?? 50
+      const panY = cell.panY ?? 50
+      const offsetX = cellX + (cellWidth - drawWidth) * (panX / 100)
+      const offsetY = cellY + (cellHeight - drawHeight) * (panY / 100)
+
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(cellX, cellY, cellWidth, cellHeight)
+      ctx.clip()
+
+      const centerX = cellX + cellWidth / 2
+      const centerY = cellY + cellHeight / 2
+      ctx.translate(centerX, centerY)
+      ctx.rotate((cell.rotation || 0) * Math.PI / 180)
+      const zoom = typeof cell.zoom === 'number' ? cell.zoom : 1
+      ctx.scale(zoom, zoom)
+      ctx.translate(-centerX, -centerY)
+
+      const filter = IMAGE_FILTERS[cell.filter]?.cssFilter || 'none'
+      ctx.filter = filter
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
+      ctx.restore()
+    }
+
+    return canvas.toDataURL('image/jpeg', 0.7)
+  }
+
   /**
    * Validate birth poster state before adding to cart
    * Returns validation result with info about missing data
@@ -1670,6 +1802,7 @@ export function useShopifyCart() {
     addMomentosToCart,
     generateMomentosThumbnail,
     generateMomentosHistoryThumbnail,
+    generateMomentosHistoryThumbnailFromState,
 
     // Cart actions (pass-through)
     updateQuantity: cartStore.updateQuantity.bind(cartStore),
