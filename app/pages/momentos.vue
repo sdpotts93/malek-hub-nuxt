@@ -119,6 +119,44 @@ const hasContent = computed(() => {
   return hasDisplayableImages
 })
 
+const historySaveKey = computed(() => ({
+  format: momentosStore.format,
+  imageCount: momentosStore.imageCount,
+  posterSize: momentosStore.posterSize,
+  hasMargin: momentosStore.hasMargin,
+  marginColor: momentosStore.marginColor,
+  frameStyleId: momentosStore.frameStyle?.id || null,
+  cells: momentosStore.canvasCells.map(cell => ({
+    imageId: cell.imageId,
+    rotation: cell.rotation,
+    zoom: cell.zoom,
+    filter: cell.filter,
+    panX: cell.panX,
+    panY: cell.panY,
+  })),
+  imageUrls: momentosStore.uploadedImages.map(img =>
+    img.mediumResUrl || img.lowResUrl || img.s3MediumResUrl || img.s3LowResUrl || ''
+  ),
+}))
+
+let historySaveTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleHistorySave() {
+  if (!hasContent.value) return
+  if (historySaveTimer) {
+    clearTimeout(historySaveTimer)
+  }
+  historySaveTimer = setTimeout(() => {
+    saveCurrentDesign()
+  }, 1200)
+}
+
+watch(historySaveKey, () => {
+  if (isDirty.value && hasContent.value) {
+    scheduleHistorySave()
+  }
+})
+
 // Generate design name
 function getDesignName(): string {
   const format = momentosStore.format === 'square' ? 'Cuadrado' :
@@ -258,6 +296,10 @@ onMounted(async () => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     window.removeEventListener('pagehide', handlePageHide)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
+    if (historySaveTimer) {
+      clearTimeout(historySaveTimer)
+      historySaveTimer = null
+    }
     // Save to history when navigating away within the app
     saveCurrentDesign()
   })
