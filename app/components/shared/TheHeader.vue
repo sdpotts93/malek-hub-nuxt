@@ -5,8 +5,8 @@ const cartStore = useCartStore()
 
 const navigation = [
   { name: 'Personaliza', href: '/personaliza', icon: 'image' },
-  { name: 'Birth Poster', href: '/birth-poster', icon: 'birth-poster' },
   { name: 'Momentos', href: '/momentos', icon: 'moments' },
+  { name: 'Póster de nacimiento', href: '/birth-poster', icon: 'birth-poster' },
 ]
 
 const isActive = (href: string) => route.path === href
@@ -19,7 +19,7 @@ const isToolPage = computed(() => route.path === '/birth-poster' || route.path =
   <header class="the-header">
     <div class="the-header__container">
       <!-- Logo -->
-      <NuxtLink to="/" class="the-header__logo">
+      <NuxtLink to="http://studiomalek.com" target="_blank" class="the-header__logo">
         <NuxtImg height="32" src="/logos/logo-full.png" />
       </NuxtLink>
 
