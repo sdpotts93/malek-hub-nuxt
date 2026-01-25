@@ -35,7 +35,7 @@ const tools = [
   {
     name: 'Póster de nacimiento',
     description: 'Celebra la llegada de tu bebé.',
-    href: '/birth-poster',
+    href: '/poster-de-nacimiento',
     available: true,
     image: '/landing/birth-poster.jpg',
     buttonText: 'Crea tu recuerdo',

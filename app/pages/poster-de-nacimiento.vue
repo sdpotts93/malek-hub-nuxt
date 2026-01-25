@@ -18,7 +18,7 @@ useSeoMeta({
   description: pageDescription,
   ogTitle: pageTitle,
   ogDescription: pageDescription,
-  ogUrl: 'https://hub.studiomalek.com/birth-poster',
+  ogUrl: 'https://hub.studiomalek.com/poster-de-nacimiento',
   ogImage: '/og-image.jpg',
 })
 

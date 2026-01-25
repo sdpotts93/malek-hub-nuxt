@@ -21,20 +21,20 @@ const navItems = [
   {
     name: 'Personaliza',
     href: '/personaliza',
-    description: 'Disena una pieza unica a partir de tus propias fotos.',
-    icon: 'image',
-  },
-  {
-    name: 'Birth Poster',
-    href: '/birth-poster',
-    description: 'El nacimiento de tu bebe convertido en una obra de arte a escala real.',
-    icon: 'baby',
+    description: 'Diseña una pieza única a partir de tus propias fotos.',
+    image: '/landing/personaliza.jpg',
   },
   {
     name: 'Momentos',
     href: '/momentos',
     description: 'Crea collages con tus recuerdos usando distintos layouts.',
-    icon: 'grid',
+    image: '/landing/momentos.png',
+  },
+  {
+    name: 'Póster de nacimiento',
+    href: '/poster-de-nacimiento',
+    description: 'El nacimiento de tu bebé convertido en una obra de arte a escala real.',
+    image: '/landing/birth-poster.jpg',
   },
 ]
 
@@ -244,24 +244,15 @@ function handleDelete(e: Event, id: string) {
                   </div>
                   <p class="mobile-nav-wrapper__nav-card-desc">{{ item.description }}</p>
                 </div>
-                <!-- Icon -->
-                <div class="mobile-nav-wrapper__nav-card-icon">
-                  <!-- Image/Personaliza icon -->
-                  <svg v-if="item.icon === 'image'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M20 3a1 1 0 0 1 1 1v1.757l-2 2V5H5v8.1l4-4l4.328 4.329l-1.415 1.413L9 11.93l-4 3.999V19h10.533l.708.001l1.329-1.33L18.9 19h.1v-2.758l2-2V20a1 1 0 0 1-1 1H4c-.55 0-1-.45-1-1V4a1 1 0 0 1 1-1zm1.778 4.808l1.414 1.414L15.414 17l-1.416-.002l.002-1.412zM15.5 7a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3"/>
-                  </svg>
-                  <!-- Baby/Birth Poster icon -->
-                  <svg v-else-if="item.icon === 'baby'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 14 18" fill="currentColor">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.07684 10.7247C3.19371 11.7304 3.36051 12.4898 3.72329 13.3852C4.08594 14.2803 4.8858 15.4771 5.86157 16.1892C6.83733 16.9012 8.42889 17.5661 9.50479 17.4947C10.5807 17.4236 11.0602 17.026 11.5551 16.5225C12.0498 16.0189 13.1621 14.4862 13.5497 13.0549C13.9377 11.6239 13.6957 11.1217 13.3835 10.7064C13.0716 10.2911 12.3677 10.0092 11.4071 10.0826C10.4464 10.156 9.40867 10.752 9.34964 11.2445C9.25834 12.0058 10.676 12.1109 10.4464 12.7796C10.3542 13.0489 10.0105 13.2658 9.09837 13.2383C8.18619 13.211 7.18766 12.7679 6.95554 12.0641C6.72341 11.3603 6.82488 10.7137 7.31779 10.3724C9.39957 8.93126 10.0942 7.74411 10.2308 7.20426C10.3673 6.6644 10.1536 6.03147 9.61349 5.54627C8.45366 4.50432 6.12127 4.96998 4.99022 5.77152C3.31151 6.96146 2.85141 8.78553 3.07684 10.7247ZM5.81565 0.885972C5.62141 1.32397 5.36545 2.23867 5.62368 2.99313C5.88205 3.7476 6.85942 4.60179 7.93438 4.40247C9.00921 4.20302 8.97628 2.52535 8.76557 1.79747C8.57494 1.13941 7.61564 0.0565121 6.9455 0.00385636C6.27535 -0.0487993 6.01003 0.447707 5.81565 0.885972ZM2.65931 3.47408C3.28862 4.39489 4.27282 4.53876 4.77242 4.36856C5.27201 4.19823 5.05608 2.80751 4.75515 2.16872C4.37911 1.37091 3.50241 1.29764 2.99224 1.5576C2.48206 1.81729 2.03013 2.55327 2.65931 3.47408ZM1.04352 4.13254C0.378461 4.36218 0.570562 5.7396 0.955433 6.28677C1.34017 6.83394 2.49063 7.13724 2.934 6.64366C3.37751 6.15008 2.8253 5.17396 2.55877 4.85815C2.29224 4.54209 1.70858 3.9029 1.04352 4.13254ZM0.0557052 7.57617C0.244325 7.14575 1.11286 7.1887 1.7644 7.56341C2.58555 8.03585 2.61888 9.221 2.13481 9.41434C1.74338 9.57071 1.04968 9.46952 0.616479 9.12632C0.183281 8.78313 -0.132915 8.00646 0.0557052 7.57617Z"/>
-                  </svg>
-                  <!-- Grid/Momentos icon -->
-                  <svg v-else-if="item.icon === 'grid'" xmlns="http://www.w3.org/2000/svg" width="113" height="113" viewBox="0 0 24 24">
-                    <g fill="none">
-                      <path d="M3 3v18h6l2-9l2-9z"/>
-                      <path d="M21 3h-8L9 21h12z"/>
-                      <path stroke="currentColor" stroke-width="2" d="M13 3H3v18h6m4-18h8v13M13 3l-2 9m-2 9h12v-5M9 21l2-9m10 4l-10-4"/>
-                    </g>
-                  </svg>
+                <!-- Image -->
+                <div class="mobile-nav-wrapper__nav-card-image">
+                  <NuxtImg
+                    :src="item.image"
+                    :alt="item.name"
+                    width="120"
+                    height="90"
+                    loading="lazy"
+                  />
                 </div>
               </NuxtLink>
             </div>
@@ -567,41 +558,13 @@ function handleDelete(e: Event, id: string) {
     border-radius: $radius-xl;
     overflow: hidden;
     text-decoration: none;
-    transition: transform $transition-fast;
+    transition: transform $transition-fast, border-color $transition-fast;
+    background: #ffffff;
+    border: 1px solid #d8d8d8;
+    color: $color-text-primary;
 
-    // Default - light orange (Personaliza)
-    background: $color-brand-light;
-    border: 1px solid $color-brand-light;
-    color: $color-brand-hover;
-
-    // Birth Poster - dark orange (2nd card)
-    &:nth-child(2) {
-      background: $color-brand-hover;
-      border-color: $color-brand-light;
-      color: $color-brand-light;
-
-      .mobile-nav-wrapper__nav-card-header svg {
-        color: $color-brand-lighter;
-      }
-
-      .mobile-nav-wrapper__nav-card-desc {
-        color: $color-brand-light;
-      }
-
-      .mobile-nav-wrapper__nav-card-icon {
-        opacity: 1;
-        color: $color-brand;
-      }
-    }
-
-    // Momentos - medium orange (3rd card)
-    &:nth-child(3) {
-      background: $color-brand-lightish;
-      border-color: $color-brand-light;
-    }
-
-    @include hover {
-      transform: scale(0.98);
+    &--active {
+      border: 2px solid #252b37;
     }
   }
 
@@ -628,9 +591,10 @@ function handleDelete(e: Event, id: string) {
 
   &__nav-card-title {
     font-family: $font-primary;
-    font-size: $font-size-2xl;
+    font-size: $font-size-base;
     font-weight: $font-weight-semibold;
     line-height: 32px;
+    color: $color-brand;
   }
 
   &__nav-card-desc {
@@ -638,19 +602,20 @@ function handleDelete(e: Event, id: string) {
     font-size: $font-size-xs;
     font-weight: $font-weight-normal;
     line-height: 18px;
-    color: #4d2300;
+    color: $color-text-secondary;
   }
 
-  &__nav-card-icon {
-    width: auto;
-    height: 105%;
+  &__nav-card-image {
+    aspect-ratio: 1;
+    height: 100%;
     flex-shrink: 0;
-    opacity: 0.5;
-    color: $color-brand-lightosh;
+    border-radius: $radius-lg;
+    overflow: hidden;
 
-    svg {
+    img {
       width: 100%;
       height: 100%;
+      object-fit: cover;
     }
   }
 

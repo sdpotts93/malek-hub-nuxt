@@ -6,13 +6,13 @@ const cartStore = useCartStore()
 const navigation = [
   { name: 'Personaliza', href: '/personaliza', icon: 'image' },
   { name: 'Momentos', href: '/momentos', icon: 'moments' },
-  { name: 'Póster de nacimiento', href: '/birth-poster', icon: 'birth-poster' },
+  { name: 'Póster de nacimiento', href: '/poster-de-nacimiento', icon: 'birth-poster' },
 ]
 
 const isActive = (href: string) => route.path === href
 
 // Check if on a tool page (for showing history button on mobile)
-const isToolPage = computed(() => route.path === '/birth-poster' || route.path === '/personaliza' || route.path === '/momentos')
+const isToolPage = computed(() => route.path === '/poster-de-nacimiento' || route.path === '/personaliza' || route.path === '/momentos')
 </script>
 
 <template>
