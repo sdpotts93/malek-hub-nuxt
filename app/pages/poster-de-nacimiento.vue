@@ -6,7 +6,7 @@ definePageMeta({
   layout: false,
 })
 
-const pageTitle = 'Birth Poster - Studio Malek'
+const pageTitle = 'Poster de Nacimiento - Studio Malek'
 const pageDescription = 'Crea un poster personalizado para celebrar el nacimiento de tu bebé con Studio Malek'
 
 useHead({
