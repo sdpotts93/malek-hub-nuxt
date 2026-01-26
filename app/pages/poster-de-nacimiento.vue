@@ -18,8 +18,13 @@ useSeoMeta({
   description: pageDescription,
   ogTitle: pageTitle,
   ogDescription: pageDescription,
-  ogUrl: 'https://hub.studiomalek.com/poster-de-nacimiento',
-  ogImage: '/og-image.jpg',
+  ogUrl: 'https://creaciones.studiomalek.com/poster-de-nacimiento',
+  ogImage: 'https://creaciones.studiomalek.com/nacimiento-og.jpg',
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  twitterTitle: pageTitle,
+  twitterDescription: pageDescription,
+  twitterImage: 'https://creaciones.studiomalek.com/nacimiento-og.jpg',
 })
 
 // Stores

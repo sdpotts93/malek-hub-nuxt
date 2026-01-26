@@ -54,7 +54,7 @@ interface RenderResult {
 
 // Config
 const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY || ''
-const SITE_URL = process.env.SITE_URL || process.env.URL || 'https://hub.studiomalek.com'
+const SITE_URL = process.env.SITE_URL || process.env.URL || 'https://creaciones.studiomalek.com'
 const PRESIGNED_URL_ENDPOINT = 'https://bs64vihq06.execute-api.us-west-1.amazonaws.com/v1/getPresignedPostData'
 const S3_BUCKET = 'momentos-malek'
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.us-west-1.amazonaws.com`

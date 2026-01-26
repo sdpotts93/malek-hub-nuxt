@@ -19,8 +19,13 @@ useSeoMeta({
   description: pageDescription,
   ogTitle: pageTitle,
   ogDescription: pageDescription,
-  ogUrl: 'https://hub.studiomalek.com/momentos',
-  ogImage: '/og-image.jpg',
+  ogUrl: 'https://creaciones.studiomalek.com/momentos',
+  ogImage: 'https://creaciones.studiomalek.com/momentos-og.jpg',
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  twitterTitle: pageTitle,
+  twitterDescription: pageDescription,
+  twitterImage: 'https://creaciones.studiomalek.com/momentos-og.jpg',
 })
 
 // Stores

@@ -11,8 +11,13 @@ useSeoMeta({
   description,
   ogTitle: title,
   ogDescription: description,
-  ogUrl: 'https://hub.studiomalek.com',
-  ogImage: '/og-image.jpg',
+  ogUrl: 'https://creaciones.studiomalek.com',
+  ogImage: 'https://creaciones.studiomalek.com/homepage-og.jpg',
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  twitterTitle: title,
+  twitterDescription: description,
+  twitterImage: 'https://creaciones.studiomalek.com/homepage-og.jpg',
 })
 
 const tools = [

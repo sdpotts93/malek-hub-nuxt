@@ -41,8 +41,8 @@ export default defineNuxtConfig({
     }
   },
   site: {
-    url: 'https://hub.studiomalek.com',
-    name: 'Studio Malek Hub'
+    url: 'https://creaciones.studiomalek.com',
+    name: 'Studio Malek Creaciones'
   },
 
   // Fonts configuration
@@ -80,11 +80,18 @@ export default defineNuxtConfig({
   // App configuration
   app: {
     head: {
-      title: 'Studio Malek - Design Tools',
+      title: 'Studio Malek - Herramientas de Diseno',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { name: 'description', content: 'Create personalized posters and designs with Studio Malek' }
+        { name: 'description', content: 'Herramientas de diseno faciles de usar para crear posters unicos y memorables' },
+        // Open Graph
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'Studio Malek' },
+        { property: 'og:locale', content: 'es_MX' },
+        // Twitter Card
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:site', content: '@studiomalek' }
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }

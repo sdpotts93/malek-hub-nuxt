@@ -21,8 +21,13 @@ useSeoMeta({
   description: pageDescription,
   ogTitle: pageTitle,
   ogDescription: pageDescription,
-  ogUrl: 'https://hub.studiomalek.com/personaliza',
-  ogImage: '/og-image.jpg',
+  ogUrl: 'https://creaciones.studiomalek.com/personaliza',
+  ogImage: 'https://creaciones.studiomalek.com/personaliza-og.jpg',
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  twitterTitle: pageTitle,
+  twitterDescription: pageDescription,
+  twitterImage: 'https://creaciones.studiomalek.com/personaliza-og.jpg',
 })
 
 // Stores
