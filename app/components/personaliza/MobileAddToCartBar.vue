@@ -74,7 +74,7 @@ const formattedComparePrice = computed(() => {
             </span>
           </div>
           <span class="mobile-add-to-cart-bar__shipping">
-            Envio Gratuito 3-5 dias
+            Envío Gratis a partir de $1,000
           </span>
         </div>
 

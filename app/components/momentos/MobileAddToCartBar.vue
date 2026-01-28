@@ -56,11 +56,6 @@ const formattedComparePrice = computed(() => {
   return props.compareAtPrice !== null ? formatPrice(props.compareAtPrice) : ''
 })
 
-// Calculate discount percentage
-const discountPercent = computed(() => {
-  if (props.compareAtPrice === null || props.compareAtPrice <= props.price) return 0
-  return Math.round((1 - props.price / props.compareAtPrice) * 100)
-})
 </script>
 
 <template>
@@ -80,8 +75,8 @@ const discountPercent = computed(() => {
             {{ formattedComparePrice }}
           </span>
         </div>
-        <span v-if="discountPercent > 0" class="mobile-add-to-cart-bar__discount">
-          -{{ discountPercent }}%
+        <span class="mobile-add-to-cart-bar__shipping">
+          Envío Gratis a partir de $1,000
         </span>
       </div>
 
@@ -189,21 +184,23 @@ const discountPercent = computed(() => {
 
   &__info {
     display: flex;
-    align-items: center;
-    gap: $space-md;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
 
   &__prices {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   &__price {
-    font-size: $font-size-lg;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-    line-height: 1.2;
+    font-size: 18px;
+    font-weight: $font-weight-semibold;
+    color: #181d27;
+    line-height: 1.3;
   }
 
   &__compare-price {
@@ -212,13 +209,10 @@ const discountPercent = computed(() => {
     text-decoration: line-through;
   }
 
-  &__discount {
-    padding: $space-xs $space-md;
-    background: $color-brand-light;
-    color: $color-brand;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-bold;
-    border-radius: $radius-full;
+  &__shipping {
+    font-size: 9.5px;
+    font-weight: $font-weight-medium;
+    color: #181d27;
   }
 
   &__button {

@@ -85,7 +85,7 @@ function handleCancel() {
             <path d="M15 18H9"/>
             <circle cx="17" cy="18" r="2"/>
           </svg>
-          <span>Envio Gratuito 3-5 días</span>
+          <span>Envío Gratis a partir de $1,000 MXN</span>
         </div>
 
         <div class="add-to-cart__reviews">

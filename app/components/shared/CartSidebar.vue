@@ -278,7 +278,7 @@ onMounted(() => {
           </div>
 
           <p class="cart-sidebar__shipping">
-            Envío calculado en el checkout
+            Envío gratis a partir de $1,000 MXN
           </p>
           <button
             class="cart-sidebar__checkout"
