@@ -1,16 +1,7 @@
+<!-- Generated from Webflow reference; edit as needed -->
 <script setup lang="ts">
-import type { PersonalizaPanelType } from '~/stores/personaliza'
-import PersonalizaMobileEditorPanel from '~/components/personaliza/MobileEditorPanel.vue'
-import type { PersonalizaState } from '~/types'
-import { isBlobUrl } from '~/utils/imageUtils'
-
-// Page meta
-definePageMeta({
-  layout: false,
-})
-
 const pageTitle = 'Personaliza - Studio Malek'
-const pageDescription = 'Crea un poster personalizado con tu propia imagen con Studio Malek'
+const pageDescription = 'Transforma tus recuerdos más preciados en obras de arte con Studio Malek. Personaliza e imprime tus propias imágenes, creando piezas únicas que cuenten tu historia. Convierte tus momentos inolvidables en impresiones duraderas y decora tu espacio con emociones. ¡Empieza tu viaje creativo con nosotros y haz que cada recuerdo cuente!';
 
 useHead({
   title: pageTitle,
@@ -23,807 +14,536 @@ useSeoMeta({
   ogDescription: pageDescription,
   ogUrl: 'https://creaciones.studiomalek.com/personaliza',
   ogImage: 'https://creaciones.studiomalek.com/personaliza-og.jpg',
-  ogImageWidth: 1200,
-  ogImageHeight: 630,
   twitterTitle: pageTitle,
   twitterDescription: pageDescription,
   twitterImage: 'https://creaciones.studiomalek.com/personaliza-og.jpg',
 })
 
-// Stores
-const personalizaStore = usePersonalizaStore()
 const uiStore = useUIStore()
-
-// Composables
-const { isRendering, warmup } = useCanvasRenderer()
-const { saveDesign, deleteDesign, designs } = useDesignHistory<PersonalizaState>('personaliza')
+const cartStore = useCartStore()
 const cart = useShopifyCart()
+const router = useRouter()
 
-// Canvas ref for rendering
-const canvasRef = ref<{ $el: HTMLElement } | null>(null)
+const isSideMenuOpen = ref(false)
 
-// Scrollable panel wrapper ref for desktop scroll navigation
-const scrollablePanelRef = ref<{
-  scrollToSection: (panel: PersonalizaPanelType) => void
-  containerRef: HTMLElement | null
-} | null>(null)
+function toggleSideMenu() {
+  isSideMenuOpen.value = !isSideMenuOpen.value
+}
 
-// Active section in view (for desktop scroll mode)
-const activeSectionInView = ref<PersonalizaPanelType>('archivo')
+function closeSideMenu() {
+  isSideMenuOpen.value = false
+}
 
-// Computed
-const pricing = computed(() => cart.calculatePersonalizaPrice(personalizaStore.$state))
+function handleLoaderWrapperClick(event: MouseEvent) {
+  const target = event.target as HTMLElement | null
+  if (target?.closest('a')) return
+  router.push('/app/personaliza?upload=1')
+}
 
-// Missing elements for cart warning modal
-const missingElements = computed(() => {
-  const missing: string[] = []
-  // Check if no image at all (blocking)
-  if (!personalizaStore.hasImage) {
-    missing.push('No has subido ninguna imagen')
+function handleLoaderWrapperKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    router.push('/app/personaliza?upload=1')
   }
-  // Check if image has quality issues (warning, can proceed)
-  else if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
-    missing.push('Tu imagen tiene una resolucion menor a la recomendada para el tamaño seleccionado.')
-  }
-  return missing
+}
+
+onMounted(() => {
+  cart.initCartOnly()
 })
-
-// Can only proceed if there's an image (low-res warning is just a warning)
-const canProceed = computed(() => personalizaStore.hasImage)
-
-const isMobile = ref(false)
-const isMobileSheetOpen = ref(false)
-const isMobileEditorOpen = ref(false)
-const hasDismissedNoImageSheet = ref(false)
-const archivoPanelRef = ref<{ openFileDialog: () => void } | null>(null)
-const mobileStyleVars = computed<Record<string, string> | undefined>(() => {
-  if (!isMobile.value) return undefined
-
-  let canvasOffset = '88px'
-  if (isMobileSheetOpen.value || !personalizaStore.hasImage) {
-    canvasOffset = '0px'
-  }
-
-  return {
-    '--personaliza-mobile-nav-height': '88px',
-    '--personaliza-mobile-canvas-offset': canvasOffset,
-  }
-})
-
-// Handle mobile panel selection
-async function handleMobilePanelSelect(panel: PersonalizaPanelType) {
-  if (!personalizaStore.hasImage) return
-  personalizaStore.setActivePanel(panel)
-  await nextTick()
-  isMobileSheetOpen.value = false
-  isMobileEditorOpen.value = true
-}
-
-function handleMobileSheetClose() {
-  isMobileSheetOpen.value = false
-  if (!personalizaStore.hasImage) {
-    hasDismissedNoImageSheet.value = true
-  }
-}
-
-function toggleMobileEditor() {
-  if (!personalizaStore.hasImage) return
-  const nextOpen = !isMobileEditorOpen.value
-  isMobileEditorOpen.value = nextOpen
-  if (nextOpen) {
-    isMobileSheetOpen.value = false
-  }
-}
-
-function closeMobileEditor() {
-  isMobileEditorOpen.value = false
-}
-
-function openArchivoSheet() {
-  personalizaStore.setActivePanel('archivo')
-  isMobileSheetOpen.value = true
-  hasDismissedNoImageSheet.value = false
-}
-
-async function openArchivoSheetAndSelect() {
-  openArchivoSheet()
-  await nextTick()
-  archivoPanelRef.value?.openFileDialog()
-}
-
-// Track if design has been modified since last save
-// Use getSnapshot() to exclude transient properties (blob URLs, File, etc.)
-const lastSavedState = ref<string | null>(null)
-const isDirty = computed(() => {
-  const currentState = JSON.stringify(personalizaStore.getSnapshot())
-  return lastSavedState.value !== currentState
-})
-
-// Generate design name from title or subtitle
-function getDesignName(): string {
-  const title = personalizaStore.title?.trim()
-  const subtitle = personalizaStore.subtitle?.trim()
-  if (title) return title
-  if (subtitle) return subtitle
-  return 'Mi Poster'
-}
-
-// Handle loading a design from history
-// Fetches S3 image and caches as blob for instant orientation changes
-// Uses loadRequestId to handle race conditions when user rapidly switches designs
-let loadRequestId = 0
-
-async function handleLoadDesign(originalState: Partial<PersonalizaState>) {
-  const thisRequestId = ++loadRequestId
-
-  // Clone state to avoid mutating the saved design in history
-  // (otherwise the blob URL we set gets revoked on next load, but history still references it)
-  const state = { ...originalState }
-
-  // If the design has an S3 URL, always fetch and cache as blob
-  // Don't trust existing blob URLs - they may have been revoked
-  const needsCache = !!state.imageS3Url
-
-  if (needsCache) {
-    try {
-      const response = await fetch(state.imageS3Url!, { mode: 'cors' })
-
-      // Check if a newer request was started while we were fetching
-      if (thisRequestId !== loadRequestId) {
-        return // Discard stale result
-      }
-
-      if (response.ok) {
-        const blob = await response.blob()
-
-        // Check again after blob conversion (could be slow for large images)
-        if (thisRequestId !== loadRequestId) {
-          return
-        }
-
-        state.imageUrl = URL.createObjectURL(blob)
-      }
-    } catch (error) {
-      console.error('[Personaliza] Failed to cache S3 image as blob:', error)
-    }
-  }
-
-  // Final check before loading state
-  if (thisRequestId !== loadRequestId) {
-    // Clean up orphaned blob if we created one
-    if (state.imageUrl?.startsWith('blob:')) {
-      URL.revokeObjectURL(state.imageUrl)
-    }
-    return
-  }
-
-  personalizaStore.loadState(state)
-
-  // If the design has an image, navigate to archivo panel so Cropper can regenerate
-  if (state.imageS3Url || state.imageUrl) {
-    if (isMobile.value) {
-      personalizaStore.setActivePanel('archivo')
-    } else {
-      // Desktop: scroll to archivo section
-      nextTick(() => {
-        scrollablePanelRef.value?.scrollToSection('archivo')
-      })
-    }
-  }
-}
-
-// Prepare state for persistence
-// We save: imageS3Url (original) + cropCoordinates + all settings
-// Cropped image is regenerated on load from original + coordinates
-function prepareStateForPersistence(): Omit<PersonalizaState, 'imageFile' | 'croppedBlob' | 'croppedImageUrl' | 'isUploadingToS3'> | null {
-  const snapshot = personalizaStore.getSnapshot()
-
-  // Check if we have a persistent image URL
-  if (!snapshot.imageS3Url) {
-    console.error('[Personaliza] Cannot save: original image not uploaded to S3 yet')
-    return null
-  }
-
-  // Clear the temporary blob URL for original image (S3 URL is in imageS3Url)
-  snapshot.imageUrl = null
-
-  return snapshot
-}
-
-// Save design to history (auto-save helper)
-async function saveCurrentDesign() {
-  const canvasElement = canvasRef.value?.$el
-  // Don't save if no image uploaded or no changes
-  if (!canvasElement || !isDirty.value || !personalizaStore.hasImage) return
-
-  try {
-    const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
-    const persistentState = prepareStateForPersistence()
-    if (!persistentState) return
-
-    saveDesign(persistentState, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
-  } catch (error) {
-    console.error('[Personaliza] Auto-save failed:', error)
-  }
-}
-
-// Auto-save settings
-const AUTOSAVE_KEY = 'studiomalek_autosave_personaliza'
-
-// Track if we restored from autosave (needs thumbnail generation)
-const restoredFromAutosave = ref(false)
-
-// Watch for cropped image to become available after autosave restore
-// Once ready, generate thumbnail and save to history (if not already saved)
-watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
-  if (!newUrl || !restoredFromAutosave.value) return
-
-  // Clear flag immediately to prevent double execution
-  // (croppedImageUrl may update multiple times during restore)
-  restoredFromAutosave.value = false
-
-  // Wait for next tick to ensure canvas is rendered
-  await nextTick()
-
-  const canvasElement = canvasRef.value?.$el
-  if (!canvasElement) return
-
-  // Only save if we have an S3 URL (persistent image)
-  if (!personalizaStore.imageS3Url) return
-
-  // Check if this design already exists in history (compare state)
-  const currentStateJson = JSON.stringify(prepareStateForPersistence())
-  const existingDesign = designs.value.find((d) => {
-    // Compare the persistent state (excluding thumbnail and dates)
-    return JSON.stringify(d.state) === currentStateJson
-  })
-
-  if (existingDesign) {
-    // Design already exists in history, no need to save again
-    console.log('[Personaliza] Design already exists in history, skipping save')
-    lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
-    return
-  }
-
-  try {
-    const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
-    const persistentState = prepareStateForPersistence()
-    if (persistentState) {
-      saveDesign(persistentState, thumbnail, getDesignName())
-      lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
-      console.log('[Personaliza] Saved restored design to history with thumbnail')
-    }
-  } catch (error) {
-    console.error('[Personaliza] Failed to save restored design:', error)
-  }
-})
-
-// Event handlers defined at module level for cleanup
-let checkMobile: (() => void) | null = null
-let handleBeforeUnload: (() => void) | null = null
-let handlePageHide: ((e: PageTransitionEvent) => void) | null = null
-let handleVisibilityChange: (() => void) | null = null
-
-// Register onUnmounted BEFORE onMounted to avoid lifecycle issues
-onUnmounted(() => {
-  // Remove event listeners with proper null guards
-  const cm = checkMobile
-  const hbu = handleBeforeUnload
-  const hph = handlePageHide
-  const hvc = handleVisibilityChange
-  if (cm) window.removeEventListener('resize', cm)
-  if (hbu) window.removeEventListener('beforeunload', hbu)
-  if (hph) window.removeEventListener('pagehide', hph)
-  if (hvc) document.removeEventListener('visibilitychange', hvc)
-  // Save when navigating away within the app
-  saveCurrentDesign()
-})
-
-// Check mobile on mount and initialize cart
-onMounted(async () => {
-  // Check mobile FIRST so the upload sheet shows immediately if needed
-  checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-
-  // Initialize Shopify cart, fetch personaliza product variants, and warm up renderer
-  // Warming up html-to-image early prevents slow first render during add-to-cart
-  // Note: We use initCartOnly() to avoid fetching birth poster product (not needed here)
-  await Promise.all([
-    cart.initCartOnly(),
-    cart.fetchPersonalizaProducts(),
-    warmup(),
-  ])
-
-  // Restore from autosave if exists (from browser refresh/crash)
-  try {
-    const autosaved = localStorage.getItem(AUTOSAVE_KEY)
-    if (autosaved) {
-      const savedState = JSON.parse(autosaved)
-
-      // Cache S3 image as blob for instant orientation changes (same as handleLoadDesign)
-      const needsCache = savedState.imageS3Url && (!savedState.imageUrl || !savedState.imageUrl.startsWith('blob:'))
-      if (needsCache) {
-        try {
-          const response = await fetch(savedState.imageS3Url, { mode: 'cors' })
-          if (response.ok) {
-            const blob = await response.blob()
-            savedState.imageUrl = URL.createObjectURL(blob)
-          }
-        } catch (error) {
-          console.error('[Personaliza] Failed to cache autosave image as blob:', error)
-        }
-      }
-
-      personalizaStore.loadState(savedState)
-      localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
-
-      // Navigate to archivo panel if there's an image to restore
-      // This ensures the Cropper mounts and regenerates the cropped preview
-      if (savedState.imageS3Url || savedState.imageUrl) {
-        // For mobile, set active panel. For desktop, scroll will be automatic since archivo is first
-        personalizaStore.setActivePanel('archivo')
-        // Mark that we need to generate thumbnail once image is ready
-        restoredFromAutosave.value = true
-      }
-    }
-  } catch (e) {
-    console.error('[Personaliza] Failed to restore autosave:', e)
-    localStorage.removeItem(AUTOSAVE_KEY)
-  }
-
-  // Store initial state to track changes (after autosave restore)
-  lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot())
-
-  // Save state for crash recovery
-  const saveAutosave = () => {
-    try {
-      const snapshot = personalizaStore.getSnapshot()
-      // Clear blob URL since it won't work after page reload
-      // (S3 URL in imageS3Url + cropCoordinates are preserved)
-      if (isBlobUrl(snapshot.imageUrl)) {
-        snapshot.imageUrl = null
-      }
-      // isImageReady will be restored when crop is regenerated on load
-      snapshot.isImageReady = false
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot))
-    } catch (e) {
-      console.error('[Personaliza] Failed to save autosave:', e)
-    }
-  }
-
-  // Auto-save on page unload (browser close/refresh)
-  handleBeforeUnload = () => {
-    saveAutosave()
-  }
-
-  // pagehide is more reliable than beforeunload on mobile Safari
-  handlePageHide = (e: PageTransitionEvent) => {
-    // Only save if page is actually being unloaded (not just hidden for bfcache)
-    if (!e.persisted) {
-      saveAutosave()
-    }
-  }
-
-  // visibilitychange fires when user switches tabs or minimizes - save proactively
-  handleVisibilityChange = () => {
-    if (document.visibilityState === 'hidden') {
-      saveAutosave()
-    }
-  }
-
-  window.addEventListener('beforeunload', handleBeforeUnload)
-  window.addEventListener('pagehide', handlePageHide)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-
-watch(
-  [isMobile, () => personalizaStore.hasImage],
-  ([isMobileValue, hasImage], [wasMobile, hadImage]) => {
-    if (!isMobileValue) {
-      isMobileSheetOpen.value = false
-      isMobileEditorOpen.value = false
-      if (personalizaStore.activePanel === 'margen') {
-        personalizaStore.setActivePanel('texto')
-      }
-      return
-    }
-
-    if (!hasImage) {
-      personalizaStore.setActivePanel('archivo')
-      // Don't auto-open archivo sheet if there's history (user can load a saved design)
-      if (!hasDismissedNoImageSheet.value && designs.value.length === 0) {
-        isMobileSheetOpen.value = true
-      }
-      isMobileEditorOpen.value = false
-      return
-    }
-
-    if (wasMobile && !hadImage && hasImage) {
-      // Keep archivo sheet open after selecting an image so user can adjust crop/format
-      hasDismissedNoImageSheet.value = false
-    }
-
-    if (personalizaStore.activePanel === 'margen' && !isMobileEditorOpen.value) {
-      personalizaStore.setActivePanel('texto')
-    }
-  }
-)
-
-// Also save when navigating via Vue Router
-onBeforeRouteLeave(async () => {
-  await saveCurrentDesign()
-  return true
-})
-
-// Panel navigation items
-const navItemsDesktop: { id: PersonalizaPanelType; label: string; icon: string }[] = [
-  { id: 'archivo', label: 'Archivo', icon: 'upload' },
-  { id: 'margen', label: 'Margen', icon: 'margin' },
-  { id: 'texto', label: 'Texto', icon: 'text' },
-  { id: 'medidas', label: 'Medidas', icon: 'ruler' },
-  { id: 'marco', label: 'Marco', icon: 'frame' },
-]
-
-const navItemsMobile: { id: PersonalizaPanelType; label: string; icon: string }[] = [
-  { id: 'archivo', label: 'Archivo', icon: 'upload' },
-  { id: 'margen', label: 'Margen', icon: 'margin' },
-  { id: 'texto', label: 'Texto', icon: 'text' },
-  { id: 'medidas', label: 'Medidas', icon: 'ruler' },
-  { id: 'marco', label: 'Marco', icon: 'frame' },
-]
-
-// Desktop: Handle sidebar click as scroll navigation (bookmark mode)
-function handleDesktopSidebarSelect(panel: PersonalizaPanelType) {
-  scrollablePanelRef.value?.scrollToSection(panel)
-}
-
-// Desktop: Update active indicator when section comes into view
-function handleSectionInView(panel: PersonalizaPanelType) {
-  activeSectionInView.value = panel
-}
-
-// Handle edit from missing elements modal - navigate to archivo panel
-async function handleEditFromModal() {
-  if (isMobile.value) {
-    personalizaStore.setActivePanel('archivo')
-    await nextTick()
-    isMobileEditorOpen.value = false
-    isMobileSheetOpen.value = true
-  } else {
-    // Desktop: scroll to archivo section
-    scrollablePanelRef.value?.scrollToSection('archivo')
-  }
-  // If there's a size warning, scroll to it
-  if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
-    await nextTick()
-    setTimeout(() => {
-      personalizaStore.triggerScrollToWarning()
-    }, 250)
-  }
-}
-
-// Handle add to cart
-async function handleAddToCart() {
-  const canvasElement = canvasRef.value?.$el
-  if (!canvasElement) return
-
-  // Note: The "no image" blocking case is handled by the modal (canProceed=false).
-  // This function is only called when user clicks "Continuar" after seeing the warning,
-  // which means either there's no warning or the user accepted the low-res warning.
-
-  // If there's a size warning and user is proceeding anyway (via "Continuar" in modal),
-  // acknowledge it so the cart validation passes
-  if (personalizaStore.showSizeWarning && !personalizaStore.sizeWarningAcknowledged) {
-    personalizaStore.acknowledgeSizeWarning()
-  }
-
-  try {
-    uiStore.setLoading(true)
-
-    // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
-    await cart.addPersonalizaToCart(canvasElement, personalizaStore.$state)
-
-    // Success - save to history and open cart (only if image was uploaded)
-    if (personalizaStore.hasImage) {
-      const thumbnail = await cart.generatePersonalizaThumbnail(canvasElement, personalizaStore.$state)
-      saveDesign(personalizaStore.getSnapshot(), thumbnail, getDesignName())
-      lastSavedState.value = JSON.stringify(personalizaStore.getSnapshot()) // Mark as saved
-    }
-
-    uiStore.openCart()
-  } catch (error) {
-    console.error('Error adding to cart:', error)
-  } finally {
-    uiStore.setLoading(false)
-  }
-}
 </script>
 
 <template>
-  <div class="personaliza tool-page" :style="mobileStyleVars">
-    <!-- Header -->
-    <SharedTheHeader />
-
-    <!-- Main Content -->
-    <main class="personaliza__main">
-      <!-- Desktop: Sidebar Navigation -->
-      <aside v-if="!isMobile" class="personaliza__sidebar">
-        <PersonalizaSidebarNavigation
-          :items="navItemsDesktop"
-          :active-panel="activeSectionInView"
-          @select="handleDesktopSidebarSelect"
-        />
-      </aside>
-
-      <!-- Design Panel (Desktop: Scrollable with all sections) -->
-      <div v-if="!isMobile" class="personaliza__panel-wrapper">
-        <!-- Panel Content (all sections stacked, scrollable) -->
-        <PersonalizaDesignPanelWrapperScrollable
-          ref="scrollablePanelRef"
-          class="personaliza__panel-content"
-          :show-margin-controls="false"
-          @section-in-view="handleSectionInView"
-        />
-
-        <!-- Add to Cart Section (fixed at bottom) -->
-        <PersonalizaAddToCartSection
-          :price="pricing.price"
-          :compare-at-price="pricing.compareAtPrice"
-          :is-loading="uiStore.isLoading || isRendering"
-          :missing-elements="missingElements"
-          :can-proceed="canProceed"
-          @add-to-cart="handleAddToCart"
-          @edit="handleEditFromModal"
-        />
-      </div>
-
-      <!-- Canvas Area -->
-      <div class="personaliza__canvas-area">
-        <div class="personaliza__canvas-container">
-          <PersonalizaCanvas
-            ref="canvasRef"
-            :mobile-panel-open="isMobile && isMobileEditorOpen && !isMobileSheetOpen"
-          />
+  <div class="landing-page landing-page__body landing-page__body--personaliza">
+    <div id="builder" class="landing-page__page-wrapper">
+        <div id="nav" class="landing-page__landings-container">
+          <div class="landing-page__container nav">
+            <div class="landing-page__nav-bar">
+              <div class="landing-page__nav-menu landing-page__links">
+                <button
+                  type="button"
+                  class="landing-page__pankacke landing-page__nav-toggle"
+                  aria-label="Abrir menú"
+                  @click="toggleSideMenu"
+                >
+                  <div class="landing-page__pankacke-line landing-page___2"></div>
+                  <div class="landing-page__pankacke-line landing-page___1"></div>
+                </button>
+                <div class="landing-page__navigation-links">
+                  <a href="https://www.studiomalek.com/collections/cuadros" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Colecciones</div>
+                  </a>
+                  <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Marcos</div>
+                  </a>
+                  <a href="#" class="landing-page__link-nav landing-page__current landing-page__w-inline-block">
+                    <div>Creaciones</div>
+                  </a>
+                  <button
+                    type="button"
+                    class="landing-page__pancake landing-page__nav-toggle"
+                    aria-label="Abrir menú"
+                    @click="toggleSideMenu"
+                  >
+                    <div class="landing-page__pankacke-line landing-page___2"></div>
+                    <div class="landing-page__pankacke-line landing-page___1"></div>
+                  </button>
+                  <a href="https://www.studiomalek.com/collections/set-de-cuadros" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Sets</div>
+                  </a>
+                  <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>For Business</div>
+                  </a>
+                </div>
+              </div>
+              <a href="https://www.studiomalek.com/" target="_blank" class="landing-page__w-inline-block">
+                <div class="landing-page__nav-logo-2 landing-page__builder"></div>
+              </a>
+              <div class="landing-page__nav-links-wrapper landing-page__builder">
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__nav-profile landing-page__start">
+                  <span class="landing-page__iniciar-sesion-link"></span>
+                </a>
+                <div id="email-profile" class="landing-page__email-profile">albertoamoretti@gmail.com</div>
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__nav-profile">
+                  <div class="landing-page__menu-icons landing-page__profile"></div>
+                </a>
+                <button
+                  type="button"
+                  class="landing-page__nav-icon cart landing-page__nav-icon-button"
+                  aria-label="Carrito"
+                  @click="uiStore.toggleCart"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="21" r="1" />
+                    <circle cx="19" cy="21" r="1" />
+                    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+                  </svg>
+                  <span
+                    v-if="cartStore.totalQuantity > 0"
+                    class="landing-page__cart-badge"
+                  >
+                    {{ cartStore.totalQuantity }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="landing-page__hero-home-wrapper">
+          <div class="landing-page__hero-home-flex-wrapper">
+            <div class="landing-page__homepage-right-side">
+              <div class="landing-page__loader-left">
+                <div class="landing-page__loader-title-wrapper landing-page__desktop">
+                  <h1 class="landing-page__loader-h1">Convierte tus momentos favoritos en obras de arte.</h1>
+                  <p class="landing-page__loader-subtitle">Personaliza tu imagen, enmárcala y recíbela en casa.<br></p>
+                </div>
+                <div
+                  class="landing-page__loader-main-wrapper"
+                  role="link"
+                  tabindex="0"
+                  aria-label="Abrir personalizador y subir imagen"
+                  @click="handleLoaderWrapperClick"
+                  @keydown="handleLoaderWrapperKeydown"
+                >
+                  <div class="landing-page__picture-preview-tools">
+                    <div class="landing-page__preview-orientation">
+                      <div class="landing-page__orientation-options">
+                        <div class="landing-page__orientation">Cuadrado</div>
+                        <div class="landing-page__orientation landing-page__orientation-selected">Vertical</div>
+                        <div class="landing-page__orientation">Horizontal</div>
+                      </div>
+                    </div>
+                    <div class="landing-page__preview-size">
+                      <div class="landing-page__size-cursor-wrapper">
+                        <div class="landing-page__slider-bar">
+                          <div class="landing-page__slider-progress"></div>
+                          <div class="landing-page__slider-controller"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="background-color:rgb(255,254,253)" class="landing-page__loader-frame landing-page___3">
+                    <NuxtLink to="/app/personaliza?upload=1" class="landing-page__loader-link landing-page__w-inline-block">
+                      <div data-w-id="cf3a245f-ef6c-c116-397f-ad0b93279a76" class="landing-page__loader-button landing-page__round-cta">
+                        <div class="landing-page__icon-loader landing-page__round landing-page__big"></div>
+                        <div class="landing-page__loader-title">Carga tu archivo aquí</div>
+                        <div class="landing-page__loader-detail-text landing-page__transparent-bg">
+                          <div class="landing-page__uploader-text">o haz click aquí para</div>
+                          <div class="landing-page__uploader-text landing-page__highlight">Subir</div>
+                        </div>
+                      </div>
+                    </NuxtLink>
+                    <div class="landing-page__picture-loaded-wrapper">
+                      <div class="landing-page__picture-preview"><img src="/landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif" loading="lazy" sizes="(max-width: 1000px) 100vw, 1000px" srcset="/landing-pages/images/photo-1504019853082-9a4cb128c1ef-p-500.avif 500w, /landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif 1000w" alt="" class="landing-page__picture-file"></div>
+                      <div data-w-id="cf3a245f-ef6c-c116-397f-ad0b93279a83" class="landing-page__picture-loaded-cancel"></div>
+                      <div class="landing-page__details landing-page__size-warnings">
+                        <div class="landing-page__tyco-text-right-3 landing-page__error">
+                          <div class="landing-page__text-block-7">Intenta subir otro archivo - <strong>Tamaño mínimo recomendado</strong>: 200 DPI - 1500x3000 px</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="landing-page__next-step-button">
+                      <NuxtLink to="/app/personaliza?upload=1" class="landing-page__button landing-page__next-step landing-page__w-button">Siguiente paso <span class="landing-page__icon landing-page__next-step"></span></NuxtLink>
+                    </div>
+                    <div class="landing-page__gif-wrapper">
+                      <div class="landing-page__gif-container"><img src="/landing-pages/images/Rolling-1s-207px.gif" loading="lazy" alt="" class="landing-page__image-2"></div>
+                    </div>
+                  </div>
+                  <div class="landing-page__tyco-text-home"><strong class="landing-page__bold-text">Tamaño máximo 20mb.</strong> Al cargar una imagen o URL, acepta nuestros <a href="https://www.studiomalek.com/pages/terminos-condiciones" target="_blank" class="landing-page__textlink landing-page__spaced">Términos de servicio</a>.<br></div>
+                </div>
+                <div class="landing-page__loader-terms-wrapper"></div>
+              </div>
+            </div>
+            <div class="landing-page__home-left-side"></div>
+          </div>
+          <div class="landing-page__landing-gallery landing-page__gradient">
+            <div class="landing-page__container landing-page__designs-gallery">
+              <div class="landing-page__templates-container">
+                <h2 class="landing-page__promo-title landing-page__centered"><strong>Categorías favoritas</strong></h2>
+              </div>
+              <div class="landing-page__highlight-gallery landing-page__styles">
+                <div class="landing-page__category-item">
+                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3648px) 100vw, 3648px" srcset="/landing-pages/images/pexels-arthurbrognoli-2260786-p-500.avif 500w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-800.avif 800w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-1080.avif 1080w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-1600.avif 1600w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-2000.avif 2000w, /landing-pages/images/pexels-arthurbrognoli-2260786.avif 3648w" alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <h4 class="landing-page__category-title">Viajes</h4>
+                  <div class="landing-page__category-item-date">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-block">
+                        <div class="landing-page__bottom-line"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__category-item">
+                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 2670px) 100vw, 2670px" srcset="/landing-pages/images/pexels-arina-krasnikova-5416634-p-500.avif 500w, /landing-pages/images/pexels-arina-krasnikova-5416634-p-800.avif 800w, /landing-pages/images/pexels-arina-krasnikova-5416634-p-1080.avif 1080w, /landing-pages/images/pexels-arina-krasnikova-5416634.avif 2670w" alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <h4 class="landing-page__category-title">Familia</h4>
+                  <div class="landing-page__category-item-date">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-block">
+                        <div class="landing-page__bottom-line"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__category-item">
+                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3648px) 100vw, 3648px" srcset="/landing-pages/images/pexels-jonathanborba-13617315-p-500.avif 500w, /landing-pages/images/pexels-jonathanborba-13617315-p-800.avif 800w, /landing-pages/images/pexels-jonathanborba-13617315-p-1080.avif 1080w, /landing-pages/images/pexels-jonathanborba-13617315-p-1600.avif 1600w, /landing-pages/images/pexels-jonathanborba-13617315-p-2000.avif 2000w, /landing-pages/images/pexels-jonathanborba-13617315-p-2600.avif 2600w, /landing-pages/images/pexels-jonathanborba-13617315.avif 3648w" alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <h4 class="landing-page__category-title">Boda</h4>
+                  <div class="landing-page__category-item-date">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-block">
+                        <div class="landing-page__bottom-line"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__category-item">
+                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3600px) 100vw, 3600px" srcset="/landing-pages/images/pexels-jess-vide-4601355-p-500.jpg 500w, /landing-pages/images/pexels-jess-vide-4601355-p-800.jpg 800w, /landing-pages/images/pexels-jess-vide-4601355-p-1080.jpg 1080w, /landing-pages/images/pexels-jess-vide-4601355-p-1600.jpg 1600w, /landing-pages/images/pexels-jess-vide-4601355-p-2000.jpg 2000w, /landing-pages/images/pexels-jess-vide-4601355-p-2600.jpg 2600w, /landing-pages/images/pexels-jess-vide-4601355.jpg 3600w" alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" class="landing-page__category-pic"></div>
+                  <h4 class="landing-page__category-title">Fotografías</h4>
+                  <div class="landing-page__category-item-date">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-block">
+                        <div class="landing-page__bottom-line"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__category-item">
+                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 2000px) 100vw, 2000px" srcset="/landing-pages/images/7624362-p-500.avif 500w, /landing-pages/images/7624362-p-800.avif 800w, /landing-pages/images/7624362.avif 2000w" alt="" src="/landing-pages/images/7624362.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <h4 class="landing-page__category-title">Ilustraciones</h4>
+                  <div class="landing-page__category-item-date">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-block">
+                        <div class="landing-page__bottom-line"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <NuxtLink to="/app/personaliza?upload=1" class="landing-page__sec-ondary-button landing-page__w-button">¡Crea el tuyo!</NuxtLink>
+            </div>
+          </div>
+          <div class="landing-page__marketing-sections">
+            <div class="landing-page__loader-section landing-page__process">
+              <div class="landing-page__promo-container">
+                <div class="landing-page__poster-container">
+                  <div class="landing-page__poster-promo-left">
+                    <div class="landing-page__poster-crreator-1"></div>
+                  </div>
+                  <div class="landing-page__poster-promo-right">
+                    <div class="landing-page__promo-text-container">
+                      <p class="landing-page__tuttorial-highlight">Crea con Malek</p>
+                      <h2 class="landing-page__promo-title">Nunca fue tán fácil crear un cuadro personalizado.</h2>
+                      <p class="landing-page__tuttorial-text">Fotos de boda, los primeros pasos de tu bebé, retratos familiares, ese atardecer que no puedes olvidar... cualquier imagen especial puede convertirse en arte para tu hogar.<br><br><strong>Sube tu foto, selecciona el tamaño, agrega un marco o margen de color, y listo</strong>. Nosotros validamos la resolución y te recomendamos el tamaño ideal para que la impresión quede perfecta.</p>
+                      <div class="landing-page__promo-details">
+                        <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"><span class="landing-page__icon landing-page__del">📦</span> Entrega 3-5 días</a>
+                        <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"> <span class="landing-page__icon landing-page__del">🚚 </span>Envíos a todo México</a>
+                        <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"> <span class="landing-page__icon landing-page__del">✨ </span>Listo para colgar</a>
+                      </div>
+                      <div class="landing-page__cta-div">
+                        <NuxtLink to="/app/personaliza?upload=1" class="landing-page__primary-button landing-page__w-button">¡Empieza a crear!</NuxtLink>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="landing-page__loader-section landing-page__gradient">
+              <div class="landing-page__container">
+                <div class="landing-page__process-wraps">
+                  <div class="landing-page__templates-container">
+                    <h2 class="landing-page__promo-title"><strong>Así de fácil lo haces.</strong></h2>
+                  </div>
+                  <div class="landing-page__process-wrap">
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image">
+                        <div class="landing-page__personaliza-image-uno"><img src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""></div>
+                      </div>
+                      <div class="landing-page__personaliza-sub"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif" loading="lazy" sizes="(max-width: 1414px) 100vw, 1414px" srcset="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif 500w, /landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif 1414w" alt=""></div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles">Carga una imagen </h4>
+                        </div>
+                        <p>Carga tu foto favorita desde tu celular o laptop y elige la orientación ideal.</p>
+                      </div>
+                    </div>
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image">
+                        <div class="landing-page__personaliza-image-dos">
+                          <div class="landing-page__div-block-9"><img src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""></div>
+                          <h4 class="landing-page__steps-titles landing-page__centered">Summer 2025</h4>
+                        </div>
+                      </div>
+                      <div class="landing-page__personaliza-sub"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-10.22.13-AM.avif" loading="lazy" alt=""></div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles">Edita y personaliza</h4>
+                        </div>
+                        <p>Agrega un texto especial y elige un margen del color que más te guste.</p>
+                      </div>
+                    </div>
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image"><img src="/landing-pages/images/personaliza-shot.avif" loading="lazy" alt="" class="landing-page__image-7"></div>
+                      <div class="landing-page__personaliza-sub landing-page__frames-p">
+                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><img src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="">
+                      </div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles"><strong>Elige tu marco y recíbelo</strong></h4>
+                        </div>
+                        <p>Selecciona tu marco favorito y recíbelo en casa, listo para colgar en 3–5 días.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__templates-container">
+                    <NuxtLink to="/app/personaliza?upload=1" class="landing-page__sec-ondary-button landing-page__w-button">¡Crea el tuyo!</NuxtLink>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="landing-page__loader-section landing-page__revieew">
+              <div class="landing-page__loader-container">
+                <div class="landing-page__hero-title-wrapper">
+                  <h2 class="landing-page__promo-title">Algunas reseñas de la comunidad Studio Malek</h2>
+                </div>
+                <div class="landing-page__loader-poster-instruction-wrap">
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title">¡Todo Perfecto!<br></h3>
+                      <p class="landing-page__review-text">¡Hola! No había tenido oportunidad de compartirles que recibimos nuestros cuadros, todo perfecto con la entrega. <strong>¡Los cuadros me encantaron!</strong></p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div class="landing-page__avatar landing-page___1"></div>
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Polo<br></h3>
+                        <p class="landing-page__testimonial-position">Monterrey</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div>
+                      <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                        <h3 class="landing-page__review-title">Muy buena Calidad<br></h3>
+                        <p class="landing-page__review-text">Los colores son super nítidos y la calidad de impresión es muy buena. Estoy muy satisfecha con mi compra, es igual de cómo se muestra en la página. <strong>Llegó antes de lo esperado.</strong></p>
+                      </div>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div class="landing-page__avatar"></div>
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Dennise<br></h3>
+                        <p class="landing-page__testimonial-position">Guadalajara</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title">Me gustaron los cuadros<br></h3>
+                      <p class="landing-page__review-text">Me gustaron los cuadros. Sobre todo que no pesan y los puedes colgar con seguridad.<br><br>Los empacaron muy bien, venían bien protegidos. ¡Recomendables!</p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div class="landing-page__avatar landing-page___3"></div>
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Paulina<br></h3>
+                        <p class="landing-page__testimonial-position">León</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title">Súper lindos y gran servicio! <br></h3>
+                      <p class="landing-page__review-text">Súper lindos y gran servicio! Los cuadros están súper lindos, súper buena comunicación. <strong>Sin duda volveré a comprarles!</strong><br></p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div class="landing-page__avatar landing-page___4"></div>
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Fadia<br></h3>
+                        <p class="landing-page__testimonial-position">CDMX</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="landing-page__footer">
+            <div class="landing-page__footer-container">
+              <div class="landing-page__footer-col">
+                <a href="#" class="landing-page__malek-logo landing-page__w-inline-block">
+                  <div class="landing-page__footer-title">Studio Malek S.A. de C.V.</div>
+                </a>
+                <div>
+                  <div class="landing-page__footer-text">Whatsapp: <a href="https://wa.me/523316995405?text=Hola%2C%20%0ATengo%20una%20duda%20acerca%20de%20..." target="_blank" class="landing-page__link landing-page__white">3316995405<br>‍</a>hello@studiomalek.com<br><br>Horario de Atención<br>9 - 17 hrs de Lunes a Viernes.<br><br>Instagram: studio_malek<br>Zapopan, Jalisco. México</div>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Malek</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="https://www.studiomalek.com/" target="_blank" class="landing-page__footer-links">Cuadros</a>
+                  <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__footer-links">Marcos</a>
+                  <a href="https://www.studiomalek.com/collections/" target="_blank" class="landing-page__footer-links">Colecciones</a>
+                  <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__footer-links">Para negocios</a>
+                  <a href="https://artwall.studiomalek.com/" target="_blank" class="landing-page__footer-links">Crea tu muro</a>
+                  <a href="https://www.studiomalek.com/pages/terminos-condiciones" target="_blank" class="landing-page__footer-links">Terminos y Condiciones</a>
+                  <a href="https://www.studiomalek.com/pages/privacidad" target="_blank" class="landing-page__footer-links">Políticas de privacidad</a>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Cuenta</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Perfil</a>
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Iniciar sesión</a>
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Pedidos</a>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Contacto</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="mailto:hello.com" target="_blank" class="landing-page__footer-links">Correo</a>
+                  <a href="https://www.instagram.com/studio_malek/" target="_blank" class="landing-page__footer-links">Instagram</a>
+                  <a href="https://www.facebook.com/studio.malek.mx/" target="_blank" class="landing-page__footer-links">Facebook</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="landing-page__side-menu"
+          :class="{ 'landing-page__side-menu--open': isSideMenuOpen }"
+          @click.self="closeSideMenu"
+        >
+          <div
+            class="landing-page__side-menu-panel"
+            :class="{ 'landing-page__side-menu-panel--open': isSideMenuOpen }"
+          >
+            <div class="landing-page__menu-links-wrapper">
+              <a href="https://www.studiomalek.com/collections/" target="_blank" class="landing-page__left-nav-link">Colecciones <span class="landing-page__text-span"></span></a>
+              <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__left-nav-link">Marcos <span class="landing-page__text-span"></span></a>
+              <NuxtLink to="/personaliza" class="landing-page__left-nav-link">Creaciones<span class="landing-page__text-span"></span></NuxtLink>
+              <a href="https://www.studiomalek.com/collections/set-de-cuadros" target="_blank" class="landing-page__left-nav-link">Sets<span class="landing-page__text-span"></span></a>
+              <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__left-nav-link">For Business <span class="landing-page__text-span"></span></a>
+              <div class="landing-page__menu-footer">
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footlink">Tu cuenta</a>
+                <div class="landing-page__foot-dot"></div>
+                <a href="mailto:hello@studiomalek.com?subject=Contact%20Studio%20Malek" target="_blank" class="landing-page__footlink">Contacto</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- Desktop: History Panel -->
-      <aside v-if="!isMobile" class="personaliza__history">
-        <PersonalizaHistoryPanel
-          :designs="designs"
-          :is-open="uiStore.isHistoryOpen"
-          @toggle="uiStore.toggleHistory"
-          @load="handleLoadDesign"
-          @delete="deleteDesign"
-        />
-      </aside>
-    </main>
-
-    <!-- Mobile: Inline Edit Panel -->
-    <div
-      v-if="isMobile && isMobileEditorOpen && !isMobileSheetOpen && personalizaStore.hasImage"
-      class="personaliza__mobile-panel"
-    >
-      <div class="personaliza__mobile-panel-content">
-        <PersonalizaMobileEditorPanel
-          :active-panel="personalizaStore.activePanel"
-          @change-image="openArchivoSheet"
-        />
-      </div>
-    </div>
-
-    <!-- Mobile: Floating Edit Button -->
-    <button
-      v-if="isMobile && personalizaStore.hasImage && !isMobileEditorOpen && !isMobileSheetOpen"
-      type="button"
-      class="personaliza__mobile-edit-button"
-      aria-label="Editar"
-      @click="toggleMobileEditor"
-    >
-      <span class="personaliza__mobile-edit-icon" aria-hidden="true">
-        <img src="/personaliza-icons/icon/edit-icon.svg" alt="">
-      </span>
-    </button>
-
-    <!-- Mobile: Fixed Add to Cart Bar -->
-    <PersonalizaMobileAddToCartBar
-      v-if="isMobile && !isMobileEditorOpen && !isMobileSheetOpen"
-      :price="pricing.price"
-      :compare-at-price="pricing.compareAtPrice"
-      :has-image="personalizaStore.hasImage"
-      :is-loading="uiStore.isLoading || isRendering"
-      :missing-elements="missingElements"
-      :can-proceed="canProceed"
-      @add-to-cart="handleAddToCart"
-      @edit="handleEditFromModal"
-      @upload="openArchivoSheetAndSelect"
-    />
-
-    <!-- Mobile: Bottom Navbar -->
-    <PersonalizaBottomNavbar
-      v-if="isMobile && isMobileEditorOpen && !isMobileSheetOpen"
-      :items="navItemsMobile"
-      :active-panel="personalizaStore.activePanel"
-      @select="handleMobilePanelSelect"
-      @close="closeMobileEditor"
-    />
-
-    <!-- Mobile: Bottom Sheet -->
-    <PersonalizaMobileBottomSheet
-      v-if="isMobile"
-      :is-open="isMobileSheetOpen"
-      @close="handleMobileSheetClose"
-    >
-      <PersonalizaPanelsPanelArchivo
-        ref="archivoPanelRef"
-        show-continue-button
-        @close="handleMobileSheetClose"
-      />
-    </PersonalizaMobileBottomSheet>
-
-    <!-- Mobile Nav Wrapper (History/Home overlay) -->
-    <PersonalizaMobileNavWrapper
-      v-if="isMobile"
-      :is-open="uiStore.isMobileNavWrapperOpen"
-      :content="uiStore.mobileNavWrapperContent"
-      @close="uiStore.closeMobileNavWrapper"
-    />
-
-    <!-- Cart Sidebar -->
     <SharedCartSidebar />
   </div>
 </template>
 
-<style lang="scss" scoped>
-.personaliza {
+<style lang="scss" src="~/assets/scss/landing-pages.scss"></style>
+<style lang="scss">
+.landing-page {
+  min-height: 100dvh;
+}
+
+.landing-page__nav-toggle,
+.landing-page__nav-icon-button {
+  @include button-reset;
+  cursor: pointer;
+}
+
+.landing-page__nav-icon-button {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-xl;
+  background: #1a202c;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color $transition-fast, color $transition-fast;
+
+  @include hover {
+    background: #2d3748;
+    color: #ffffff;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.landing-page__cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #e53e3e;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  border-radius: $radius-full;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 
-  &__main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: $sidebar-width $panel-width 1fr 106px;
-    overflow: hidden;
-    background-color: $color-canvas;
+.landing-page .landing-page__side-menu {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity $transition-base;
+}
 
-    @include desktop {
-      grid-template-columns: $sidebar-width-collapsed $panel-width-md 1fr 106px;
-    }
+.landing-page .landing-page__side-menu.landing-page__side-menu--open {
+  opacity: 1;
+  pointer-events: auto;
+}
 
-    @include mobile {
-      display: flex;
-      flex-direction: column;
-      grid-template-columns: none;
-    }
-  }
+.landing-page .landing-page__side-menu-panel {
+  display: block;
+  opacity: 1;
+  transform: translate3d(-100%, 0, 0);
+  transition: transform $transition-slow;
+  will-change: transform;
+}
 
-  &__sidebar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    @include mobile {
-      display: none;
-    }
-  }
-
-  &__panel-wrapper {
-    background: $color-bg-primary;
-
-    border: 1px solid $color-border;
-    border-radius: 12px;
-    box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: calc(100% - 12px);
-    margin-top: auto;
-
-    @include mobile {
-      display: none;
-    }
-  }
-
-  &__panel-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    @include custom-scrollbar;
-  }
-
-  &__canvas-area {
-    background: $color-canvas;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: $space-4xl $space-3xl $space-6xl;
-    overflow: hidden;
-
-    @include mobile {
-      flex: 1;
-      padding: $space-xl;
-      align-items: flex-start;
-    }
-  }
-
-  &__canvas-container {
-    width: 100%;
-    height: 90%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    container-type: size;
-    @include mobile {
-      height: calc(100% - var(--personaliza-mobile-canvas-offset, 136px));
-      align-items: center;
-    }
-
-  }
-
-  &__mobile-panel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: var(--personaliza-mobile-nav-height, #{$bottom-navbar-height});
-    background: #ffffff;
-    border-top: 1px solid #f5f5f5;
-    box-shadow: 0 -1px 3px rgba(10, 13, 18, 0.05);
-    z-index: $z-fixed + 1;
-    padding: 16px 24px;
-  }
-
-  &__mobile-panel-content {
-    width: 100%;
-  }
-
-  &__mobile-edit-button {
-    @include button-reset;
-    position: fixed;
-    bottom: 104px;
-    right: 20px;
-    width: 64px;
-    height: 64px;
-    border-radius: 100px;
-    border: none;
-    background: #ffffff;
-    color: #414651;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
-    z-index: $z-fixed + 3;
-    transition: transform $transition-fast;
-
-    &:active {
-      transform: scale(0.98);
-    }
-  }
-
-  &__mobile-edit-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    img {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-
-  &__history {
-    position: relative;
-    width: 106px; // Fixed width: 82px panel + 24px margin
-    background: $color-canvas;
-    flex-shrink: 0;
-
-    @include mobile {
-      display: none;
-    }
-  }
+.landing-page .landing-page__side-menu-panel.landing-page__side-menu-panel--open {
+  transform: translate3d(0, 0, 0);
 }
 </style>

@@ -19,19 +19,19 @@ const route = useRoute()
 const navItems = [
   {
     name: 'Personaliza',
-    href: '/personaliza',
+    href: '/app/personaliza',
     description: 'Diseña una pieza única a partir de tus propias fotos.',
     image: '/landing/personaliza.jpg',
   },
   {
     name: 'Momentos',
-    href: '/momentos',
+    href: '/app/momentos',
     description: 'Crea collages con tus recuerdos usando distintos layouts.',
     image: '/landing/momentos.png',
   },
   {
     name: 'Póster de nacimiento',
-    href: '/poster-de-nacimiento',
+    href: '/app/poster-de-nacimiento',
     description: 'El nacimiento de tu bebé convertido en una obra de arte a escala real.',
     image: '/landing/birth-poster.jpg',
   },

@@ -82,7 +82,7 @@ onMounted(() => {
             </svg>
             <p>Tu carrito está vacío</p>
             <NuxtLink
-              to="/poster-de-nacimiento"
+              to="/app/poster-de-nacimiento"
               class="cart-sidebar__cta"
               @click="uiStore.closeCart"
             >

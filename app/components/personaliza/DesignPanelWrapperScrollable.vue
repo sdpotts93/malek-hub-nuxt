@@ -20,6 +20,7 @@ const textoRef = ref<HTMLElement | null>(null)
 const medidasRef = ref<HTMLElement | null>(null)
 const marcoRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
+const archivoPanelRef = ref<{ openFileDialog: () => void } | null>(null)
 
 // Section refs map for external access
 const sectionRefs = computed(() => ({
@@ -39,6 +40,7 @@ defineExpose({
   sectionRefs,
   scrollToSection,
   containerRef,
+  openArchivoDialog,
 })
 
 // Scroll to a specific section
@@ -66,6 +68,10 @@ function scrollToSection(panel: PersonalizaPanelType) {
       isScrollingProgrammatically.value = false
     }, 500)
   }
+}
+
+function openArchivoDialog() {
+  archivoPanelRef.value?.openFileDialog()
 }
 
 // IntersectionObserver to track which section is in view
@@ -165,7 +171,7 @@ function setupIntersectionObserver() {
       data-panel="archivo"
       class="design-panel-scrollable__section"
     >
-      <PersonalizaPanelsPanelArchivo />
+      <PersonalizaPanelsPanelArchivo ref="archivoPanelRef" />
     </section>
 
     <!-- Margen Section -->

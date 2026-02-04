@@ -24,7 +24,7 @@ const tools = [
   {
     name: 'Personaliza',
     description: 'Crea cuadros únicos con tus fotos o diseños.',
-    href: '/personaliza',
+    href: '/app/personaliza',
     available: true,
     image: '/landing/personaliza.jpg',
     buttonText: 'Sube tu imagen aquí',
@@ -32,7 +32,7 @@ const tools = [
   {
     name: 'Momentos',
     description: 'Diseña un collage con tus fotos favoritas.',
-    href: '/momentos',
+    href: '/app/momentos',
     available: true,
     image: '/landing/momentos.png',
     buttonText: 'Empieza a diseñar',
@@ -40,7 +40,7 @@ const tools = [
   {
     name: 'Póster de nacimiento',
     description: 'Celebra la llegada de tu bebé.',
-    href: '/poster-de-nacimiento',
+    href: '/app/poster-de-nacimiento',
     available: true,
     image: '/landing/birth-poster.jpg',
     buttonText: 'Crea tu recuerdo',

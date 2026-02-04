@@ -4,15 +4,15 @@ const uiStore = useUIStore()
 const cartStore = useCartStore()
 
 const navigation = [
-  { name: 'Personaliza', href: '/personaliza', icon: 'image' },
-  { name: 'Momentos', href: '/momentos', icon: 'moments' },
-  { name: 'Póster de nacimiento', href: '/poster-de-nacimiento', icon: 'birth-poster' },
+  { name: 'Personaliza', href: '/app/personaliza', icon: 'image' },
+  { name: 'Momentos', href: '/app/momentos', icon: 'moments' },
+  { name: 'Póster de nacimiento', href: '/app/poster-de-nacimiento', icon: 'birth-poster' },
 ]
 
 const isActive = (href: string) => route.path === href
 
 // Check if on a tool page (for showing history button on mobile)
-const isToolPage = computed(() => route.path === '/poster-de-nacimiento' || route.path === '/personaliza' || route.path === '/momentos')
+const isToolPage = computed(() => route.path === '/app/poster-de-nacimiento' || route.path === '/app/personaliza' || route.path === '/app/momentos')
 </script>
 
 <template>

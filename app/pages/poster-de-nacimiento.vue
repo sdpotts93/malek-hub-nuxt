@@ -1,13 +1,7 @@
+<!-- Generated from Webflow reference; edit as needed -->
 <script setup lang="ts">
-import type { PanelType, BirthPosterState } from '~/types'
-
-// Page meta
-definePageMeta({
-  layout: false,
-})
-
-const pageTitle = 'Poster de Nacimiento - Studio Malek'
-const pageDescription = 'Crea un poster personalizado para celebrar el nacimiento de tu bebé con Studio Malek'
+const pageTitle = 'Póster de nacimiento - Studio Malek'
+const pageDescription = 'Transforma tus recuerdos más preciados en obras de arte con Studio Malek. Personaliza e imprime tus propias imágenes, creando piezas únicas que cuenten tu historia. Convierte tus momentos inolvidables en impresiones duraderas y decora tu espacio con emociones. ¡Empieza tu viaje creativo con nosotros y haz que cada recuerdo cuente!';
 
 useHead({
   title: pageTitle,
@@ -20,476 +14,605 @@ useSeoMeta({
   ogDescription: pageDescription,
   ogUrl: 'https://creaciones.studiomalek.com/poster-de-nacimiento',
   ogImage: 'https://creaciones.studiomalek.com/nacimiento-og.jpg',
-  ogImageWidth: 1200,
-  ogImageHeight: 630,
   twitterTitle: pageTitle,
   twitterDescription: pageDescription,
   twitterImage: 'https://creaciones.studiomalek.com/nacimiento-og.jpg',
 })
 
-// Stores
-const birthPosterStore = useBirthPosterStore()
 const uiStore = useUIStore()
-
-// Composables
-const { isRendering, generateThumbnail } = useCanvasRenderer()
-const { saveDesign, deleteDesign, designs } = useDesignHistory<BirthPosterState>('birth-poster')
+const cartStore = useCartStore()
 const cart = useShopifyCart()
 
-// Canvas ref for rendering
-const canvasRef = ref<{ $el: HTMLElement } | null>(null)
+const isSideMenuOpen = ref(false)
 
-// Scrollable panel wrapper ref for desktop scroll navigation
-const scrollablePanelRef = ref<{
-  scrollToSection: (panel: PanelType) => void
-  containerRef: HTMLElement | null
-} | null>(null)
-
-// Active section in view (for desktop scroll mode)
-const activeSectionInView = ref<PanelType>('general')
-
-// Computed
-const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
-
-// Missing elements for cart warning modal
-// Always check for missing names, but only block if showScale is enabled
-const missingElements = computed(() => {
-  const missing: string[] = []
-  birthPosterStore.babies.forEach((baby, index) => {
-    if (!baby.nombre?.trim()) {
-      const babyLabel = birthPosterStore.babyCount > 1 ? `Bebé ${index + 1}` : 'Bebé'
-      if (baby.showScale) {
-        // Blocking: name is required when showScale is on
-        missing.push(`Nombre del ${babyLabel.toLowerCase()} (requerido cuando "Escala 1:1" está activado)`)
-      } else {
-        // Warning: name is optional but recommended
-        missing.push(`Nombre del ${babyLabel.toLowerCase()} no especificado`)
-      }
-    }
-  })
-  return missing
-})
-
-// Can only proceed if there are no blocking issues (missing name with showScale on)
-const canProceed = computed(() => {
-  return !birthPosterStore.babies.some(baby => baby.showScale && !baby.nombre?.trim())
-})
-
-const isMobile = ref(false)
-const isMobileSheetOpen = ref(false)
-
-// Handle mobile panel selection
-async function handleMobilePanelSelect(panel: PanelType) {
-  birthPosterStore.setActivePanel(panel)
-  // Wait for Vue to render the new panel before opening the sheet
-  await nextTick()
-  isMobileSheetOpen.value = true
+function toggleSideMenu() {
+  isSideMenuOpen.value = !isSideMenuOpen.value
 }
 
-function handleMobileSheetClose() {
-  isMobileSheetOpen.value = false
+function closeSideMenu() {
+  isSideMenuOpen.value = false
 }
 
-// Track if design has been modified since last save
-const lastSavedState = ref<string | null>(null)
-const isDirty = computed(() => {
-  const currentState = JSON.stringify(birthPosterStore.$state)
-  return lastSavedState.value !== currentState
-})
-
-// Generate design name from baby names
-function getDesignName(): string {
-  const names = birthPosterStore.babies
-    .map(b => b.nombre?.trim())
-    .filter(Boolean)
-  return names.length > 0 ? names.join(' & ') : 'Birth Poster'
-}
-
-// Save design to history (auto-save helper)
-async function saveCurrentDesign() {
-  const canvasElement = canvasRef.value?.$el
-  if (!canvasElement || !isDirty.value) return
-
-  try {
-    const thumbnail = await generateThumbnail(canvasElement)
-    saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-  } catch (error) {
-    console.error('[BirthPoster] Auto-save failed:', error)
-  }
-}
-
-// Auto-save settings
-const AUTOSAVE_KEY = 'studiomalek_autosave_birthposter'
-const pendingHistorySave = ref(false)
-
-// Check mobile on mount and initialize cart
 onMounted(() => {
-  // Check mobile FIRST so the UI renders correctly immediately
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-
-  // Initialize Shopify cart and fetch product variants
-  cart.init()
-
-  // Restore from autosave if exists (from browser refresh/crash)
-  try {
-    const autosaved = localStorage.getItem(AUTOSAVE_KEY)
-    if (autosaved) {
-      const savedState = JSON.parse(autosaved)
-      birthPosterStore.loadState(savedState)
-      localStorage.removeItem(AUTOSAVE_KEY) // Clear after restore
-      pendingHistorySave.value = true // Mark for saving to history once canvas is ready
-    }
-  } catch (e) {
-    console.error('[BirthPoster] Failed to restore autosave:', e)
-    localStorage.removeItem(AUTOSAVE_KEY)
-  }
-
-  // Store initial state to track changes (after autosave restore)
-  lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-
-  // If we restored from autosave, save to history once canvas is ready
-  if (pendingHistorySave.value) {
-    nextTick(async () => {
-      // Wait a bit for images to load
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const canvasElement = canvasRef.value?.$el
-      if (canvasElement) {
-        // Check if this design already exists in history (compare state)
-        const currentStateJson = JSON.stringify(birthPosterStore.$state)
-        const existingDesign = designs.value.find((d) => {
-          return JSON.stringify(d.state) === currentStateJson
-        })
-
-        if (existingDesign) {
-          // Design already exists in history, no need to save again
-          console.log('[BirthPoster] Design already exists in history, skipping save')
-          lastSavedState.value = currentStateJson
-          pendingHistorySave.value = false
-          return
-        }
-
-        try {
-          const thumbnail = await generateThumbnail(canvasElement)
-          saveDesign(birthPosterStore.$state, thumbnail, getDesignName())
-          lastSavedState.value = JSON.stringify(birthPosterStore.$state)
-        } catch (error) {
-          console.error('[BirthPoster] Failed to save restored design:', error)
-        }
-      }
-      pendingHistorySave.value = false
-    })
-  }
-
-  // Auto-save on page unload (browser close/refresh)
-  // Always save state - cheaper to save unnecessarily than to lose user work
-  const handleBeforeUnload = () => {
-    try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(birthPosterStore.$state))
-    } catch (e) {
-      console.error('[BirthPoster] Failed to save on unload:', e)
-    }
-  }
-  window.addEventListener('beforeunload', handleBeforeUnload)
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', checkMobile)
-    window.removeEventListener('beforeunload', handleBeforeUnload)
-    // Save when navigating away within the app
-    saveCurrentDesign()
-  })
+  cart.initCartOnly()
 })
-
-// Also save when navigating via Vue Router
-onBeforeRouteLeave(async () => {
-  await saveCurrentDesign()
-  return true
-})
-
-// Panel navigation items
-const navItems: { id: PanelType; label: string; icon: string }[] = [
-  { id: 'general', label: 'General', icon: 'settings' },
-  { id: 'diseno', label: 'Diseño', icon: 'palette' },
-  { id: 'datos', label: 'Datos', icon: 'text' },
-  { id: 'medidas', label: 'Medidas', icon: 'ruler' },
-  { id: 'marco', label: 'Marco', icon: 'frame' },
-]
-
-// Desktop: Handle sidebar click as scroll navigation (bookmark mode)
-function handleDesktopSidebarSelect(panel: PanelType) {
-  scrollablePanelRef.value?.scrollToSection(panel)
-}
-
-// Desktop: Update active indicator when section comes into view
-function handleSectionInView(panel: PanelType) {
-  activeSectionInView.value = panel
-}
-
-// Handle edit from missing elements modal - navigate to datos panel
-async function handleEditFromModal() {
-  // Find first baby with missing name and switch to that tab
-  const missingIndex = birthPosterStore.babies.findIndex(b => !b.nombre?.trim())
-  if (missingIndex !== -1) {
-    birthPosterStore.setActiveBabyTab(missingIndex)
-  }
-
-  if (isMobile.value) {
-    birthPosterStore.setActivePanel('datos')
-    await nextTick()
-    isMobileSheetOpen.value = true
-  } else {
-    // Desktop: scroll to datos section
-    scrollablePanelRef.value?.scrollToSection('datos')
-  }
-  // Trigger focus on nombre input
-  birthPosterStore.triggerNombreFocus()
-}
-
-// Handle add to cart
-async function handleAddToCart() {
-  const canvasElement = canvasRef.value?.$el
-  if (!canvasElement) return
-
-  try {
-    uiStore.setLoading(true)
-
-    // Add to cart (validates, generates image, uploads to S3, adds to Shopify)
-    const result = await cart.addBirthPosterToCart(canvasElement, birthPosterStore.$state)
-
-    // If validation failed, navigate to the missing data and show error
-    if ('validation' in result) {
-      const { validation } = result
-
-      // Switch to the baby tab with missing name and show error
-      if (validation.missingBabyIndex !== null) {
-        birthPosterStore.setActiveBabyTab(validation.missingBabyIndex)
-        birthPosterStore.setNombreError(validation.missingBabyIndex)
-      }
-
-      // Navigate to datos panel
-      if (isMobile.value) {
-        birthPosterStore.setActivePanel('datos')
-        await nextTick()
-        isMobileSheetOpen.value = true
-      } else {
-        // Desktop: scroll to datos section
-        scrollablePanelRef.value?.scrollToSection('datos')
-      }
-
-      // Trigger focus on nombre input after panel is ready
-      birthPosterStore.triggerNombreFocus()
-      return
-    }
-
-    // Success - save to history using the thumbnail from cart (no re-render needed)
-    saveDesign(birthPosterStore.$state, result.thumbnail, getDesignName())
-    lastSavedState.value = JSON.stringify(birthPosterStore.$state) // Mark as saved
-
-    uiStore.openCart()
-  } catch (error) {
-    console.error('Error adding to cart:', error)
-  } finally {
-    uiStore.setLoading(false)
-  }
-}
 </script>
 
 <template>
-  <div class="birth-poster tool-page">
-    <!-- Header -->
-    <SharedTheHeader />
-
-    <!-- Main Content -->
-    <main class="birth-poster__main">
-      <!-- Desktop: Sidebar Navigation -->
-      <aside v-if="!isMobile" class="birth-poster__sidebar">
-        <BirthPosterSidebarNavigation
-          :items="navItems"
-          :active-panel="activeSectionInView"
-          @select="handleDesktopSidebarSelect"
-        />
-      </aside>
-
-      <!-- Design Panel (Desktop: Scrollable with all sections) -->
-      <div v-if="!isMobile" class="birth-poster__panel-wrapper">
-        <!-- Panel Content (all sections stacked, scrollable) -->
-        <BirthPosterDesignPanelWrapperScrollable
-          ref="scrollablePanelRef"
-          class="birth-poster__panel-content"
-          @section-in-view="handleSectionInView"
-        />
-
-        <!-- Add to Cart Section (fixed at bottom) -->
-        <BirthPosterAddToCartSection
-          :price="pricing.price"
-          :compare-at-price="pricing.compareAtPrice"
-          :is-loading="uiStore.isLoading || isRendering"
-          :missing-elements="missingElements"
-          :can-proceed="canProceed"
-          @add-to-cart="handleAddToCart"
-          @edit="handleEditFromModal"
-        />
-      </div>
-
-      <!-- Canvas Area -->
-      <div class="birth-poster__canvas-area">
-        <div class="birth-poster__canvas-container">
-          <BirthPosterBabyCanvas ref="canvasRef" />
+  <div class="landing-page landing-page__body landing-page__body--poster-de-nacimiento">
+    <div id="builder" class="landing-page__page-wrapper">
+        <div id="nav" class="landing-page__landings-container">
+          <div class="landing-page__container nav">
+            <div class="landing-page__nav-bar">
+              <div class="landing-page__nav-menu landing-page__links">
+                <button
+                  type="button"
+                  class="landing-page__pankacke landing-page__nav-toggle"
+                  aria-label="Abrir menú"
+                  @click="toggleSideMenu"
+                >
+                  <div class="landing-page__pankacke-line landing-page___2"></div>
+                  <div class="landing-page__pankacke-line landing-page___1"></div>
+                </button>
+                <div class="landing-page__navigation-links">
+                  <a href="https://www.studiomalek.com/collections/cuadros" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Colecciones</div>
+                  </a>
+                  <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Marcos</div>
+                  </a>
+                  <a href="#" class="landing-page__link-nav landing-page__current landing-page__w-inline-block">
+                    <div>Creaciones</div>
+                  </a>
+                  <button
+                    type="button"
+                    class="landing-page__pancake landing-page__nav-toggle"
+                    aria-label="Abrir menú"
+                    @click="toggleSideMenu"
+                  >
+                    <div class="landing-page__pankacke-line landing-page___2"></div>
+                    <div class="landing-page__pankacke-line landing-page___1"></div>
+                  </button>
+                  <a href="https://www.studiomalek.com/collections/set-de-cuadros" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>Sets</div>
+                  </a>
+                  <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__link-nav landing-page__w-inline-block">
+                    <div>For Business</div>
+                  </a>
+                </div>
+              </div>
+              <a href="https://www.studiomalek.com/" target="_blank" class="landing-page__w-inline-block">
+                <div class="landing-page__nav-logo-2 landing-page__builder"></div>
+              </a>
+              <div class="landing-page__nav-links-wrapper landing-page__builder">
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__nav-profile landing-page__start">
+                  <span class="landing-page__iniciar-sesion-link"></span>
+                </a>
+                <div id="email-profile" class="landing-page__email-profile">albertoamoretti@gmail.com</div>
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__nav-profile">
+                  <div class="landing-page__menu-icons landing-page__profile"></div>
+                </a>
+                <button
+                  type="button"
+                  class="landing-page__nav-icon cart landing-page__nav-icon-button"
+                  aria-label="Carrito"
+                  @click="uiStore.toggleCart"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="21" r="1" />
+                    <circle cx="19" cy="21" r="1" />
+                    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+                  </svg>
+                  <span
+                    v-if="cartStore.totalQuantity > 0"
+                    class="landing-page__cart-badge"
+                  >
+                    {{ cartStore.totalQuantity }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="landing-page__hero-home-wrapper">
+          <div class="landing-page__content-wrapper">
+            <div class="landing-page__section-hero">
+              <div class="landing-page__hero-bg">
+                <div class="landing-page__bg-right-2"></div>
+                <div class="landing-page__hero-bp">
+                  <div data-w-id="9f06a2ae-86f3-62bc-413b-7b203509235b" class="landing-page__more-prod">
+                    <div class="landing-page__cart-row-2">
+                      <div class="landing-page__cart-picture-2 landing-page___1"></div>
+                      <div class="landing-page__cart-data-2">
+                        <div class="landing-page__cart-data-line">
+                          <div class="landing-page__cart-item-title-2">Flores Yellow</div>
+                        </div>
+                        <div class="landing-page__cart-item-description-2">100x60 cm</div>
+                        <div class="landing-page__price-block">
+                          <div class="landing-page__cart-item-description-2 landing-page__price landing-page__cancelled landing-page__over">$1,500 mxn</div>
+                          <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red landing-page__over">$1,000 mxn</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="landing-page__cart-row-2">
+                      <div class="landing-page__cart-picture-2"></div>
+                      <div class="landing-page__cart-data-2">
+                        <div class="landing-page__cart-data-line">
+                          <div class="landing-page__cart-item-title-2">Cuadro Full Blue</div>
+                        </div>
+                        <div class="landing-page__cart-item-description-2">100x60 cm</div>
+                        <div class="landing-page__price-block">
+                          <div class="landing-page__cart-item-description-2 landing-page__price landing-page__cancelled landing-page__over">$1,500 mxn</div>
+                          <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red landing-page__over">$1,000 mxn</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="landing-page__hero-text-wrapper">
+                <div class="landing-page__hero-text-left-3">
+                  <p class="landing-page__tuttorial-highlight-5 landing-page__hero">The birth Poster</p>
+                  <div class="landing-page__hero-title-wrapper-2">
+                    <h1 class="landing-page__pages-title">Celebra la llegada de tu bebé con un cuadro a escala real.</h1>
+                  </div>
+                  <div class="landing-page__hero-p">
+                    <p class="landing-page__paragraph-large">Un póster personalizado con el nombre, fecha, peso y medidas de tu bebé, impreso a tamaño 1:1. El recuerdo perfecto de lo pequeñito que era.</p>
+                  </div>
+                  <div class="landing-page__hero-button">
+                    <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__button-2 landing-page__w-button">Diseña tu poster</NuxtLink>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="landing-page__landing-gallery landing-page__bp-gradient">
+            <div class="landing-page__container landing-page__gallerys">
+              <div class="landing-page__templates-container">
+                <h2 class="landing-page__promo-title landing-page__centered">Diseños de nuestros clientes</h2>
+              </div>
+              <div class="landing-page__highlight-gallery landing-page__birthposter-gallery">
+                <div class="landing-page__birth-poster-item">
+                  <div class="landing-page__birthposter-item-pic"><img src="/landing-pages/images/bp-3.webp" loading="lazy" alt="" class="landing-page__image-5"></div>
+                  <div class="landing-page__item-data landing-page__list-item">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-wrap">
+                        <h4 class="landing-page__item-title">Línea marcada</h4>
+                      </div>
+                    </div>
+                    <div class="landing-page__collection-link">Fondo beige - Marco nogal - <span>50x40 Cm</span></div>
+                    <div class="landing-page__item-price">
+                      <div class="landing-page__price-block">
+                        <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red">$<strong>2,585 </strong> mxn</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__birth-poster-item">
+                  <div class="landing-page__birthposter-item-pic"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" srcset="/landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif 500w, /landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif 948w" alt="" class="landing-page__image-5"></div>
+                  <div class="landing-page__item-data landing-page__list-item">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-wrap">
+                        <h4 class="landing-page__item-title">Línea contínua</h4>
+                      </div>
+                    </div>
+                    <div class="landing-page__collection-link">Fondo blanco - Marco negro - <span>70x50 Cm</span></div>
+                    <div class="landing-page__item-price">
+                      <div class="landing-page__price-block">
+                        <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red">$<strong>3,165</strong> mxn</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__birth-poster-item">
+                  <div class="landing-page__birthposter-item-pic"><img src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" class="landing-page__image-5"></div>
+                  <div class="landing-page__item-data landing-page__list-item">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-wrap">
+                        <h4 class="landing-page__item-title">Trazos liegeros</h4>
+                      </div>
+                    </div>
+                    <div class="landing-page__collection-link">Fondo caramelo - Marco roble - <span>50x40 Cm</span></div>
+                    <div class="landing-page__item-price">
+                      <div class="landing-page__price-block">
+                        <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red">$<strong>2,585 </strong> mxn</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="landing-page__birth-poster-item">
+                  <div class="landing-page__birthposter-item-pic"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" srcset="/landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif 500w, /landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif 948w" alt="" class="landing-page__image-5"></div>
+                  <div class="landing-page__item-data landing-page__list-item">
+                    <div class="landing-page__title-wrap">
+                      <div class="landing-page__title-wrap">
+                        <h4 class="landing-page__item-title">Aquarella</h4>
+                      </div>
+                    </div>
+                    <div class="landing-page__collection-link">Fondo blanco - Marco nogal - <span>50x40 Cm</span></div>
+                    <div class="landing-page__item-price">
+                      <div class="landing-page__price-block">
+                        <div class="landing-page__cart-item-description-2 landing-page__price landing-page__red">$<strong>2,585</strong> mxn</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="landing-page__templates-container">
+                <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__button-secondary landing-page__w-button">¡Empieza a crear el tuyo!</NuxtLink>
+              </div>
+            </div>
+          </div>
+          <div class="landing-page__about-wrap">
+            <div class="landing-page__about-section">
+              <div class="landing-page__about-text landing-page__about-wrap">
+                <div class="landing-page__about-text-wrapper">
+                  <div class="landing-page__about-title">
+                    <p class="landing-page__tuttorial-highlight">CREA CON MALEK</p>
+                    <h2 class="landing-page__promo-title">Un recuerdo para siemprede lo pequeños que son.</h2>
+                  </div>
+                  <div class="landing-page__hero-p">
+                    <p class="landing-page__tuttorial-text">Un detalle ideal para celebrar el día en que nació tu bebé. Con un diseño minimalista, muestra su tamaño real al nacer y se convierte en un detalle precioso para revivir esos primeros momentos.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="landing-page__about-text landing-page__pic-about-2"></div>
+            </div>
+            <div class="landing-page__about-section">
+              <div class="landing-page__about-text landing-page__pic-about3"></div>
+              <div class="landing-page__about-text landing-page__inverted">
+                <div class="landing-page__about-text-wrapper">
+                  <div class="landing-page__about-title">
+                    <p class="landing-page__tuttorial-highlight">Crea con Malek</p>
+                    <h2 class="landing-page__promo-title">Un recuerdo que van a atesorar por siempre</h2>
+                  </div>
+                  <p class="landing-page__tuttorial-text">Baby shower, bautizo, primer cumpleaños o simplemente para celebrar a unos papás primerizos. Un Birth Poster es el detalle que van a querer colgar en la habitación desde el primer día.</p>
+                  <div class="landing-page__promo-details">
+                    <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"><span class="landing-page__icon landing-page__del">📦</span> Entrega 3-5 días</a>
+                    <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"> <span class="landing-page__icon landing-page__del">🚚 </span>Envíos a todo México</a>
+                    <a href="#" class="landing-page__nav-button landing-page__det landing-page__w-button"> <span class="landing-page__icon landing-page__del">✨ </span>Listo para colgar</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="landing-page__marketing-sections">
+            <div class="landing-page__loader-section landing-page__gradient">
+              <div class="landing-page__container">
+                <div class="landing-page__process-wraps">
+                  <div class="landing-page__templates-container">
+                    <h2 class="landing-page__promo-title">Así de fácil funciona:</h2>
+                  </div>
+                  <div class="landing-page__process-wrap">
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image">
+                        <div class="landing-page__personaliza-image-uno landing-page__birth"><img src="/landing-pages/images/bp-4.webp" loading="lazy" alt="" class="landing-page__shadow-pic"></div>
+                      </div>
+                      <div class="landing-page__personaliza-sub landing-page__b-1"><img src="/landing-pages/images/Screenshot-2026-01-30-alle-10.59.34-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" srcset="/landing-pages/images/Screenshot-2026-01-30-alle-10.59.34-AM-p-500.avif 500w, /landing-pages/images/Screenshot-2026-01-30-alle-10.59.34-AM.avif 748w" alt=""></div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles">Elige un estilo </h4>
+                        </div>
+                        <p>Selecciona el estilo de trazo que más te guste, hacia qué lado estará volteando y su color.</p>
+                      </div>
+                    </div>
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image">
+                        <div class="landing-page__personaliza-image-uno landing-page__birth"><img src="/landing-pages/images/bp-2.webp" loading="lazy" alt="" class="landing-page__shadow-pic"></div>
+                      </div>
+                      <div class="landing-page__personaliza-sub landing-page__b-2"><img src="/landing-pages/images/Screenshot-2026-01-30-alle-11.01.15-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" srcset="/landing-pages/images/Screenshot-2026-01-30-alle-11.01.15-AM-p-500.avif 500w, /landing-pages/images/Screenshot-2026-01-30-alle-11.01.15-AM.avif 748w" alt=""></div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles">Personaliza con sus datos</h4>
+                        </div>
+                        <p>Agrega el nombre, talla, peso, lugar y fecha y hora en que nación. Puedes elegir también el color del fondo.</p>
+                      </div>
+                    </div>
+                    <div class="landing-page__process-item">
+                      <div class="landing-page__process-image"><img src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" class="landing-page__image-7"></div>
+                      <div class="landing-page__personaliza-sub landing-page__frames">
+                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><img src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="">
+                      </div>
+                      <div class="landing-page__steps-text">
+                        <div class="landing-page__step-title-wrap">
+                          <h4 class="landing-page__steps-titles">Elige un marco y recíbelo en casa</h4>
+                        </div>
+                        <p>Agrega tu marco favorito y recíbelo en casa o donde tú nos indiques, listo para colgar a tu pared en 3-5 días.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__templates-container">
+                    <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__sec-ondary-button landing-page__w-button">¡Crea el tuyo!</NuxtLink>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="landing-page__loader-section landing-page__revieew">
+              <div class="landing-page__loader-container">
+                <div class="landing-page__hero-title-wrapper">
+                  <h2 class="landing-page__promo-title">Algunas reseñas de la comunidad Studio Malek</h2>
+                </div>
+                <div class="landing-page__loader-poster-instruction-wrap">
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title"><strong>Ideal para cuarto infantil</strong><br></h3>
+                      <p class="landing-page__review-text">Lo pedí para el cuarto de mi bebé y quedó precioso. Me encantó que se ve súper limpio y elegante, y el tamaño al nacer se siente como algo muy especial. Llegó bien empacado y la impresión se ve de muy buena calidad.</p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Polo<br></h3>
+                        <p class="landing-page__testimonial-position">Monterrey</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div>
+                      <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                        <h3 class="landing-page__review-title"><strong>¡Super regalo para Mamás!</strong><br></h3>
+                        <p class="landing-page__review-text">Se lo regalé a mi hermana y literal casí  llora cuando lo vio 😭  <br><br>Además está padre porque no es el típico regalo, es algo que sí se queda para siempre.</p>
+                      </div>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Dennise<br></h3>
+                        <p class="landing-page__testimonial-position">Guadalajara</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title"><strong>Muy muy bonito</strong><br></h3>
+                      <p class="landing-page__review-text">Me gustó muchísimo el diseño, está súper bonito y combina con todo. <br>Lo único es que me tardé en decidirme porque quería estar segura de los datos, pero ya viéndolo en la pared valió totalmente la pena.</p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Paulina<br></h3>
+                        <p class="landing-page__testimonial-position">León</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-page__loader-step1">
+                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <h3 class="landing-page__review-title"><strong>Buena calidad</strong><br></h3>
+                      <p class="landing-page__review-text">Está increíble. Me sorprendió lo bien que se ve en persona, el papel y el marco se siente de calidad. Es de esas cosas que te hacen recordar lo chiquito que era tu bebé 🥺 <br></p>
+                    </div>
+                    <div class="landing-page__review-testimonial">
+                      <div>
+                        <h3 class="landing-page__testimonial-name">Fadia<br></h3>
+                        <p class="landing-page__testimonial-position">CDMX</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="landing-page__footer">
+            <div class="landing-page__footer-container">
+              <div class="landing-page__footer-col">
+                <a href="#" class="landing-page__malek-logo landing-page__w-inline-block">
+                  <div class="landing-page__footer-title">Studio Malek S.A. de C.V.</div>
+                </a>
+                <div>
+                  <div class="landing-page__footer-text">Whatsapp: <a href="https://wa.me/523316995405?text=Hola%2C%20%0ATengo%20una%20duda%20acerca%20de%20..." target="_blank" class="landing-page__link landing-page__white">3316995405<br>‍</a>hello@studiomalek.com<br><br>Horario de Atención<br>9 - 17 hrs de Lunes a Viernes.<br><br>Instagram: studio_malek<br>Zapopan, Jalisco. México</div>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Malek</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="https://www.studiomalek.com/" target="_blank" class="landing-page__footer-links">Cuadros</a>
+                  <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__footer-links">Marcos</a>
+                  <a href="https://www.studiomalek.com/collections/" target="_blank" class="landing-page__footer-links">Colecciones</a>
+                  <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__footer-links">Para negocios</a>
+                  <a href="https://artwall.studiomalek.com/" target="_blank" class="landing-page__footer-links">Crea tu muro</a>
+                  <a href="https://www.studiomalek.com/pages/terminos-condiciones" target="_blank" class="landing-page__footer-links">Terminos y Condiciones</a>
+                  <a href="https://www.studiomalek.com/pages/privacidad" target="_blank" class="landing-page__footer-links">Políticas de privacidad</a>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Cuenta</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Perfil</a>
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Iniciar sesión</a>
+                  <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footer-links">Pedidos</a>
+                </div>
+              </div>
+              <div class="landing-page__footer-content">
+                <div class="landing-page__footer-title">Contacto</div>
+                <div class="landing-page__footer-links-wrap">
+                  <a href="mailto:hello.com" target="_blank" class="landing-page__footer-links">Correo</a>
+                  <a href="https://www.instagram.com/studio_malek/" target="_blank" class="landing-page__footer-links">Instagram</a>
+                  <a href="https://www.facebook.com/studio.malek.mx/" target="_blank" class="landing-page__footer-links">Facebook</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="landing-page__dashboard">
+          <div class="landing-page__more-info-overlay">
+            <div class="landing-page__more-info-cards-wrapper">
+              <div class="landing-page__more-info-block">
+                <div class="landing-page__sizes-info-wrapper">
+                  <div class="landing-page__sizes-info-image"><img src="/landing-pages/images/Size_Guide_Studio_Malek_600x600.webp" loading="lazy" alt="" class="landing-page__image-4"></div>
+                  <div class="landing-page__sizes-table">
+                    <div class="landing-page__sizes-title">
+                      <div class="landing-page__sizes-orientation-text">Tamaños y Orientación</div>
+                    </div>
+                    <div class="landing-page__table">
+                      <div class="landing-page__line">
+                        <div class="landing-page__header-cell landing-page__first">
+                          <div>Orientación</div>
+                        </div>
+                        <div class="landing-page__header-cell">
+                          <div>Impresión</div>
+                        </div>
+                        <div class="landing-page__header-cell landing-page__last">
+                          <div>Enmarcada</div>
+                        </div>
+                      </div>
+                      <div class="landing-page__line">
+                        <div class="landing-page__body-cell landing-page__first">
+                          <div>Vertical/Horizontal</div>
+                        </div>
+                        <div class="landing-page__body-cell">
+                          <div>70x100 cm</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__last">
+                          <div>71x102 cm</div>
+                        </div>
+                      </div>
+                      <div class="landing-page__line">
+                        <div class="landing-page__body-cell landing-page__first">
+                          <div>Vertical/Horizontal</div>
+                        </div>
+                        <div class="landing-page__body-cell">
+                          <div>50x70 cm</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__last">
+                          <div>52x72 cm</div>
+                        </div>
+                      </div>
+                      <div class="landing-page__line">
+                        <div class="landing-page__body-cell landing-page__first">
+                          <div>Vertical/Horizontal</div>
+                        </div>
+                        <div class="landing-page__body-cell">
+                          <div>40x50 cm</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__last">
+                          <div>42x52 cm</div>
+                        </div>
+                      </div>
+                      <div class="landing-page__line">
+                        <div class="landing-page__body-cell landing-page__first">
+                          <div>Vertical/Horizontal</div>
+                        </div>
+                        <div class="landing-page__body-cell">
+                          <div>30x40 cm</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__last">
+                          <div>32x42 cm</div>
+                        </div>
+                      </div>
+                      <div class="landing-page__line">
+                        <div class="landing-page__body-cell landing-page__first landing-page__bottom">
+                          <div>Cuadrado</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__bottom">
+                          <div>50x50 cm</div>
+                        </div>
+                        <div class="landing-page__body-cell landing-page__last landing-page__bottom">
+                          <div>52x52 cm</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div data-w-id="c641c10a-551b-412b-735b-8ae40c37ce32" class="landing-page__close-more-info"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="landing-page__side-menu"
+          :class="{ 'landing-page__side-menu--open': isSideMenuOpen }"
+          @click.self="closeSideMenu"
+        >
+          <div
+            class="landing-page__side-menu-panel"
+            :class="{ 'landing-page__side-menu-panel--open': isSideMenuOpen }"
+          >
+            <div class="landing-page__menu-links-wrapper">
+              <a href="https://www.studiomalek.com/collections/" target="_blank" class="landing-page__left-nav-link">Colecciones <span class="landing-page__text-span"></span></a>
+              <a href="https://www.studiomalek.com/collections/marcos" target="_blank" class="landing-page__left-nav-link">Marcos <span class="landing-page__text-span"></span></a>
+              <NuxtLink to="/personaliza" class="landing-page__left-nav-link">Creaciones<span class="landing-page__text-span"></span></NuxtLink>
+              <a href="https://www.studiomalek.com/collections/set-de-cuadros" target="_blank" class="landing-page__left-nav-link">Sets<span class="landing-page__text-span"></span></a>
+              <a href="https://www.studiomalek.com/pages/negocios" target="_blank" class="landing-page__left-nav-link">For Business <span class="landing-page__text-span"></span></a>
+              <div class="landing-page__menu-footer">
+                <a href="https://www.studiomalek.com/account" target="_blank" class="landing-page__footlink">Tu cuenta</a>
+                <div class="landing-page__foot-dot"></div>
+                <a href="mailto:hello@studiomalek.com?subject=Contact%20Studio%20Malek" target="_blank" class="landing-page__footlink">Contacto</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- Desktop: History Panel -->
-      <aside v-if="!isMobile" class="birth-poster__history">
-        <BirthPosterHistoryPanel
-          :designs="designs"
-          :is-open="uiStore.isHistoryOpen"
-          @toggle="uiStore.toggleHistory"
-          @load="birthPosterStore.loadState"
-          @delete="deleteDesign"
-        />
-      </aside>
-    </main>
-
-    <!-- Mobile: Fixed Add to Cart Bar -->
-    <BirthPosterMobileAddToCartBar
-      v-if="isMobile"
-      :price="pricing.price"
-      :compare-at-price="pricing.compareAtPrice"
-      :is-loading="uiStore.isLoading || isRendering"
-      :missing-elements="missingElements"
-      :can-proceed="canProceed"
-      @add-to-cart="handleAddToCart"
-      @edit="handleEditFromModal"
-    />
-
-    <!-- Mobile: Bottom Navbar -->
-    <BirthPosterBottomNavbar
-      v-if="isMobile"
-      :items="navItems"
-      :active-panel="isMobileSheetOpen ? birthPosterStore.activePanel : null"
-      @select="handleMobilePanelSelect"
-    />
-
-    <!-- Mobile: Bottom Sheet -->
-    <BirthPosterMobileBottomSheet
-      v-if="isMobile"
-      :is-open="isMobileSheetOpen"
-      @close="handleMobileSheetClose"
-    >
-      <BirthPosterDesignPanelWrapper :active-panel="birthPosterStore.activePanel" />
-    </BirthPosterMobileBottomSheet>
-
-    <!-- Mobile Nav Wrapper (History/Home overlay) -->
-    <BirthPosterMobileNavWrapper
-      v-if="isMobile"
-      :is-open="uiStore.isMobileNavWrapperOpen"
-      :content="uiStore.mobileNavWrapperContent"
-      @close="uiStore.closeMobileNavWrapper"
-    />
-
-    <!-- Cart Sidebar -->
     <SharedCartSidebar />
   </div>
 </template>
 
-<style lang="scss" scoped>
-.birth-poster {
+<style lang="scss" src="~/assets/scss/landing-pages.scss"></style>
+<style lang="scss">
+.landing-page {
+  min-height: 100dvh;
+}
+
+.landing-page__nav-toggle,
+.landing-page__nav-icon-button {
+  @include button-reset;
+  cursor: pointer;
+}
+
+.landing-page__nav-icon-button {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-xl;
+  background: #1a202c;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color $transition-fast, color $transition-fast;
+
+  @include hover {
+    background: #2d3748;
+    color: #ffffff;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.landing-page__cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #e53e3e;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  border-radius: $radius-full;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 
-  &__main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: $sidebar-width $panel-width 1fr 106px;
-    overflow: hidden;
-    background-color: $color-canvas;
+.landing-page .landing-page__side-menu {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity $transition-base;
+}
 
-    @include desktop {
-      grid-template-columns: $sidebar-width-collapsed $panel-width-md 1fr 106px;
-    }
+.landing-page .landing-page__side-menu.landing-page__side-menu--open {
+  opacity: 1;
+  pointer-events: auto;
+}
 
-    @include mobile {
-      display: flex;
-      flex-direction: column;
-      grid-template-columns: none;
-    }
-  }
+.landing-page .landing-page__side-menu-panel {
+  display: block;
+  opacity: 1;
+  transform: translate3d(-100%, 0, 0);
+  transition: transform $transition-slow;
+  will-change: transform;
+}
 
-  &__sidebar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    @include mobile {
-      display: none;
-    }
-  }
-
-  &__panel-wrapper {
-    background: $color-bg-primary;
-
-    border: 1px solid $color-border;
-    border-radius: 12px;
-    box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: calc(100% - 12px);
-    margin-top: auto;
-
-    @include mobile {
-      display: none;
-    }
-  }
-
-  &__panel-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    @include custom-scrollbar;
-  }
-
-  &__canvas-area {
-    background: $color-canvas;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: $space-4xl $space-3xl $space-6xl;
-    overflow: hidden;
-
-    @include mobile {
-      flex: 1;
-      padding: $space-xl;
-      align-items: flex-start;
-    }
-  }
-
-  &__canvas-container {
-    width: 100%;
-    height: 90%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    container-type: size;
-    @include mobile {
-      height: calc(100% - 136px);
-      align-items: center;
-    }
-  }
-
-  &__history {
-    position: relative;
-    width: 106px; // Fixed width: 82px panel + 24px margin
-    background: $color-canvas;
-    flex-shrink: 0;
-
-    @include mobile {
-      display: none;
-    }
-  }
+.landing-page .landing-page__side-menu-panel.landing-page__side-menu-panel--open {
+  transform: translate3d(0, 0, 0);
 }
 </style>
