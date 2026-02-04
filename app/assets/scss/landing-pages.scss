@@ -7999,6 +7999,10 @@ textarea.landing-page__w-select {
 
 @media screen and (max-width: 479px) {
 
+  .landing-page__templates-container.title {
+    margin-inline: 24px;
+    align-items: flex-start;
+  }
   .landing-page .landing-page__landing-gallery.landing-page__bp-gradient {
     padding-inline: 0;
   }

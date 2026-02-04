@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="landing-page__landing-gallery landing-page__bp-gradient">
             <div class="landing-page__container landing-page__gallerys">
-              <div class="landing-page__templates-container">
+              <div class="landing-page__templates-container title">
                 <h2 class="landing-page__promo-title landing-page__centered">Diseños de nuestros clientes</h2>
               </div>
               <div class="landing-page__highlight-gallery landing-page__birthposter-gallery">
