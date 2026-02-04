@@ -26,7 +26,11 @@ const router = useRouter()
 const $img = useImage()
 
 const isSideMenuOpen = ref(false)
+const isMobileCarousel = ref(false)
+const highlightGalleryRef = ref<HTMLElement | null>(null)
 let bgObserver: IntersectionObserver | null = null
+let carouselMedia: MediaQueryList | null = null
+let carouselListener: ((event: MediaQueryListEvent) => void) | null = null
 
 function toggleSideMenu() {
   isSideMenuOpen.value = !isSideMenuOpen.value
@@ -95,13 +99,39 @@ function handleLoaderWrapperKeydown(event: KeyboardEvent) {
   }
 }
 
+function scrollHighlightGallery(direction: 'prev' | 'next') {
+  const container = highlightGalleryRef.value
+  if (!container) return
+  const step = container.clientWidth
+  container.scrollBy({ left: direction === 'next' ? step : -step, behavior: 'smooth' })
+}
+
 onMounted(() => {
   cart.initCartOnly()
   setupLazyBackgrounds()
+  if (typeof window !== 'undefined') {
+    carouselMedia = window.matchMedia('(max-width: 991px)')
+    carouselListener = () => {
+      isMobileCarousel.value = carouselMedia?.matches ?? false
+    }
+    carouselListener()
+    if (carouselMedia.addEventListener && carouselListener) {
+      carouselMedia.addEventListener('change', carouselListener)
+    } else {
+      carouselMedia.addListener(carouselListener)
+    }
+  }
 })
 
 onBeforeUnmount(() => {
   bgObserver?.disconnect()
+  if (carouselMedia && carouselListener) {
+    if (carouselMedia.removeEventListener) {
+      carouselMedia.removeEventListener('change', carouselListener)
+    } else {
+      carouselMedia.removeListener(carouselListener)
+    }
+  }
 })
 </script>
 
@@ -253,8 +283,18 @@ onBeforeUnmount(() => {
               <div class="landing-page__templates-container">
                 <h2 class="landing-page__promo-title landing-page__centered"><strong>Categorías favoritas</strong></h2>
               </div>
-              <div class="landing-page__highlight-gallery landing-page__styles">
-                <div class="landing-page__category-item">
+              <div class="landing-page__highlight-carousel">
+                <button
+                  v-if="isMobileCarousel"
+                  type="button"
+                  class="landing-page__carousel-arrow landing-page__carousel-arrow--prev"
+                  aria-label="Anterior"
+                  @click="scrollHighlightGallery('prev')"
+                >
+                  <span class="landing-page__carousel-arrow-icon" aria-hidden="true">&lsaquo;</span>
+                </button>
+                <div ref="highlightGalleryRef" class="landing-page__highlight-gallery landing-page__styles">
+                  <div class="landing-page__category-item">
                   <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Viajes</h4>
                   <div class="landing-page__category-item-date">
@@ -264,8 +304,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__category-item">
+                  </div>
+                  <div class="landing-page__category-item">
                   <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Familia</h4>
                   <div class="landing-page__category-item-date">
@@ -275,8 +315,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__category-item">
+                  </div>
+                  <div class="landing-page__category-item">
                   <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Boda</h4>
                   <div class="landing-page__category-item-date">
@@ -286,8 +326,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__category-item">
+                  </div>
+                  <div class="landing-page__category-item">
                   <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Fotografías</h4>
                   <div class="landing-page__category-item-date">
@@ -297,8 +337,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__category-item">
+                  </div>
+                  <div class="landing-page__category-item">
                   <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/7624362.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Ilustraciones</h4>
                   <div class="landing-page__category-item-date">
@@ -308,7 +348,17 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
+                  </div>
                 </div>
+                <button
+                  v-if="isMobileCarousel"
+                  type="button"
+                  class="landing-page__carousel-arrow landing-page__carousel-arrow--next"
+                  aria-label="Siguiente"
+                  @click="scrollHighlightGallery('next')"
+                >
+                  <span class="landing-page__carousel-arrow-icon" aria-hidden="true">&rsaquo;</span>
+                </button>
               </div>
               <NuxtLink to="/app/personaliza?upload=1" class="landing-page__sec-ondary-button landing-page__w-button">¡Crea el tuyo!</NuxtLink>
             </div>
