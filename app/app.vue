@@ -46,10 +46,20 @@ const isHomeRoute = computed(() => route.path === '/')
 const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value && !isHomeRoute.value)
 
 watchEffect(() => {
+  const currentBanner = banner.value
+  const currentText = currentBanner?.text
   // eslint-disable-next-line no-console
   console.log('[banner:data]', data.value)
   // eslint-disable-next-line no-console
-  console.log('[banner:shouldShow]', shouldShowBanner.value, 'route', route.path)
+  console.log('[banner:debug]', {
+    route: route.path,
+    showBanner: showBanner.value,
+    isToolRoute: isToolRoute.value,
+    isHomeRoute: isHomeRoute.value,
+    text: currentText,
+    textLength: currentText?.length || 0,
+    enabled: currentBanner?.enabled,
+  })
 })
 const bannerTextHtml = computed(() => {
   const description = banner.value?.text
