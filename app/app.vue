@@ -2,6 +2,7 @@
   <div class="app-shell" :style="appShellStyle">
     <NuxtRouteAnnouncer />
 
+    {{ banner }} {{ shouldShowBanner }}
     <Transition name="banner-slide">
       <div
         v-if="shouldShowBanner"
@@ -60,8 +61,7 @@ watchEffect(() => {
     isToolRoute: isToolRoute.value,
     isHomeRoute: isHomeRoute.value,
     text: currentText,
-    textLength: currentText?.length || 0,
-    enabled: currentBanner?.enabled,
+    textLength: currentText?.length || 0
   })
 })
 const bannerTextHtml = computed(() => {
