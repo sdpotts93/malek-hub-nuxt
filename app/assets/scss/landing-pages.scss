@@ -5828,7 +5828,7 @@ textarea.landing-page__w-select {
   padding-top: 16px;
   padding-bottom: 16px;
   position: absolute;
-  inset: 0% 0% auto;
+  inset: var(--app-banner-offset, 0px) 0% auto;
   box-shadow: 0 6px 7px #00000005;
 }
 
@@ -8953,4 +8953,3 @@ textarea.landing-page__w-select {
     font-size: 22px;
   }
 }
-

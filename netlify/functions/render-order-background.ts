@@ -61,7 +61,7 @@ const S3_BASE_URL = `https://${S3_BUCKET}.s3.us-west-1.amazonaws.com`
 
 // Shopify Admin API for updating order metafields
 const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
-const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'studiomalek.myshopify.com'
+const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'casabravo.myshopify.com'
 
 // Viewport sizes by poster size (all products use consistent aspect ratios)
 // Aspect ratios: 5:7 (vertical), 7:5 (horizontal), 1:1 (square)
