@@ -40,6 +40,13 @@ const { data } = useFetch<{ banner: BannerData | null }>(
 )
 
 const banner = computed(() => data.value?.banner ?? null)
+
+watchEffect(() => {
+  // eslint-disable-next-line no-console
+  console.log('[banner:data]', data.value)
+  // eslint-disable-next-line no-console
+  console.log('[banner:shouldShow]', shouldShowBanner.value, 'route', route.path)
+})
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
 const isHomeRoute = computed(() => route.path === '/')
