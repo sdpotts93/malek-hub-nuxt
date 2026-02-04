@@ -42,7 +42,8 @@ const { data } = await useFetch<{ banner: BannerData | null }>(
 const banner = computed(() => data.value?.banner ?? null)
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
-const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value)
+const isHomeRoute = computed(() => route.path === '/')
+const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value && !isHomeRoute.value)
 const bannerTextHtml = computed(() => {
   const description = banner.value?.text
   const replacedDescription = description
