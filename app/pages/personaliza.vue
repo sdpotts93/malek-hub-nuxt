@@ -103,7 +103,10 @@ function scrollHighlightGallery(direction: 'prev' | 'next') {
   const container = highlightGalleryRef.value
   if (!container) return
   const step = container.clientWidth
-  container.scrollBy({ left: direction === 'next' ? step : -step, behavior: 'smooth' })
+  const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth)
+  const nextLeft = direction === 'next' ? container.scrollLeft + step : container.scrollLeft - step
+  const clampedLeft = Math.min(maxScrollLeft, Math.max(0, nextLeft))
+  container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
 }
 
 onMounted(() => {
