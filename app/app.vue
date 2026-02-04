@@ -34,7 +34,7 @@ interface BannerData {
 }
 
 const route = useRoute()
-const { data } = await useFetch<{ banner: BannerData | null }>(
+const { data } = useFetch<{ banner: BannerData | null }>(
   '/.netlify/functions/get-banner-graphql',
   { server: false }
 )
