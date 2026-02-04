@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="landing-page__highlight-gallery landing-page__birthposter-gallery">
                 <div class="landing-page__birth-poster-item">
-                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-3.webp" loading="lazy" alt="" class="landing-page__image-5" /></div>
+                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-3.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
                       <div class="landing-page__title-wrap">
@@ -251,7 +251,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__birth-poster-item">
-                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" class="landing-page__image-5" /></div>
+                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
                       <div class="landing-page__title-wrap">
@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__birth-poster-item">
-                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" class="landing-page__image-5" /></div>
+                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
                       <div class="landing-page__title-wrap">
@@ -283,7 +283,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__birth-poster-item">
-                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" class="landing-page__image-5" /></div>
+                  <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
                       <div class="landing-page__title-wrap">
@@ -353,9 +353,9 @@ onBeforeUnmount(() => {
                   <div class="landing-page__process-wrap">
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
-                        <div class="landing-page__personaliza-image-uno landing-page__birth"><NuxtImg src="/landing-pages/images/bp-4.webp" loading="lazy" alt="" class="landing-page__shadow-pic" /></div>
+                        <div class="landing-page__personaliza-image-uno landing-page__birth"><NuxtImg src="/landing-pages/images/bp-4.webp" loading="lazy" alt="" fit="cover" class="landing-page__shadow-pic" /></div>
                       </div>
-                      <div class="landing-page__personaliza-sub landing-page__b-1"><NuxtImg src="/landing-pages/images/Screenshot-2026-01-30-alle-10.59.34-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" alt="" /></div>
+                      <div class="landing-page__personaliza-sub landing-page__b-1"><NuxtImg src="/landing-pages/images/Screenshot-2026-01-30-alle-10.59.34-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" alt=""  fit="cover" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Elige un estilo </h4>
@@ -365,9 +365,9 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
-                        <div class="landing-page__personaliza-image-uno landing-page__birth"><NuxtImg src="/landing-pages/images/bp-2.webp" loading="lazy" alt="" class="landing-page__shadow-pic" /></div>
+                        <div class="landing-page__personaliza-image-uno landing-page__birth"><NuxtImg src="/landing-pages/images/bp-2.webp" loading="lazy" alt="" fit="cover" class="landing-page__shadow-pic" /></div>
                       </div>
-                      <div class="landing-page__personaliza-sub landing-page__b-2"><NuxtImg src="/landing-pages/images/Screenshot-2026-01-30-alle-11.01.15-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" alt="" /></div>
+                      <div class="landing-page__personaliza-sub landing-page__b-2"><NuxtImg src="/landing-pages/images/Screenshot-2026-01-30-alle-11.01.15-AM.avif" loading="lazy" sizes="(max-width: 748px) 100vw, 748px" alt=""  fit="cover" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Personaliza con sus datos</h4>
@@ -376,9 +376,9 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                     <div class="landing-page__process-item">
-                      <div class="landing-page__process-image"><NuxtImg src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" class="landing-page__image-7" /></div>
+                      <div class="landing-page__process-image"><NuxtImg src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-7" /></div>
                       <div class="landing-page__personaliza-sub landing-page__frames">
-                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><NuxtImg src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="" />
+                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><NuxtImg src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt=""  fit="cover" />
                       </div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title"><strong>Ideal para cuarto infantil</strong><br></h3>
                       <p class="landing-page__review-text">Lo pedí para el cuarto de mi bebé y quedó precioso. Me encantó que se ve súper limpio y elegante, y el tamaño al nacer se siente como algo muy especial. Llegó bien empacado y la impresión se ve de muy buena calidad.</p>
                     </div>
@@ -414,7 +414,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                         <h3 class="landing-page__review-title"><strong>¡Super regalo para Mamás!</strong><br></h3>
                         <p class="landing-page__review-text">Se lo regalé a mi hermana y literal casí  llora cuando lo vio 😭  <br><br>Además está padre porque no es el típico regalo, es algo que sí se queda para siempre.</p>
                       </div>
@@ -427,7 +427,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title"><strong>Muy muy bonito</strong><br></h3>
                       <p class="landing-page__review-text">Me gustó muchísimo el diseño, está súper bonito y combina con todo. <br>Lo único es que me tardé en decidirme porque quería estar segura de los datos, pero ya viéndolo en la pared valió totalmente la pena.</p>
                     </div>
@@ -439,7 +439,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title"><strong>Buena calidad</strong><br></h3>
                       <p class="landing-page__review-text">Está increíble. Me sorprendió lo bien que se ve en persona, el papel y el marco se siente de calidad. Es de esas cosas que te hacen recordar lo chiquito que era tu bebé 🥺 <br></p>
                     </div>
@@ -500,7 +500,7 @@ onBeforeUnmount(() => {
             <div class="landing-page__more-info-cards-wrapper">
               <div class="landing-page__more-info-block">
                 <div class="landing-page__sizes-info-wrapper">
-                  <div class="landing-page__sizes-info-image"><NuxtImg src="/landing-pages/images/Size_Guide_Studio_Malek_600x600.webp" loading="lazy" alt="" class="landing-page__image-4" /></div>
+                  <div class="landing-page__sizes-info-image"><NuxtImg src="/landing-pages/images/Size_Guide_Studio_Malek_600x600.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-4" /></div>
                   <div class="landing-page__sizes-table">
                     <div class="landing-page__sizes-title">
                       <div class="landing-page__sizes-orientation-text">Tamaños y Orientación</div>

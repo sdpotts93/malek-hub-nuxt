@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
                       </div>
                     </NuxtLink>
                     <div class="landing-page__picture-loaded-wrapper">
-                      <div class="landing-page__picture-preview"><NuxtImg src="/landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif" loading="lazy" sizes="(max-width: 1000px) 100vw, 1000px" alt="" class="landing-page__picture-file" /></div>
+                      <div class="landing-page__picture-preview"><NuxtImg src="/landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif" loading="lazy" sizes="(max-width: 1000px) 100vw, 1000px" alt="" fit="cover" class="landing-page__picture-file" /></div>
                       <div data-w-id="cf3a245f-ef6c-c116-397f-ad0b93279a83" class="landing-page__picture-loaded-cancel"></div>
                       <div class="landing-page__details landing-page__size-warnings">
                         <div class="landing-page__tyco-text-right-3 landing-page__error">
@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
                       <NuxtLink to="/app/personaliza?upload=1" class="landing-page__button landing-page__next-step landing-page__w-button">Siguiente paso <span class="landing-page__icon landing-page__next-step"></span></NuxtLink>
                     </div>
                     <div class="landing-page__gif-wrapper">
-                      <div class="landing-page__gif-container"><NuxtImg src="/landing-pages/images/Rolling-1s-207px.gif" loading="lazy" alt="" class="landing-page__image-2" /></div>
+                      <div class="landing-page__gif-container"><NuxtImg src="/landing-pages/images/Rolling-1s-207px.gif" loading="lazy" alt="" fit="cover" class="landing-page__image-2" /></div>
                     </div>
                   </div>
                   <div class="landing-page__tyco-text-home"><strong class="landing-page__bold-text">Tamaño máximo 20mb.</strong> Al cargar una imagen o URL, acepta nuestros <a href="https://www.studiomalek.com/pages/terminos-condiciones" target="_blank" class="landing-page__textlink landing-page__spaced">Términos de servicio</a>.<br></div>
@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="landing-page__highlight-gallery landing-page__styles">
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Viajes</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -266,7 +266,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Familia</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Boda</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Fotografías</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/7624362.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/7624362.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" fit="cover" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Ilustraciones</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -350,9 +350,9 @@ onBeforeUnmount(() => {
                   <div class="landing-page__process-wrap">
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
-                        <div class="landing-page__personaliza-image-uno"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt="" /></div>
+                        <div class="landing-page__personaliza-image-uno"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""  fit="cover" /></div>
                       </div>
-                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif" loading="lazy" sizes="(max-width: 1414px) 100vw, 1414px" alt="" /></div>
+                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif" loading="lazy" sizes="(max-width: 1414px) 100vw, 1414px" alt=""  fit="cover" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Carga una imagen </h4>
@@ -363,11 +363,11 @@ onBeforeUnmount(() => {
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
                         <div class="landing-page__personaliza-image-dos">
-                          <div class="landing-page__div-block-9"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt="" /></div>
+                          <div class="landing-page__div-block-9"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""  fit="cover" /></div>
                           <h4 class="landing-page__steps-titles landing-page__centered">Summer 2025</h4>
                         </div>
                       </div>
-                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.22.13-AM.avif" loading="lazy" alt="" /></div>
+                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.22.13-AM.avif" loading="lazy" alt=""  fit="cover" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Edita y personaliza</h4>
@@ -376,9 +376,9 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                     <div class="landing-page__process-item">
-                      <div class="landing-page__process-image"><NuxtImg src="/landing-pages/images/personaliza-shot.avif" loading="lazy" alt="" class="landing-page__image-7" /></div>
+                      <div class="landing-page__process-image"><NuxtImg src="/landing-pages/images/personaliza-shot.avif" loading="lazy" alt="" fit="cover" class="landing-page__image-7" /></div>
                       <div class="landing-page__personaliza-sub landing-page__frames-p">
-                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><NuxtImg src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="" />
+                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><NuxtImg src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt=""  fit="cover" />
                       </div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title">¡Todo Perfecto!<br></h3>
                       <p class="landing-page__review-text">¡Hola! No había tenido oportunidad de compartirles que recibimos nuestros cuadros, todo perfecto con la entrega. <strong>¡Los cuadros me encantaron!</strong></p>
                     </div>
@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                         <h3 class="landing-page__review-title">Muy buena Calidad<br></h3>
                         <p class="landing-page__review-text">Los colores son super nítidos y la calidad de impresión es muy buena. Estoy muy satisfecha con mi compra, es igual de cómo se muestra en la página. <strong>Llegó antes de lo esperado.</strong></p>
                       </div>
@@ -435,7 +435,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title">Me gustaron los cuadros<br></h3>
                       <p class="landing-page__review-text">Me gustaron los cuadros. Sobre todo que no pesan y los puedes colgar con seguridad.<br><br>Los empacaron muy bien, venían bien protegidos. ¡Recomendables!</p>
                     </div>
@@ -451,7 +451,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
                       <h3 class="landing-page__review-title">Súper lindos y gran servicio! <br></h3>
                       <p class="landing-page__review-text">Súper lindos y gran servicio! Los cuadros están súper lindos, súper buena comunicación. <strong>Sin duda volveré a comprarles!</strong><br></p>
                     </div>
