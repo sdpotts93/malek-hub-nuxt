@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
                 <div class="landing-page__bg-right-2"></div>
                 <div
                   class="landing-page__hero-bp"
-                  data-bg-src="/landing-pages/images/main-baby.avif"
+                  data-bg-src="/landing-pages/images/main-babya.jpg"
                 >
                   <div data-w-id="9f06a2ae-86f3-62bc-413b-7b203509235b" class="landing-page__more-prod">
                     <div class="landing-page__cart-row-2">
