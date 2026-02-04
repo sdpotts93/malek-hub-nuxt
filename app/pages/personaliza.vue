@@ -5,22 +5,6 @@ const pageDescription = 'Transforma tus recuerdos más preciados en obras de art
 
 useHead({
   title: pageTitle,
-  link: [
-    {
-      rel: 'preload',
-      as: 'font',
-      href: '/landing-pages/fonts/feather.ttf',
-      type: 'font/ttf',
-      crossorigin: 'anonymous',
-    },
-    {
-      rel: 'preload',
-      as: 'font',
-      href: '/landing-pages/fonts/CaboIcon.ttf',
-      type: 'font/ttf',
-      crossorigin: 'anonymous',
-    },
-  ],
 })
 
 useSeoMeta({

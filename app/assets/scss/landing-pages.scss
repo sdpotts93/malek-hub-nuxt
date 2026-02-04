@@ -7129,9 +7129,6 @@ textarea.landing-page__w-select {
 
 @media screen and (max-width: 767px) {
 
-  #nav {
-    top: 0;
-  }
   .landing-page .landing-page__page-wrapper { 
     padding-top: 60px;
   }
@@ -7918,6 +7915,10 @@ textarea.landing-page__w-select {
   .landing-page .landing-page__hero-wrapper.landing-page__vertical-wrapper {
     height: 92vh;
   }
+
+        #nav {
+          top: 0;
+        }
 
   .landing-page .landing-page__homepage-right-side {
     flex: 1;
