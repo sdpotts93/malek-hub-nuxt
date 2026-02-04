@@ -23,8 +23,10 @@ const uiStore = useUIStore()
 const cartStore = useCartStore()
 const cart = useShopifyCart()
 const router = useRouter()
+const $img = useImage()
 
 const isSideMenuOpen = ref(false)
+let bgObserver: IntersectionObserver | null = null
 
 function toggleSideMenu() {
   isSideMenuOpen.value = !isSideMenuOpen.value
@@ -32,6 +34,52 @@ function toggleSideMenu() {
 
 function closeSideMenu() {
   isSideMenuOpen.value = false
+}
+
+function getImage(src: string, width?: number, height?: number) {
+  if (!src) return ''
+  if (src.startsWith('http')) return src
+  if (!width || !height) {
+    return $img(src)
+  }
+  return $img(src, { width, height, fit: 'cover' })
+}
+
+function applyBackground(element: HTMLElement) {
+  const srcValue = element.dataset.bgSrc || ''
+  const sources = srcValue.split('|').map((value) => value.trim()).filter(Boolean)
+  if (!sources.length) return
+  const rect = element.getBoundingClientRect()
+  const width = Math.max(1, Math.round(rect.width * (window.devicePixelRatio || 1)))
+  const height = Math.max(1, Math.round(rect.height * (window.devicePixelRatio || 1)))
+  const urls = sources.map((src) => getImage(src, width, height))
+  element.style.backgroundImage = urls.map((url) => `url("${url}")`).join(', ')
+}
+
+function setupLazyBackgrounds() {
+  if (typeof window === 'undefined') return
+  const elements = Array.from(document.querySelectorAll<HTMLElement>('.landing-page [data-bg-src]'))
+  if (!elements.length) return
+
+  const eagerElements = elements.filter((element) => element.dataset.bgEager === 'true')
+  eagerElements.forEach(applyBackground)
+
+  const lazyElements = elements.filter((element) => element.dataset.bgEager !== 'true')
+  if (!lazyElements.length) return
+
+  bgObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        const element = entry.target as HTMLElement
+        applyBackground(element)
+        observer.unobserve(element)
+      })
+    },
+    { rootMargin: '200px 0px' }
+  )
+
+  lazyElements.forEach((element) => bgObserver?.observe(element))
 }
 
 function handleLoaderWrapperClick(event: MouseEvent) {
@@ -49,6 +97,11 @@ function handleLoaderWrapperKeydown(event: KeyboardEvent) {
 
 onMounted(() => {
   cart.initCartOnly()
+  setupLazyBackgrounds()
+})
+
+onBeforeUnmount(() => {
+  bgObserver?.disconnect()
 })
 </script>
 
@@ -173,7 +226,7 @@ onMounted(() => {
                       </div>
                     </NuxtLink>
                     <div class="landing-page__picture-loaded-wrapper">
-                      <div class="landing-page__picture-preview"><img src="/landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif" loading="lazy" sizes="(max-width: 1000px) 100vw, 1000px" srcset="/landing-pages/images/photo-1504019853082-9a4cb128c1ef-p-500.avif 500w, /landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif 1000w" alt="" class="landing-page__picture-file"></div>
+                      <div class="landing-page__picture-preview"><NuxtImg src="/landing-pages/images/photo-1504019853082-9a4cb128c1ef.avif" loading="lazy" sizes="(max-width: 1000px) 100vw, 1000px" alt="" class="landing-page__picture-file" /></div>
                       <div data-w-id="cf3a245f-ef6c-c116-397f-ad0b93279a83" class="landing-page__picture-loaded-cancel"></div>
                       <div class="landing-page__details landing-page__size-warnings">
                         <div class="landing-page__tyco-text-right-3 landing-page__error">
@@ -185,7 +238,7 @@ onMounted(() => {
                       <NuxtLink to="/app/personaliza?upload=1" class="landing-page__button landing-page__next-step landing-page__w-button">Siguiente paso <span class="landing-page__icon landing-page__next-step"></span></NuxtLink>
                     </div>
                     <div class="landing-page__gif-wrapper">
-                      <div class="landing-page__gif-container"><img src="/landing-pages/images/Rolling-1s-207px.gif" loading="lazy" alt="" class="landing-page__image-2"></div>
+                      <div class="landing-page__gif-container"><NuxtImg src="/landing-pages/images/Rolling-1s-207px.gif" loading="lazy" alt="" class="landing-page__image-2" /></div>
                     </div>
                   </div>
                   <div class="landing-page__tyco-text-home"><strong class="landing-page__bold-text">Tamaño máximo 20mb.</strong> Al cargar una imagen o URL, acepta nuestros <a href="https://www.studiomalek.com/pages/terminos-condiciones" target="_blank" class="landing-page__textlink landing-page__spaced">Términos de servicio</a>.<br></div>
@@ -202,7 +255,7 @@ onMounted(() => {
               </div>
               <div class="landing-page__highlight-gallery landing-page__styles">
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3648px) 100vw, 3648px" srcset="/landing-pages/images/pexels-arthurbrognoli-2260786-p-500.avif 500w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-800.avif 800w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-1080.avif 1080w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-1600.avif 1600w, /landing-pages/images/pexels-arthurbrognoli-2260786-p-2000.avif 2000w, /landing-pages/images/pexels-arthurbrognoli-2260786.avif 3648w" alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arthurbrognoli-2260786.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Viajes</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -213,7 +266,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 2670px) 100vw, 2670px" srcset="/landing-pages/images/pexels-arina-krasnikova-5416634-p-500.avif 500w, /landing-pages/images/pexels-arina-krasnikova-5416634-p-800.avif 800w, /landing-pages/images/pexels-arina-krasnikova-5416634-p-1080.avif 1080w, /landing-pages/images/pexels-arina-krasnikova-5416634.avif 2670w" alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-arina-krasnikova-5416634.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Familia</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -224,7 +277,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3648px) 100vw, 3648px" srcset="/landing-pages/images/pexels-jonathanborba-13617315-p-500.avif 500w, /landing-pages/images/pexels-jonathanborba-13617315-p-800.avif 800w, /landing-pages/images/pexels-jonathanborba-13617315-p-1080.avif 1080w, /landing-pages/images/pexels-jonathanborba-13617315-p-1600.avif 1600w, /landing-pages/images/pexels-jonathanborba-13617315-p-2000.avif 2000w, /landing-pages/images/pexels-jonathanborba-13617315-p-2600.avif 2600w, /landing-pages/images/pexels-jonathanborba-13617315.avif 3648w" alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jonathanborba-13617315.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Boda</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -235,7 +288,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 3600px) 100vw, 3600px" srcset="/landing-pages/images/pexels-jess-vide-4601355-p-500.jpg 500w, /landing-pages/images/pexels-jess-vide-4601355-p-800.jpg 800w, /landing-pages/images/pexels-jess-vide-4601355-p-1080.jpg 1080w, /landing-pages/images/pexels-jess-vide-4601355-p-1600.jpg 1600w, /landing-pages/images/pexels-jess-vide-4601355-p-2000.jpg 2000w, /landing-pages/images/pexels-jess-vide-4601355-p-2600.jpg 2600w, /landing-pages/images/pexels-jess-vide-4601355.jpg 3600w" alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" class="landing-page__category-pic"></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/pexels-jess-vide-4601355.jpg" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Fotografías</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -246,7 +299,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="landing-page__category-item">
-                  <div class="landing-page__collecction-square-picture"><img sizes="(max-width: 2000px) 100vw, 2000px" srcset="/landing-pages/images/7624362-p-500.avif 500w, /landing-pages/images/7624362-p-800.avif 800w, /landing-pages/images/7624362.avif 2000w" alt="" src="/landing-pages/images/7624362.avif" loading="lazy" class="landing-page__category-pic"></div>
+                  <div class="landing-page__collecction-square-picture"><NuxtImg alt="" src="/landing-pages/images/7624362.avif" loading="lazy" width="200" height="200" sizes="(max-width: 479px) 140px, (max-width: 1279px) 160px, (max-width: 1439px) 170px, (max-width: 1919px) 180px, 200px" class="landing-page__category-pic" /></div>
                   <h4 class="landing-page__category-title">Ilustraciones</h4>
                   <div class="landing-page__category-item-date">
                     <div class="landing-page__title-wrap">
@@ -265,7 +318,10 @@ onMounted(() => {
               <div class="landing-page__promo-container">
                 <div class="landing-page__poster-container">
                   <div class="landing-page__poster-promo-left">
-                    <div class="landing-page__poster-crreator-1"></div>
+                    <div
+                      class="landing-page__poster-crreator-1"
+                      data-bg-src="/landing-pages/images/paisajes_blanco_y_negro_set-1.webp"
+                    ></div>
                   </div>
                   <div class="landing-page__poster-promo-right">
                     <div class="landing-page__promo-text-container">
@@ -294,9 +350,9 @@ onMounted(() => {
                   <div class="landing-page__process-wrap">
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
-                        <div class="landing-page__personaliza-image-uno"><img src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""></div>
+                        <div class="landing-page__personaliza-image-uno"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt="" /></div>
                       </div>
-                      <div class="landing-page__personaliza-sub"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif" loading="lazy" sizes="(max-width: 1414px) 100vw, 1414px" srcset="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif 500w, /landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif 1414w" alt=""></div>
+                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.35.11-AM.avif" loading="lazy" sizes="(max-width: 1414px) 100vw, 1414px" alt="" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Carga una imagen </h4>
@@ -307,11 +363,11 @@ onMounted(() => {
                     <div class="landing-page__process-item">
                       <div class="landing-page__process-image">
                         <div class="landing-page__personaliza-image-dos">
-                          <div class="landing-page__div-block-9"><img src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt=""></div>
+                          <div class="landing-page__div-block-9"><NuxtImg src="/landing-pages/images/young-blonde-woman-beach-1.avif" loading="lazy" alt="" /></div>
                           <h4 class="landing-page__steps-titles landing-page__centered">Summer 2025</h4>
                         </div>
                       </div>
-                      <div class="landing-page__personaliza-sub"><img src="/landing-pages/images/Screenshot-2026-02-03-alle-10.22.13-AM.avif" loading="lazy" alt=""></div>
+                      <div class="landing-page__personaliza-sub"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-10.22.13-AM.avif" loading="lazy" alt="" /></div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
                           <h4 class="landing-page__steps-titles">Edita y personaliza</h4>
@@ -320,9 +376,9 @@ onMounted(() => {
                       </div>
                     </div>
                     <div class="landing-page__process-item">
-                      <div class="landing-page__process-image"><img src="/landing-pages/images/personaliza-shot.avif" loading="lazy" alt="" class="landing-page__image-7"></div>
+                      <div class="landing-page__process-image"><NuxtImg src="/landing-pages/images/personaliza-shot.avif" loading="lazy" alt="" class="landing-page__image-7" /></div>
                       <div class="landing-page__personaliza-sub landing-page__frames-p">
-                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><img src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="">
+                        <h4 class="landing-page__step-picture-titel">Selecciona un marco</h4><NuxtImg src="/landing-pages/images/Screenshot-2026-01-26-at-1.36.29-p.m..avif" loading="lazy" alt="" />
                       </div>
                       <div class="landing-page__steps-text">
                         <div class="landing-page__step-title-wrap">
@@ -345,12 +401,15 @@ onMounted(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
                       <h3 class="landing-page__review-title">¡Todo Perfecto!<br></h3>
                       <p class="landing-page__review-text">¡Hola! No había tenido oportunidad de compartirles que recibimos nuestros cuadros, todo perfecto con la entrega. <strong>¡Los cuadros me encantaron!</strong></p>
                     </div>
                     <div class="landing-page__review-testimonial">
-                      <div class="landing-page__avatar landing-page___1"></div>
+                      <div
+                        class="landing-page__avatar landing-page___1"
+                        data-bg-src="/landing-pages/images/Polo_G_Review_180x.avif"
+                      ></div>
                       <div>
                         <h3 class="landing-page__testimonial-name">Polo<br></h3>
                         <p class="landing-page__testimonial-position">Monterrey</p>
@@ -359,13 +418,16 @@ onMounted(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
                         <h3 class="landing-page__review-title">Muy buena Calidad<br></h3>
                         <p class="landing-page__review-text">Los colores son super nítidos y la calidad de impresión es muy buena. Estoy muy satisfecha con mi compra, es igual de cómo se muestra en la página. <strong>Llegó antes de lo esperado.</strong></p>
                       </div>
                     </div>
                     <div class="landing-page__review-testimonial">
-                      <div class="landing-page__avatar"></div>
+                      <div
+                        class="landing-page__avatar"
+                        data-bg-src="/landing-pages/images/Denisse_de_A_180x-1.avif"
+                      ></div>
                       <div>
                         <h3 class="landing-page__testimonial-name">Dennise<br></h3>
                         <p class="landing-page__testimonial-position">Guadalajara</p>
@@ -373,12 +435,15 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
                       <h3 class="landing-page__review-title">Me gustaron los cuadros<br></h3>
                       <p class="landing-page__review-text">Me gustaron los cuadros. Sobre todo que no pesan y los puedes colgar con seguridad.<br><br>Los empacaron muy bien, venían bien protegidos. ¡Recomendables!</p>
                     </div>
                     <div class="landing-page__review-testimonial">
-                      <div class="landing-page__avatar landing-page___3"></div>
+                      <div
+                        class="landing-page__avatar landing-page___3"
+                        data-bg-src="/landing-pages/images/Paulina_T_180x.avif"
+                      ></div>
                       <div>
                         <h3 class="landing-page__testimonial-name">Paulina<br></h3>
                         <p class="landing-page__testimonial-position">León</p>
@@ -386,12 +451,15 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><img src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106">
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106" />
                       <h3 class="landing-page__review-title">Súper lindos y gran servicio! <br></h3>
                       <p class="landing-page__review-text">Súper lindos y gran servicio! Los cuadros están súper lindos, súper buena comunicación. <strong>Sin duda volveré a comprarles!</strong><br></p>
                     </div>
                     <div class="landing-page__review-testimonial">
-                      <div class="landing-page__avatar landing-page___4"></div>
+                      <div
+                        class="landing-page__avatar landing-page___4"
+                        data-bg-src="/landing-pages/images/Screenshot-2023-09-25-alle-7.56.44-AM.avif"
+                      ></div>
                       <div>
                         <h3 class="landing-page__testimonial-name">Fadia<br></h3>
                         <p class="landing-page__testimonial-position">CDMX</p>

@@ -2739,10 +2739,10 @@ textarea.landing-page__w-select {
 
 .landing-page .landing-page__poster-crreator-1 {
   background-color: #f8f3ee;
-  background-image: url('/landing-pages/images/paisajes_blanco_y_negro_set-1.webp'), url('https://d3e54v103j8qbb.cloudfront.net/img/background-image.svg');
-  background-position: 50%, 0 0;
-  background-repeat: no-repeat, repeat;
-  background-size: cover, auto;
+  background-image: url('/landing-pages/images/paisajes_blanco_y_negro_set-1.webp');
+  background-position: 50%;
+  background-repeat: no-repeat;
+  background-size: cover;
   border-radius: 4px;
   flex: 1;
   width: 100%;
@@ -5043,9 +5043,9 @@ textarea.landing-page__w-select {
 }
 
 .landing-page .landing-page__collecction-square-picture {
-  background-image: linear-gradient(#000000d6, #000000d6), url('https://d3e54v103j8qbb.cloudfront.net/img/background-image.svg');
-  background-position: 0 0, 50%;
-  background-size: auto, auto;
+  background-color: #000000d6;
+  background-position: 0 0;
+  background-size: auto;
   border-radius: 10000px;
   justify-content: flex-start;
   align-items: center;
@@ -5586,10 +5586,10 @@ textarea.landing-page__w-select {
 
 .landing-page .landing-page__bp-2 {
   background-color: #f8f3ee;
-  background-image: url('/landing-pages/images/Gemini_Generated_Image_2btv1l2btv1l2btv.png'), url('https://d3e54v103j8qbb.cloudfront.net/img/background-image.svg');
-  background-position: 50%, 0 0;
-  background-repeat: no-repeat, repeat;
-  background-size: cover, auto;
+  background-image: url('/landing-pages/images/Gemini_Generated_Image_2btv1l2btv1l2btv.png');
+  background-position: 50%;
+  background-repeat: no-repeat;
+  background-size: cover;
   border-radius: 4px;
   flex: 1;
   width: 100%;
@@ -8956,4 +8956,7 @@ textarea.landing-page__w-select {
   .landing-page .landing-page__step-picture-titel {
     font-size: 22px;
   }
+}
+.landing-page [data-bg-src] {
+  background-image: none;
 }
