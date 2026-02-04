@@ -5,6 +5,22 @@ const pageDescription = 'Transforma tus recuerdos más preciados en obras de art
 
 useHead({
   title: pageTitle,
+  link: [
+    {
+      rel: 'preload',
+      as: 'font',
+      href: '/landing-pages/fonts/feather.ttf',
+      type: 'font/ttf',
+      crossorigin: 'anonymous',
+    },
+    {
+      rel: 'preload',
+      as: 'font',
+      href: '/landing-pages/fonts/CaboIcon.ttf',
+      type: 'font/ttf',
+      crossorigin: 'anonymous',
+    },
+  ],
 })
 
 useSeoMeta({
@@ -540,7 +556,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style lang="scss" src="~/assets/scss/landing-pages.scss"></style>
+
 <style lang="scss">
 .landing-page {
   min-height: 100dvh;
