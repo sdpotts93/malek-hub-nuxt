@@ -309,7 +309,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>Excelente servicio</strong><br></h3>
                       <p class="landing-page__review-text">El proceso fue muy fácil, y antes de que te des cuenta ya te llegaron. Quedé encantado con las mías.</p>
                     </div>
@@ -322,7 +322,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                         <h3 class="landing-page__review-title"><strong>Tus mejores momentos</strong><br></h3>
                         <p class="landing-page__review-text">No puedo dejar de verlo y pensar que estamos viviendo nuestra mejor vida.  Siempre vale la pena acordarse de esos momentos por los que uno lo da todo.</p>
                       </div>
@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>100% recomendable</strong><br></h3>
                       <p class="landing-page__review-text">Llegó en tiempo y forma, y en vivo se ve todavía más padre. Súper recomendable Studio Malek</p>
                     </div>
@@ -347,7 +347,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>Quede Sorprendido</strong><br></h3>
                       <p class="landing-page__review-text">Me sorprendió cañón. Armé el collage en minutos y cuando llegó se ve increíble. La calidad está brutal y con el marco luce súper pro.<br></p>
                     </div>

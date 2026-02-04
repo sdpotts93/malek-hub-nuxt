@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title">¡Todo Perfecto!<br></h3>
                       <p class="landing-page__review-text">¡Hola! No había tenido oportunidad de compartirles que recibimos nuestros cuadros, todo perfecto con la entrega. <strong>¡Los cuadros me encantaron!</strong></p>
                     </div>
@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                         <h3 class="landing-page__review-title">Muy buena Calidad<br></h3>
                         <p class="landing-page__review-text">Los colores son super nítidos y la calidad de impresión es muy buena. Estoy muy satisfecha con mi compra, es igual de cómo se muestra en la página. <strong>Llegó antes de lo esperado.</strong></p>
                       </div>
@@ -435,7 +435,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title">Me gustaron los cuadros<br></h3>
                       <p class="landing-page__review-text">Me gustaron los cuadros. Sobre todo que no pesan y los puedes colgar con seguridad.<br><br>Los empacaron muy bien, venían bien protegidos. ¡Recomendables!</p>
                     </div>
@@ -451,7 +451,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title">Súper lindos y gran servicio! <br></h3>
                       <p class="landing-page__review-text">Súper lindos y gran servicio! Los cuadros están súper lindos, súper buena comunicación. <strong>Sin duda volveré a comprarles!</strong><br></p>
                     </div>

@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="landing-page__loader-poster-instruction-wrap">
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>Ideal para cuarto infantil</strong><br></h3>
                       <p class="landing-page__review-text">Lo pedí para el cuarto de mi bebé y quedó precioso. Me encantó que se ve súper limpio y elegante, y el tamaño al nacer se siente como algo muy especial. Llegó bien empacado y la impresión se ve de muy buena calidad.</p>
                     </div>
@@ -414,7 +414,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="landing-page__loader-step1">
                     <div>
-                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                      <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                         <h3 class="landing-page__review-title"><strong>¡Super regalo para Mamás!</strong><br></h3>
                         <p class="landing-page__review-text">Se lo regalé a mi hermana y literal casí  llora cuando lo vio 😭  <br><br>Además está padre porque no es el típico regalo, es algo que sí se queda para siempre.</p>
                       </div>
@@ -427,7 +427,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>Muy muy bonito</strong><br></h3>
                       <p class="landing-page__review-text">Me gustó muchísimo el diseño, está súper bonito y combina con todo. <br>Lo único es que me tardé en decidirme porque quería estar segura de los datos, pero ya viéndolo en la pared valió totalmente la pena.</p>
                     </div>
@@ -439,7 +439,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="landing-page__loader-step1">
-                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="cover" />
+                    <div class="landing-page__review-top"><NuxtImg src="/landing-pages/images/five-stars-orange.webp" loading="lazy" alt="" width="106"  fit="contain" />
                       <h3 class="landing-page__review-title"><strong>Buena calidad</strong><br></h3>
                       <p class="landing-page__review-text">Está increíble. Me sorprendió lo bien que se ve en persona, el papel y el marco se siente de calidad. Es de esas cosas que te hacen recordar lo chiquito que era tu bebé 🥺 <br></p>
                     </div>
