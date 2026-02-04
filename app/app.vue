@@ -39,7 +39,14 @@ const { data } = useFetch<{ banner: BannerData | null }>(
   { server: false }
 )
 
-const banner = computed(() => data.value?.banner ?? null)
+const banner = ref<BannerData | null>(null)
+watch(
+  data,
+  (value) => {
+    banner.value = value?.banner ?? null
+  },
+  { immediate: true }
+)
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
 const isHomeRoute = computed(() => route.path === '/')
