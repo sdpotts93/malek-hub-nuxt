@@ -40,13 +40,9 @@ const { data } = useFetch<{ banner: BannerData | null }>(
 )
 
 const banner = ref<BannerData | null>(null)
-watch(
-  data,
-  (value) => {
-    banner.value = value?.banner ?? null
-  },
-  { immediate: true }
-)
+watchEffect(() => {
+  banner.value = data.value?.banner ?? null
+})
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
 const isHomeRoute = computed(() => route.path === '/')
