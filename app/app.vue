@@ -22,15 +22,18 @@ interface BannerData {
 }
 
 const route = useRoute()
-const { data } = useFetch<{ banner: BannerData | null }>(
-  '/.netlify/functions/get-banner-graphql',
-  { server: false }
-)
 
-const banner = ref(<BannerData | null>(null))
-watchEffect(() => {
-  console.log(banner, data, "data");
-  banner.value = data.value?.banner ?? null
+const banner = ref<BannerData | null>(null)
+
+onMounted(async () => {
+  try {
+    const raw = await $fetch<unknown>('/.netlify/functions/get-banner-graphql')
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+    banner.value = (parsed as { banner?: BannerData | null })?.banner ?? null
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[banner:error]', error)
+  }
 })
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
@@ -40,8 +43,6 @@ const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value &
 watchEffect(() => {
   const currentBanner = banner.value
   const currentText = currentBanner?.text
-  // eslint-disable-next-line no-console
-  console.log('[banner:data]', data.value)
   // eslint-disable-next-line no-console
   console.log('[banner:debug]', {
     route: route.path,
