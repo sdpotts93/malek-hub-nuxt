@@ -8002,6 +8002,7 @@ textarea.landing-page__w-select {
   .landing-page__templates-container.title {
     margin-inline: 24px;
     align-items: flex-start;
+    max-width: calc(100vw - 48px);
   }
   .landing-page .landing-page__landing-gallery.landing-page__bp-gradient {
     padding-inline: 0;
