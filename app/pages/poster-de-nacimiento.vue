@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
                 <h2 class="landing-page__promo-title landing-page__centered">Diseños de nuestros clientes</h2>
               </div>
               <div class="landing-page__highlight-gallery landing-page__birthposter-gallery">
-                <div class="landing-page__birth-poster-item">
+                <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__birth-poster-item">
                   <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-3.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
@@ -249,8 +249,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__birth-poster-item">
+                </NuxtLink>
+                <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__birth-poster-item">
                   <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.34.23-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
@@ -265,8 +265,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__birth-poster-item">
+                </NuxtLink>
+                <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__birth-poster-item">
                   <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/bp-1.webp" loading="lazy" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
@@ -281,8 +281,8 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="landing-page__birth-poster-item">
+                </NuxtLink>
+                <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__birth-poster-item">
                   <div class="landing-page__birthposter-item-pic"><NuxtImg src="/landing-pages/images/Screenshot-2026-02-03-alle-11.32.26-AM.avif" loading="lazy" sizes="(max-width: 948px) 100vw, 948px" alt="" fit="cover" class="landing-page__image-5" /></div>
                   <div class="landing-page__item-data landing-page__list-item">
                     <div class="landing-page__title-wrap">
@@ -297,7 +297,7 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </NuxtLink>
               </div>
               <div class="landing-page__templates-container">
                 <NuxtLink to="/app/poster-de-nacimiento" class="landing-page__button-secondary landing-page__w-button">¡Empieza a crear el tuyo!</NuxtLink>
