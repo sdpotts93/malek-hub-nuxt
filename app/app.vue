@@ -1,8 +1,6 @@
 <template>
   <div class="app-shell" :style="appShellStyle">
     <NuxtRouteAnnouncer />
-
-    {{ banner }} {{ shouldShowBanner }}
     <Transition name="banner-slide">
       <div
         v-if="shouldShowBanner"
@@ -10,15 +8,7 @@
         class="app-banner"
         :style="bannerStyle"
       >
-        <a
-          v-if="banner?.link"
-          :href="banner.link"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="app-banner__link"
-          v-html="bannerTextHtml"
-        ></a>
-        <span v-else class="app-banner__text" v-html="bannerTextHtml"></span>
+        <span class="app-banner__text" v-html="bannerTextHtml"></span>
       </div>
     </Transition>
 
@@ -29,9 +19,6 @@
 <script setup lang="ts">
 interface BannerData {
   text: string
-  link?: string
-  background?: string
-  textColor?: string
 }
 
 const route = useRoute()
@@ -40,8 +27,9 @@ const { data } = useFetch<{ banner: BannerData | null }>(
   { server: false }
 )
 
-const banner = ref<BannerData | null>(null)
+const banner = ref(<BannerData | null>(null))
 watchEffect(() => {
+  console.log(banner, data, "data");
   banner.value = data.value?.banner ?? null
 })
 const showBanner = computed(() => Boolean(banner.value?.text))
