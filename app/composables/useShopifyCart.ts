@@ -36,11 +36,20 @@ interface ProductData {
   variants: ShopifyVariant[]
 }
 
+type TrackAddToCartPayload = {
+  price: number
+  formattedPrice?: string
+  productId?: string
+  variantId?: string
+  currency?: string
+}
+
 // Build a lookup map for variants: "size_frame" -> variant
 type VariantLookup = Map<string, ShopifyVariant>
 
 export function useShopifyCart() {
   const config = useRuntimeConfig()
+  const nuxtApp = useNuxtApp()
   const cartStore = useCartStore()
 
   // Product and variant state (Birth Poster)
@@ -77,6 +86,14 @@ export function useShopifyCart() {
   const _birthPosterFetched = ref(false)
   const _personalizaFetched = ref(false)
   const _momentosFetched = ref(false)
+
+  const trackAddToCart = (payload: TrackAddToCartPayload) => {
+    if (!import.meta.client) return
+    const tracker = nuxtApp.$trackAddToCart
+    if (typeof tracker === 'function') {
+      tracker(payload)
+    }
+  }
 
   /**
    * Fetch birth poster product with all variants (idempotent)
@@ -623,6 +640,14 @@ export function useShopifyCart() {
       ])
       timings.shopifyCart = performance.now() - cartStart
       timings.total = performance.now() - startTime
+
+      trackAddToCart({
+        price: Number(variant.price),
+        formattedPrice: Number(variant.price).toString(),
+        productId: PERSONALIZA_PRODUCT_IDS[orientation],
+        variantId: variant.id,
+        currency: 'MXN',
+      })
 
       return null // Success
     } catch (err) {
@@ -1441,6 +1466,14 @@ export function useShopifyCart() {
         { key: 'Marco', value: snapshot.frameStyleName },
       ])
 
+      trackAddToCart({
+        price: Number(variant.price),
+        formattedPrice: Number(variant.price).toString(),
+        productId: MOMENTOS_PRODUCT_ID,
+        variantId: variant.id,
+        currency: 'MXN',
+      })
+
       return { thumbnail: thumbnailDataUrl }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al agregar al carrito'
@@ -1711,6 +1744,14 @@ export function useShopifyCart() {
         { key: 'Marco', value: snapshot.frameStyleName },
         { key: 'Bebés', value: snapshot.babyNames },
       ])
+
+      trackAddToCart({
+        price: Number(variant.price),
+        formattedPrice: Number(variant.price).toString(),
+        productId: config.public.birthPosterProductId,
+        variantId: variant.id,
+        currency: 'MXN',
+      })
 
       // Return thumbnail for history saving (avoids re-rendering)
       return { thumbnail: thumbnailDataUrl }

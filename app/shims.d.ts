@@ -66,3 +66,23 @@ declare module 'vue-advanced-cropper' {
     movable?: boolean
   }>
 }
+
+type TrackAddToCartPayload = {
+  price: number
+  formattedPrice?: string
+  productId?: string
+  variantId?: string
+  currency?: string
+}
+
+declare module '#app' {
+  interface NuxtApp {
+    $trackAddToCart?: (payload: TrackAddToCartPayload) => void
+  }
+}
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $trackAddToCart?: (payload: TrackAddToCartPayload) => void
+  }
+}
