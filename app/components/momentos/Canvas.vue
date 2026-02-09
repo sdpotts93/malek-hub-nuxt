@@ -667,7 +667,7 @@ const editMenuStyle = computed((): Record<string, string> => {
 
     @include mobile {
       height: auto;
-      width: 70%;
+      width: 75%;
     }
   }
 

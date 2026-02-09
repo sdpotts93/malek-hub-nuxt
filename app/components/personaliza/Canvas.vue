@@ -269,7 +269,7 @@ $padding-bottom-with-text: 12.143%;
 
     @include mobile {
       height: auto;
-      width: 75%;
+      width: 70%;
     }
   }
 
