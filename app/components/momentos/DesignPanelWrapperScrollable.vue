@@ -149,7 +149,7 @@ onUnmounted(() => {
 })
 
 // Re-setup observer when tab changes
-watch(() => store.activeDisenoTab, (newTab) => {
+watch(() => store.activeDisenoTab, (newTab: DisenoTabType) => {
   if (observer) {
     observer.disconnect()
     observer = null

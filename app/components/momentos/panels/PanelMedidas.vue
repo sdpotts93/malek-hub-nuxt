@@ -3,19 +3,31 @@ import type { MomentosSize } from '~/stores/momentos'
 
 const store = useMomentosStore()
 
+interface SizeOption {
+  id: MomentosSize
+  width: number
+  height: number
+  label: string
+}
+
 // Get sizes for current format
-const availableSizes = computed(() => {
-  return Object.entries(store.availableSizes).map(([key, data]) => ({
-    id: key as MomentosSize,
-    ...data,
-  }))
+const availableSizes = computed<SizeOption[]>(() => {
+  return (Object.keys(store.availableSizes) as MomentosSize[]).map((key: MomentosSize) => {
+    const data = store.availableSizes[key]
+    return {
+      id: key,
+      width: data.width,
+      height: data.height,
+      label: data.label,
+    }
+  })
 })
 
 // Get size dimensions
 function getSizeDimensions(sizeId: MomentosSize): { width: number; height: number } {
   const size = store.availableSizes[sizeId]
   if (!size) return { width: 0, height: 0 }
-  const [width, height] = size.label.split(' x ').map(s => parseInt(s))
+  const [width, height] = size.label.split(' x ').map((s: string) => parseInt(s, 10))
   return { width: width || 0, height: height || 0 }
 }
 

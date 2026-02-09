@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { MomentosFormat, MomentosImageCount, DisenoTabType } from '~/stores/momentos'
-import { IMAGE_COUNTS, MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId } from '~/stores/momentos'
+import type { MomentosFormat, MomentosImageCount, DisenoTabType, CanvasCell, UploadedImage } from '~/stores/momentos'
+import { MARGIN_COLORS, MAX_IMAGES, MAX_IMAGE_SIZE_MB, generateId } from '~/stores/momentos'
 
 const LOW_RES_MAX = 200
 const MEDIUM_RES_MAX = 1500
@@ -48,7 +48,7 @@ const lightboxImage = ref<string | null>(null)
 const isLightboxOpen = computed(() => lightboxImage.value !== null)
 
 // Watch for empty cell selection to switch to imagenes tab and scroll to library
-watch(() => store.selectedCellId, (cellId) => {
+watch(() => store.selectedCellId, (cellId: string | null) => {
   if (cellId) {
     const cell = store.getCellById(cellId)
     if (cell && !cell.imageId) {
@@ -111,7 +111,7 @@ const formatOptions: { id: MomentosFormat; label: string }[] = [
 ]
 
 // Get available image counts for current format
-const availableImageCounts = computed(() => IMAGE_COUNTS[store.format])
+const availableImageCounts = computed(() => store.availableImageCounts)
 
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -247,7 +247,7 @@ async function handleFileChange(e: Event) {
     pendingAutofillImages.value = uploadedIds
     // Determine start index based on selected cell
     if (targetCellId) {
-      const cellIndex = store.canvasCells.findIndex(c => c.id === targetCellId)
+      const cellIndex = store.canvasCells.findIndex((c: CanvasCell) => c.id === targetCellId)
       autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
     } else {
       autofillStartIndex.value = 0
@@ -348,7 +348,7 @@ async function uploadToS3WithRetry(id: string, file: File, blobUrl: string, retr
       resizeImage(file, MEDIUM_RES_MAX),
     ])
 
-    const current = store.uploadedImages.find(img => img.id === id)
+    const current = store.uploadedImages.find((img: UploadedImage) => img.id === id)
     if (!current) {
       return
     }
@@ -512,7 +512,7 @@ async function handleFilesFromDrop(files: File[]) {
   if (store.emptyCellCount > 0) {
     pendingAutofillImages.value = uploadedIds
     if (store.selectedCellId) {
-      const cellIndex = store.canvasCells.findIndex(c => c.id === store.selectedCellId)
+      const cellIndex = store.canvasCells.findIndex((c: CanvasCell) => c.id === store.selectedCellId)
       autofillStartIndex.value = cellIndex >= 0 ? cellIndex : 0
     } else {
       autofillStartIndex.value = 0
@@ -557,7 +557,7 @@ function handleImageDragStart(e: DragEvent, imageId: string) {
   store.setDraggingImageId(imageId)
 
   // Get the image URL for the preview
-  const image = store.uploadedImages.find(img => img.id === imageId)
+  const image = store.uploadedImages.find((img: UploadedImage) => img.id === imageId)
   if (image) {
     dragPreviewImage.value = image.lowResUrl
   }
@@ -625,7 +625,7 @@ function handleImageClick(imageId: string) {
   } else {
     // No cell selected - find the first empty cell and assign the image
     // Don't close the mobile sheet so user can keep adding images
-    const emptyCell = store.canvasCells.find(cell => cell.imageId === null)
+    const emptyCell = store.canvasCells.find((cell: CanvasCell) => cell.imageId === null)
     if (emptyCell) {
       store.setImageToCell(emptyCell.id, imageId)
     }
@@ -694,11 +694,18 @@ const rellenarFilteredImages = computed(() => {
   if (rellenarFilter.value === 'all') {
     return store.uploadedImages
   } else if (rellenarFilter.value === 'used') {
-    return store.uploadedImages.filter(img => getImageUsageCount(img.id) > 0)
+    return store.uploadedImages.filter((img: UploadedImage) => getImageUsageCount(img.id) > 0)
   } else {
-    return store.uploadedImages.filter(img => getImageUsageCount(img.id) === 0)
+    return store.uploadedImages.filter((img: UploadedImage) => getImageUsageCount(img.id) === 0)
   }
 })
+
+const unusedUploadedImagesCount = computed(() =>
+  store.uploadedImages.filter((img: UploadedImage) => getImageUsageCount(img.id) === 0).length
+)
+const usedUploadedImagesCount = computed(() =>
+  store.uploadedImages.filter((img: UploadedImage) => getImageUsageCount(img.id) > 0).length
+)
 
 // Open Rellenar modal
 function openRellenarModal() {
@@ -743,7 +750,11 @@ function selectAllRellenarImages() {
   const maxSelections = store.emptyCellCount
   rellenarSelectedImages.value = rellenarFilteredImages.value
     .slice(0, maxSelections)
-    .map(img => img.id)
+    .map((img: UploadedImage) => img.id)
+}
+
+function getUploadedImageLowResUrlById(imageId: string): string | undefined {
+  return store.uploadedImages.find((img: UploadedImage) => img.id === imageId)?.lowResUrl
 }
 
 // Rellenar modal tooltip state (separate from main tooltip)
@@ -1236,8 +1247,8 @@ function confirmRellenar() {
               <div class="panel-diseno__rellenar-filter-dropdown">
                 <select v-model="rellenarFilter" class="panel-diseno__rellenar-select">
                   <option value="all">Todas ({{ store.uploadedImages.length }})</option>
-                  <option value="unused">Sin usar ({{ store.uploadedImages.filter(img => getImageUsageCount(img.id) === 0).length }})</option>
-                  <option value="used">Usadas ({{ store.uploadedImages.filter(img => getImageUsageCount(img.id) > 0).length }})</option>
+                  <option value="unused">Sin usar ({{ unusedUploadedImagesCount }})</option>
+                  <option value="used">Usadas ({{ usedUploadedImagesCount }})</option>
                 </select>
               </div>
               <button
@@ -1317,7 +1328,7 @@ function confirmRellenar() {
                     class="panel-diseno__rellenar-thumb"
                   >
                     <img
-                      :src="store.uploadedImages.find(img => img.id === rellenarSelectedImages[index - 1])?.lowResUrl"
+                      :src="getUploadedImageLowResUrlById(rellenarSelectedImages[index - 1]!)"
                       :alt="`Seleccionada ${index}`"
                     >
                     <!-- Warning badge on thumbnail -->

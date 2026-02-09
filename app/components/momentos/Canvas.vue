@@ -97,7 +97,7 @@ function handleDragEnter(e: DragEvent, cellId: string) {
   // Only show hover state if dragging an image and cell is empty
   if (store.draggingImageId) {
     store.setIsDraggingOverCanvas(true)
-    const cell = store.canvasCells.find(c => c.id === cellId)
+    const cell = store.canvasCells.find((c: CanvasCell) => c.id === cellId)
     if (cell && !cell.imageId) {
       hoveringCellId.value = cellId
     }
@@ -259,7 +259,7 @@ function getPanLimits(cellElement: HTMLElement, imageWidth: number, imageHeight:
 function handlePanStart(e: MouseEvent, cellId: string) {
   e.preventDefault()
   e.stopPropagation()
-  const cell = store.canvasCells.find(c => c.id === cellId)
+  const cell = store.canvasCells.find((c: CanvasCell) => c.id === cellId)
   if (!cell || !cell.imageId) return
 
   // Get image dimensions
@@ -286,7 +286,7 @@ function handlePanStart(e: MouseEvent, cellId: string) {
 function handlePanMove(e: MouseEvent) {
   if (!isPanning.value || !store.selectedCellId || !panCellElement.value || !panImageData.value) return
 
-  const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+  const cell = store.canvasCells.find((c: CanvasCell) => c.id === store.selectedCellId)
   if (!cell) return
 
   const cellRect = panCellElement.value.getBoundingClientRect()
@@ -312,7 +312,7 @@ function handlePanMove(e: MouseEvent) {
 // End panning
 function handlePanEnd() {
   if (isPanning.value && store.selectedCellId) {
-    const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+    const cell = store.canvasCells.find((c: CanvasCell) => c.id === store.selectedCellId)
     if (cell && (cell.panX !== initialPanX.value || cell.panY !== initialPanY.value)) {
       // Push to history only at the end of drag
       store.panCell(store.selectedCellId, cell.panX, cell.panY, initialPanX.value, initialPanY.value)
@@ -356,7 +356,7 @@ function setCellRef(el: HTMLElement | null, cellId: string) {
 // Get the selected cell with image for edit menu
 const selectedCellWithImage = computed(() => {
   if (!store.selectedCellId) return null
-  const cell = store.canvasCells.find(c => c.id === store.selectedCellId)
+  const cell = store.canvasCells.find((c: CanvasCell) => c.id === store.selectedCellId)
   if (!cell || !cell.imageId) return null
   return cell
 })
