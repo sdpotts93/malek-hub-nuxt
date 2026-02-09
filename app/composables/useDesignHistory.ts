@@ -11,7 +11,7 @@ const HISTORY_STORAGE_KEY = 'studiomalek_design_history'
 const MAX_SAVED_DESIGNS = 10
 
 export function useDesignHistory<T extends DesignState>(tool: ToolType) {
-  const designs = ref<SavedDesign[]>([])
+  const designs = ref<SavedDesign<T>[]>([])
   const isLoading = ref(false)
 
   /**
@@ -26,11 +26,12 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
         const allDesigns: SavedDesign[] = JSON.parse(stored)
         // Filter by tool and parse dates
         designs.value = allDesigns
-          .filter((d) => d.tool === tool)
-          .map((d) => ({
+          .filter((d: SavedDesign) => d.tool === tool)
+          .map((d: SavedDesign): SavedDesign<T> => ({
             ...d,
             createdAt: new Date(d.createdAt),
             updatedAt: new Date(d.updatedAt),
+            state: d.state as T,
           }))
           .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
       }
@@ -52,10 +53,10 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
       let allDesigns: SavedDesign[] = stored ? JSON.parse(stored) : []
 
       // Remove designs for current tool
-      allDesigns = allDesigns.filter((d) => d.tool !== tool)
+      allDesigns = allDesigns.filter((d: SavedDesign) => d.tool !== tool)
 
       // Add current tool's designs
-      allDesigns.push(...designs.value)
+      allDesigns.push(...(designs.value as SavedDesign[]))
 
       // Limit total designs per tool
       const toolDesigns = new Map<ToolType, SavedDesign[]>()
@@ -90,10 +91,10 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
   /**
    * Save a new design
    */
-  function saveDesign(state: T, thumbnail: string, name?: string): SavedDesign {
+  function saveDesign(state: T, thumbnail: string, name?: string): SavedDesign<T> {
     const now = new Date()
 
-    const design: SavedDesign = {
+    const design: SavedDesign<T> = {
       id: generateId(),
       tool,
       name: name || `Diseño ${designs.value.length + 1}`,
@@ -124,8 +125,8 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
     state: T,
     thumbnail: string,
     name?: string
-  ): SavedDesign | null {
-    const index = designs.value.findIndex((d) => d.id === id)
+  ): SavedDesign<T> | null {
+    const index = designs.value.findIndex((d: SavedDesign<T>) => d.id === id)
     if (index < 0) return null
 
     const design = designs.value[index]
@@ -149,7 +150,7 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
    * Delete a design
    */
   function deleteDesign(id: string): boolean {
-    const index = designs.value.findIndex((d) => d.id === id)
+    const index = designs.value.findIndex((d: SavedDesign<T>) => d.id === id)
     if (index < 0) return false
 
     designs.value.splice(index, 1)
@@ -161,8 +162,8 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
   /**
    * Get a design by ID
    */
-  function getDesign(id: string): SavedDesign | null {
-    return designs.value.find((d) => d.id === id) || null
+  function getDesign(id: string): SavedDesign<T> | null {
+    return designs.value.find((d: SavedDesign<T>) => d.id === id) || null
   }
 
   /**
@@ -177,7 +178,7 @@ export function useDesignHistory<T extends DesignState>(tool: ToolType) {
    * Rename a design
    */
   function renameDesign(id: string, name: string): boolean {
-    const design = designs.value.find((d) => d.id === id)
+    const design = designs.value.find((d: SavedDesign<T>) => d.id === id)
     if (!design) return false
 
     design.name = name

@@ -978,7 +978,7 @@ export function useShopifyCart() {
 
     const restoreOriginalUrls = () => {
       for (const [id, mediumResUrl] of originalUrls.entries()) {
-        const current = momentosStore.uploadedImages.find(img => img.id === id)
+        const current = momentosStore.uploadedImages.find((img: MomentosState['uploadedImages'][number]) => img.id === id)
         if (current && current.mediumResUrl !== mediumResUrl) {
           momentosStore.updateUploadedImage(id, { mediumResUrl })
         }
@@ -1004,8 +1004,8 @@ export function useShopifyCart() {
       return Math.min(maxWait, Math.max(minWait, baseWait + expectedImageCount * perImageWait))
     })()
     const getMomentosImageStats = () => {
-      const images = Array.from(canvasElement.querySelectorAll('.momentos-canvas__cell-image'))
-      const loaded = images.filter(img => img.complete && img.naturalWidth > 0).length
+      const images = Array.from(canvasElement.querySelectorAll<HTMLImageElement>('.momentos-canvas__cell-image'))
+      const loaded = images.filter((img: HTMLImageElement) => img.complete && img.naturalWidth > 0).length
       return { found: images.length, loaded }
     }
     const waitForMomentosImages = async (timeoutMs = 5000) => {
@@ -1014,8 +1014,8 @@ export function useShopifyCart() {
 
       // Ensure the DOM has all expected image elements before waiting on loads
       for (let i = 0; i < 5; i++) {
-        images = Array.from(canvasElement.querySelectorAll('.momentos-canvas__cell-image'))
-        const loadedCount = images.filter(img => img.complete && img.naturalWidth > 0).length
+        images = Array.from(canvasElement.querySelectorAll<HTMLImageElement>('.momentos-canvas__cell-image'))
+        const loadedCount = images.filter((img: HTMLImageElement) => img.complete && img.naturalWidth > 0).length
         if (expectedImageCount === 0 || images.length >= expectedImageCount || loadedCount >= expectedImageCount) {
           break
         }
@@ -1027,11 +1027,11 @@ export function useShopifyCart() {
       console.log('[ShopifyCart] Momentos image load check:', {
         expected: expectedImageCount,
         found: images.length,
-        loaded: images.filter(img => img.complete && img.naturalWidth > 0).length,
+        loaded: images.filter((img: HTMLImageElement) => img.complete && img.naturalWidth > 0).length,
       })
 
       const remaining = Math.max(0, timeoutMs - (performance.now() - start))
-      await Promise.all(images.map((img) => {
+      await Promise.all(images.map((img: HTMLImageElement) => {
         if (img.complete && img.naturalWidth > 0) return Promise.resolve()
         return new Promise<void>((resolve) => {
           let settled = false
@@ -1069,15 +1069,18 @@ export function useShopifyCart() {
       }
       const hexMatch = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
       if (hexMatch) {
-        const hex = hexMatch[1]
-        if (hex) {
-          if (hex.length === 3) {
-            return {
-              r: parseInt(hex[0] + hex[0], 16),
-              g: parseInt(hex[1] + hex[1], 16),
-              b: parseInt(hex[2] + hex[2], 16),
-            }
+        const hex = hexMatch[1] ?? ''
+        if (hex.length === 3) {
+          const r = hex.charAt(0)
+          const g = hex.charAt(1)
+          const b = hex.charAt(2)
+          return {
+            r: parseInt(`${r}${r}`, 16),
+            g: parseInt(`${g}${g}`, 16),
+            b: parseInt(`${b}${b}`, 16),
           }
+        }
+        if (hex.length === 6) {
           return {
             r: parseInt(hex.slice(0, 2), 16),
             g: parseInt(hex.slice(2, 4), 16),
@@ -1216,7 +1219,7 @@ export function useShopifyCart() {
         const cellX = padding + col * (cellWidth + gap)
         const cellY = padding + row * (cellHeight + gap)
 
-        const imageMeta = uploadedImages.find(img => img.id === cell.imageId)
+        const imageMeta = uploadedImages.find((img: MomentosState['uploadedImages'][number]) => img.id === cell.imageId)
         if (!imageMeta) continue
         const src = getCompositeImageUrl(imageMeta)
         if (!src) continue
@@ -1595,7 +1598,7 @@ export function useShopifyCart() {
       const cellX = padding + col * (cellWidth + gap)
       const cellY = padding + row * (cellHeight + gap)
 
-      const imageMeta = uploadedImages.find(img => img.id === cell.imageId)
+      const imageMeta = uploadedImages.find((img: MomentosState['uploadedImages'][number]) => img.id === cell.imageId)
       if (!imageMeta) continue
       const src = getCompositeImageUrl(imageMeta)
       if (!src) continue
