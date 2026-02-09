@@ -658,7 +658,7 @@ async function handleAddToCart() {
       @click="toggleMobileEditor"
     >
       <span class="personaliza__mobile-edit-icon" aria-hidden="true">
-        <img src="/personaliza-icons/icon/edit-icon.svg" alt="">
+        <img src="/personaliza-icons/icon/edit-icon-white.svg" alt="">
       </span>
     </button>
 
@@ -715,7 +715,6 @@ async function handleAddToCart() {
 .personaliza {
   display: flex;
   flex-direction: column;
-
   &__main {
     flex: 1;
     display: grid;
@@ -785,11 +784,12 @@ async function handleAddToCart() {
 
   &__canvas-container {
     width: 100%;
-    height: 90%;
+    height: 80%;
     display: flex;
     align-items: center;
     justify-content: center;
     container-type: size;
+    position: relative;
     @include mobile {
       height: calc(100% - var(--personaliza-mobile-canvas-offset, 136px));
       align-items: center;
@@ -822,8 +822,7 @@ async function handleAddToCart() {
     height: 64px;
     border-radius: 100px;
     border: none;
-    background: #ffffff;
-    color: #414651;
+    background: #171d27;
     display: flex;
     align-items: center;
     justify-content: center;

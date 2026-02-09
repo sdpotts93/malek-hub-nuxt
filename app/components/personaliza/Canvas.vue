@@ -57,6 +57,7 @@ const hasText = computed(() => {
 const isDarkMargin = computed(() => {
   return store.hasMargin && isColorDark(store.marginColor)
 })
+const frameLabel = computed(() => store.frameStyle?.name || 'Sin marco')
 
 // Calculate padding multiplier based on orientation (matching malekcustomposter logic)
 // This is the base value used for calculating padding percentages
@@ -142,6 +143,10 @@ const paddingMultiplierType = computed(() => {
       </div>
     </div>
 
+    <div class="personaliza-canvas__data" data-html2canvas-ignore>
+      <span>{{ store.orientation }}</span> - {{ store.posterSize }} - {{ frameLabel }}
+    </div>
+
   </div>
 </template>
 
@@ -158,10 +163,32 @@ $padding-bottom-with-text: 12.143%;
   background: #ffffff;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   box-shadow: 0 0 20px -5px #adadad;
   container-type: size; // Use size for both width and height queries
   transition: transform 0.25s ease, width 0.25s ease;
+
+  &__data {
+    position: absolute;
+    bottom: calc(0% - $space-10xl);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: $font-primary;
+    font-size: 13px;
+    color: #181d27;
+    background-color: #fff;
+    border: 1px solid #d6d4d4;
+    padding: $space-sm $space-2xl;
+    border-radius: $space-4xl;
+    white-space: nowrap;
+    z-index: 20;
+
+    span {
+      text-transform: capitalize;
+    }
+    @include mobile {
+      bottom: calc(0% - $space-7xl);
+    }
+  }
 
   &--mobile-panel-open {
     @include mobile {
