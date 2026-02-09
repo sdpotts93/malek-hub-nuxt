@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PanelType, BirthPosterState } from '~/types'
+import type { PanelType, BirthPosterState, BabyConfig, SavedDesign } from '~/types'
 
 // Page meta
 definePageMeta({
@@ -55,7 +55,7 @@ const pricing = computed(() => cart.calculatePrice(birthPosterStore.$state))
 // Always check for missing names, but only block if showScale is enabled
 const missingElements = computed(() => {
   const missing: string[] = []
-  birthPosterStore.babies.forEach((baby, index) => {
+  birthPosterStore.babies.forEach((baby: BabyConfig, index: number) => {
     if (!baby.nombre?.trim()) {
       const babyLabel = birthPosterStore.babyCount > 1 ? `Bebé ${index + 1}` : 'Bebé'
       if (baby.showScale) {
@@ -72,7 +72,7 @@ const missingElements = computed(() => {
 
 // Can only proceed if there are no blocking issues (missing name with showScale on)
 const canProceed = computed(() => {
-  return !birthPosterStore.babies.some(baby => baby.showScale && !baby.nombre?.trim())
+  return !birthPosterStore.babies.some((baby: BabyConfig) => baby.showScale && !baby.nombre?.trim())
 })
 
 const isMobile = ref(false)
@@ -100,7 +100,7 @@ const isDirty = computed(() => {
 // Generate design name from baby names
 function getDesignName(): string {
   const names = birthPosterStore.babies
-    .map(b => b.nombre?.trim())
+    .map((b: BabyConfig) => b.nombre?.trim())
     .filter(Boolean)
   return names.length > 0 ? names.join(' & ') : 'Birth Poster'
 }
@@ -161,7 +161,7 @@ onMounted(() => {
       if (canvasElement) {
         // Check if this design already exists in history (compare state)
         const currentStateJson = JSON.stringify(birthPosterStore.$state)
-        const existingDesign = designs.value.find((d) => {
+        const existingDesign = designs.value.find((d: SavedDesign<BirthPosterState>) => {
           return JSON.stringify(d.state) === currentStateJson
         })
 
@@ -232,7 +232,7 @@ function handleSectionInView(panel: PanelType) {
 // Handle edit from missing elements modal - navigate to datos panel
 async function handleEditFromModal() {
   // Find first baby with missing name and switch to that tab
-  const missingIndex = birthPosterStore.babies.findIndex(b => !b.nombre?.trim())
+  const missingIndex = birthPosterStore.babies.findIndex((b: BabyConfig) => !b.nombre?.trim())
   if (missingIndex !== -1) {
     birthPosterStore.setActiveBabyTab(missingIndex)
   }

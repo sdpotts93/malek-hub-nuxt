@@ -2,6 +2,9 @@
 import type { MomentosPanelType } from '~/stores/momentos'
 import type { MomentosState } from '~/stores/momentos'
 
+type MomentosUploadedImage = MomentosState['uploadedImages'][number]
+type MomentosCanvasCell = MomentosState['canvasCells'][number]
+
 // Page meta
 definePageMeta({
   layout: false,
@@ -51,7 +54,7 @@ const activeSectionInView = ref<'diseno' | 'medidas' | 'marco'>('diseno')
 
 // Computed
 const pricing = computed(() => cart.calculateMomentosPrice(momentosStore.$state))
-const uploadingCount = computed(() => momentosStore.uploadedImages.filter(img => img.isUploading).length)
+const uploadingCount = computed(() => momentosStore.uploadedImages.filter((img: MomentosUploadedImage) => img.isUploading).length)
 const uploadStatusMessage = computed(() => {
   if (uploadingCount.value === 0) return ''
   return uploadingCount.value === 1
@@ -108,7 +111,7 @@ const hasContent = computed(() => {
   if (momentosStore.filledCellCount > 0) return true
 
   // Check if any uploaded images have valid displayable URLs
-  const hasDisplayableImages = momentosStore.uploadedImages.some(img => {
+  const hasDisplayableImages = momentosStore.uploadedImages.some((img: MomentosUploadedImage) => {
     // Must have at least one valid URL (blob, S3, or data URL)
     const hasValidUrl = (img.lowResUrl && img.lowResUrl.length > 0) ||
       (img.s3LowResUrl && img.s3LowResUrl.length > 0)
@@ -125,7 +128,7 @@ const historySaveKey = computed(() => ({
   hasMargin: momentosStore.hasMargin,
   marginColor: momentosStore.marginColor,
   frameStyleId: momentosStore.frameStyle?.id || null,
-  cells: momentosStore.canvasCells.map(cell => ({
+  cells: momentosStore.canvasCells.map((cell: MomentosCanvasCell) => ({
     imageId: cell.imageId,
     rotation: cell.rotation,
     zoom: cell.zoom,
@@ -133,7 +136,7 @@ const historySaveKey = computed(() => ({
     panX: cell.panX,
     panY: cell.panY,
   })),
-  imageUrls: momentosStore.uploadedImages.map(img =>
+  imageUrls: momentosStore.uploadedImages.map((img: MomentosUploadedImage) =>
     img.mediumResUrl || img.lowResUrl || img.s3MediumResUrl || img.s3LowResUrl || ''
   ),
 }))

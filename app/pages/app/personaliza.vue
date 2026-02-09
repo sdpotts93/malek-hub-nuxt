@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PersonalizaPanelType } from '~/stores/personaliza'
 import PersonalizaMobileEditorPanel from '~/components/personaliza/MobileEditorPanel.vue'
-import type { PersonalizaState } from '~/types'
+import type { PersonalizaState, SavedDesign } from '~/types'
 import { isBlobUrl } from '~/utils/imageUtils'
 
 // Page meta
@@ -286,7 +286,7 @@ const restoredFromAutosave = ref(false)
 
 // Watch for cropped image to become available after autosave restore
 // Once ready, generate thumbnail and save to history (if not already saved)
-watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
+watch(() => personalizaStore.croppedImageUrl, async (newUrl: string | null) => {
   if (!newUrl || !restoredFromAutosave.value) return
 
   // Clear flag immediately to prevent double execution
@@ -304,7 +304,7 @@ watch(() => personalizaStore.croppedImageUrl, async (newUrl) => {
 
   // Check if this design already exists in history (compare state)
   const currentStateJson = JSON.stringify(prepareStateForPersistence())
-  const existingDesign = designs.value.find((d) => {
+  const existingDesign = designs.value.find((d: SavedDesign<PersonalizaState>) => {
     // Compare the persistent state (excluding thumbnail and dates)
     return JSON.stringify(d.state) === currentStateJson
   })
@@ -455,7 +455,9 @@ onMounted(async () => {
 
 watch(
   [isMobile, () => personalizaStore.hasImage],
-  ([isMobileValue, hasImage], [wasMobile, hadImage]) => {
+  (newValues: [boolean, boolean], oldValues: [boolean, boolean]) => {
+    const [isMobileValue, hasImage] = newValues
+    const [wasMobile, hadImage] = oldValues
     if (!isMobileValue) {
       isMobileSheetOpen.value = false
       isMobileEditorOpen.value = false
