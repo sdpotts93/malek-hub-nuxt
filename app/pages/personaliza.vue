@@ -30,7 +30,7 @@ const isMobileCarousel = ref(false)
 const highlightGalleryRef = ref<HTMLElement | null>(null)
 let bgObserver: IntersectionObserver | null = null
 let carouselMedia: MediaQueryList | null = null
-let carouselListener: ((event: MediaQueryListEvent) => void) | null = null
+let carouselListener: ((event?: MediaQueryListEvent) => void) | null = null
 
 function toggleSideMenu() {
   isSideMenuOpen.value = !isSideMenuOpen.value
