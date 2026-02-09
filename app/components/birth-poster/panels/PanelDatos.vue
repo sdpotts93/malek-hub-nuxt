@@ -38,7 +38,7 @@ onMounted(() => {
 })
 
 // Watch focus trigger from store (only triggered by add-to-cart validation)
-watch(() => store.nombreFocusTrigger, (newVal) => {
+watch(() => store.nombreFocusTrigger, (newVal: number) => {
   if (newVal > lastTriggerValue.value) {
     lastTriggerValue.value = newVal
     focusNombreInput()

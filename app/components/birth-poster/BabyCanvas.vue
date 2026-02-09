@@ -154,7 +154,7 @@ const buildDataLine = (baby: typeof store.babies[0]) => {
           <img
             v-if="getStyleById(baby.styleId)"
             :src="getStyleById(baby.styleId)!.image"
-            :alt="`Baby ${index + 1}`"
+            :alt="`Baby ${Number(index) + 1}`"
             class="baby-canvas__illustration"
             crossorigin="anonymous"
             :style="{

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { BACKGROUND_COLORS } from '~/types'
 
 const store = useBirthPosterStore()

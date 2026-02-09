@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { ILLUSTRATION_COLORS, BABY_STYLES } from '~/types'
 import type { BabyOrientation } from '~/types'
 

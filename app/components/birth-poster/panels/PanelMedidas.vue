@@ -4,9 +4,16 @@ import type { PosterSize } from '~/types'
 
 const store = useBirthPosterStore()
 
+interface SizeOption {
+  id: PosterSize
+  width: number
+  height: number
+  label: string
+}
+
 // Get all available sizes for the dropdown
-const allSizes = computed(() => {
-  return store.availableSizes.map((size) => ({
+const allSizes = computed<SizeOption[]>(() => {
+  return store.availableSizes.map((size: PosterSize) => ({
     id: size,
     ...POSTER_SIZES[size],
   }))
