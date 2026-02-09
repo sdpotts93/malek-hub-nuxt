@@ -14,15 +14,27 @@ const emit = defineEmits<{
 
 const store = usePersonalizaStore()
 
+interface SizeOption {
+  id: PersonalizaSize
+  width: number
+  height: number
+  label: string
+}
+
 const previewImage = computed(() => {
   return store.croppedImageUrl || store.imageUrl || store.imageS3Url
 })
 
-const availableSizes = computed(() => {
-  return Object.entries(store.availableSizes).map(([key, data]) => ({
-    id: key as PersonalizaSize,
-    ...data,
-  }))
+const availableSizes = computed<SizeOption[]>(() => {
+  return (Object.keys(store.availableSizes) as PersonalizaSize[]).map((key: PersonalizaSize) => {
+    const data = store.availableSizes[key]
+    return {
+      id: key,
+      width: data.width,
+      height: data.height,
+      label: data.label,
+    }
+  })
 })
 
 function formatSizeLabel(sizeId: PersonalizaSize): string {

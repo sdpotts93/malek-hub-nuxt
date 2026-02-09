@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import CropperJS from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
-import type { ImageFormat } from '~/stores/personaliza'
+import type { ImageFormat, CropCoordinates } from '~/stores/personaliza'
 import { registerCropper, unregisterCropper } from '~/stores/personaliza'
 
 defineOptions({
@@ -388,7 +388,7 @@ function acknowledgeWarning(event: Event) {
 }
 
 // Watch for image source changes
-watch(cropperImageSrc, (newSrc, oldSrc) => {
+watch(cropperImageSrc, (newSrc: string | null, oldSrc: string | null) => {
   if (newSrc && newSrc !== oldSrc) {
     // Destroy old cropper
     destroyCropper()
@@ -411,7 +411,7 @@ watch(cropperImageSrc, (newSrc, oldSrc) => {
 // This handles the case where user selects a thumbnail with the same image
 watch(
   () => store.cropCoordinates,
-  (newCoords) => {
+  (newCoords: CropCoordinates | null) => {
     // Only act if cropper is ready and we have new coordinates and not already restoring
     if (cropper && isCropperReady.value && newCoords && !isRestoringCrop.value) {
       // Check if coordinates differ from current canvas data

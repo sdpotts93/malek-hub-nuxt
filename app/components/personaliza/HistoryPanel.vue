@@ -22,7 +22,7 @@ const store = usePersonalizaStore()
 const loadingDesignId = ref<string | null>(null)
 
 // Clear loading state when image is ready
-watch(() => store.croppedImageUrl, (newUrl) => {
+watch(() => store.croppedImageUrl, (newUrl: string | null) => {
   if (newUrl && loadingDesignId.value) {
     loadingDesignId.value = null
   }
