@@ -125,6 +125,11 @@ export const useCartStore = defineStore('cart', {
         // Extract design images from attributes
         const imagenAttr = line.attributes.find(a => a.key === '_imagen')
         const thumbnailAttr = line.attributes.find(a => a.key === '_thumbnail')
+        const lineCost = line.lineCost || {
+          amountPerQuantity: line.price,
+          totalAmount: line.price * line.quantity,
+          compareAtAmountPerQuantity: null,
+        }
         return {
           id: line.id,
           quantity: line.quantity,
@@ -132,7 +137,7 @@ export const useCartStore = defineStore('cart', {
           variantTitle: line.variantTitle,
           productTitle: line.productTitle,
           price: line.price,
-          lineCost: line.lineCost,
+          lineCost,
           lineDiscounts: line.lineDiscounts || [],
           shopifyImage: line.image,
           designImage: imagenAttr?.value || null,

@@ -223,7 +223,7 @@ onMounted(() => {
               {{ cartStore.discountError }}
             </p>
             <!-- Applied discounts (automatic + manual codes) -->
-            <div v-if="cartStore.automaticDiscounts.length || cartStore.appliedDiscountCodes.length" class="cart-sidebar__discount-applied">
+            <div v-if="cartStore.automaticDiscounts.length || cartStore.discountCodes.length" class="cart-sidebar__discount-applied">
               <!-- Automatic discounts (can't be removed) -->
               <div
                 v-for="discount in cartStore.automaticDiscounts"
@@ -239,16 +239,22 @@ onMounted(() => {
               </div>
               <!-- Manual discount codes (can be removed) -->
               <div
-                v-for="discount in cartStore.appliedDiscountCodes"
+                v-for="discount in cartStore.discountCodes"
                 :key="discount.code"
-                class="cart-sidebar__discount-tag"
+                :class="[
+                  'cart-sidebar__discount-tag',
+                  { 'cart-sidebar__discount-tag--inactive': !discount.applicable }
+                ]"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M12.79 21L3 11.21v2c0 .53.21 1.04.59 1.41l7.79 7.79c.78.78 2.05.78 2.83 0l6.21-6.21c.78-.78.78-2.05 0-2.83z"/>
                   <path fill="currentColor" d="M11.38 17.41c.39.39.9.59 1.41.59s1.02-.2 1.41-.59l6.21-6.21c.78-.78.78-2.05 0-2.83L12.62.58C12.25.21 11.74 0 11.21 0H5C3.9 0 3 .9 3 2v6.21c0 .53.21 1.04.59 1.41zM5 2h6.21L19 9.79L12.79 16L5 8.21z"/>
                   <circle cx="7.25" cy="4.25" r="1.25" fill="currentColor"/>
                 </svg>
-                <span>{{ discount.code }}</span>
+                <span>
+                  {{ discount.code }}
+                  <template v-if="!discount.applicable"> (No aplica)</template>
+                </span>
                 <button
                   class="cart-sidebar__discount-remove"
                   aria-label="Eliminar código"
@@ -519,6 +525,10 @@ onMounted(() => {
 
     svg {
       flex-shrink: 0;
+    }
+
+    &--inactive {
+      background: #6f7787;
     }
   }
 

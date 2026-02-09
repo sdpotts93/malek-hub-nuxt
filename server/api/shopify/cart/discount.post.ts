@@ -16,6 +16,12 @@ interface CartDiscountAllocation {
   code?: string   // From CartCodeDiscountAllocation
 }
 
+interface CartLineCost {
+  amountPerQuantity: { amount: string; currencyCode: string }
+  totalAmount: { amount: string; currencyCode: string }
+  compareAtAmountPerQuantity: { amount: string; currencyCode: string } | null
+}
+
 interface CartResponse {
   cartDiscountCodesUpdate: {
     cart: {
@@ -33,6 +39,7 @@ interface CartResponse {
           node: {
             id: string
             quantity: number
+            cost: CartLineCost
             merchandise: {
               id: string
               title: string
@@ -40,6 +47,11 @@ interface CartResponse {
               product: { title: string }
               image: { url: string; altText: string | null } | null
             }
+            discountAllocations: Array<{
+              discountedAmount: { amount: string; currencyCode: string }
+              title?: string
+              code?: string
+            }>
             attributes: Array<{ key: string; value: string }>
           }
         }>
@@ -93,6 +105,20 @@ const CART_DISCOUNT_MUTATION = `
             node {
               id
               quantity
+              cost {
+                amountPerQuantity {
+                  amount
+                  currencyCode
+                }
+                totalAmount {
+                  amount
+                  currencyCode
+                }
+                compareAtAmountPerQuantity {
+                  amount
+                  currencyCode
+                }
+              }
               merchandise {
                 ... on ProductVariant {
                   id
@@ -107,6 +133,18 @@ const CART_DISCOUNT_MUTATION = `
                     url
                     altText
                   }
+                }
+              }
+              discountAllocations {
+                discountedAmount {
+                  amount
+                  currencyCode
+                }
+                ... on CartAutomaticDiscountAllocation {
+                  title
+                }
+                ... on CartCodeDiscountAllocation {
+                  code
                 }
               }
               attributes {
@@ -198,6 +236,17 @@ export default defineEventHandler(async (event) => {
       variantTitle: e.node.merchandise.title,
       productTitle: e.node.merchandise.product.title,
       price: parseFloat(e.node.merchandise.price.amount),
+      lineCost: {
+        amountPerQuantity: parseFloat(e.node.cost.amountPerQuantity.amount),
+        totalAmount: parseFloat(e.node.cost.totalAmount.amount),
+        compareAtAmountPerQuantity: e.node.cost.compareAtAmountPerQuantity
+          ? parseFloat(e.node.cost.compareAtAmountPerQuantity.amount)
+          : null,
+      },
+      lineDiscounts: e.node.discountAllocations.map(d => ({
+        amount: parseFloat(d.discountedAmount.amount),
+        title: d.title || d.code || 'Unknown discount',
+      })),
       image: e.node.merchandise.image?.url || null,
       attributes: e.node.attributes,
     })),
