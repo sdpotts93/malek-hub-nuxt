@@ -189,7 +189,7 @@ useHead({
             <img
               v-if="getStyleById(baby.styleId)"
               :src="getStyleById(baby.styleId)!.image"
-              :alt="`Baby ${index + 1}`"
+              :alt="`Baby ${Number(index) + 1}`"
               class="render-canvas__illustration"
               crossorigin="anonymous"
               :style="{

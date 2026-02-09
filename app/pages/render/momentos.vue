@@ -105,7 +105,7 @@ const gridDimensions = computed(() => {
 // Get image URL for a cell (using S3 URLs from config)
 function getCellImageUrl(cell: CanvasCell): string | null {
   if (!cell.imageId || !config.value) return null
-  const img = config.value.uploadedImages.find(i => i.id === cell.imageId)
+  const img = config.value.uploadedImages.find((i: MomentosState['uploadedImages'][number]) => i.id === cell.imageId)
   // Use high-res S3 URL for final render
   return img?.highResUrl || img?.s3HighResUrl || img?.mediumResUrl || img?.s3MediumResUrl || null
 }
