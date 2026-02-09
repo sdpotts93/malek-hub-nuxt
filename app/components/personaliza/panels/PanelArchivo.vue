@@ -538,9 +538,7 @@ onBeforeUnmount(() => {
             aria-label="Eliminar imagen"
             @click="handleDeleteImage"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            Cambiar
           </button>
         </div>
       </div>
@@ -990,21 +988,21 @@ onBeforeUnmount(() => {
   &__delete-btn {
     @include button-reset;
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
+    bottom: 8px;
+    left: 8px;
+    /* width: 24px; */
     height: 24px;
     background: white;
-    border-radius: 50%;
+    border-radius: 8px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #414651;
     cursor: pointer;
     z-index: 10;
-    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
-    transition: background-color $transition-fast, color $transition-fast;
-
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
+    transition: background-color 150ms ease, color 150ms ease;
     @include hover {
       background: #f5f5f5;
       color: #181d27;
