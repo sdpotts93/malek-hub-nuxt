@@ -623,8 +623,9 @@ export const usePersonalizaStore = defineStore('personaliza', {
     },
 
     // Get available sizes for current orientation
-    availableSizes(state): Record<string, SizeData> {
-      return PERSONALIZA_SIZES[this.orientation]
+    availableSizes(state: PersonalizaState): Record<string, SizeData> {
+      const orientation = getOrientationFromFormat(state.imageFormat)
+      return PERSONALIZA_SIZES[orientation]
     },
 
     // Check if image is uploaded (either blob URL or S3 URL)
@@ -638,8 +639,9 @@ export const usePersonalizaStore = defineStore('personaliza', {
     },
 
     // Get required resolution for current size
-    requiredResolution(state): { width: number; height: number } | null {
-      const resolutions = PRINT_RESOLUTIONS[this.orientation]
+    requiredResolution(state: PersonalizaState): { width: number; height: number } | null {
+      const orientation = getOrientationFromFormat(state.imageFormat)
+      const resolutions = PRINT_RESOLUTIONS[orientation]
       const sizeData = resolutions[state.posterSize]
       if (!sizeData) return null
       const [width, height] = sizeData.size.split('x').map(Number)
@@ -648,14 +650,16 @@ export const usePersonalizaStore = defineStore('personaliza', {
     },
 
     // Check if current size is valid for orientation
-    isSizeValid(state): boolean {
-      const sizes = Object.keys(PERSONALIZA_SIZES[this.orientation])
+    isSizeValid(state: PersonalizaState): boolean {
+      const orientation = getOrientationFromFormat(state.imageFormat)
+      const sizes = Object.keys(PERSONALIZA_SIZES[orientation])
       return sizes.includes(state.posterSize)
     },
 
     // Get product ID for current orientation
-    productId(): string {
-      return PRODUCT_IDS[this.orientation]
+    productId(state: PersonalizaState): string {
+      const orientation = getOrientationFromFormat(state.imageFormat)
+      return PRODUCT_IDS[orientation]
     },
   },
 

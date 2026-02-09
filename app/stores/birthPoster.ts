@@ -97,7 +97,7 @@ export const useBirthPosterStore = defineStore('birthPoster', {
     generateTextContent(state): string[] {
       const lines: string[] = []
 
-      state.babies.forEach((baby, index) => {
+      state.babies.forEach((baby: BabyConfig, index: number) => {
         // Line 1: SCALE 1:1 OF {nombre}
         const nameLine = `SCALE 1:1 OF ${baby.nombre || `Bebé ${index + 1}`}`
         lines.push(nameLine)
@@ -150,12 +150,12 @@ export const useBirthPosterStore = defineStore('birthPoster', {
 
     // Get count of babies with missing mandatory data
     babiesWithMissingDataCount(state): number {
-      return state.babies.filter(baby => !baby.nombre || baby.nombre.trim() === '').length
+      return state.babies.filter((baby: BabyConfig) => !baby.nombre || baby.nombre.trim() === '').length
     },
 
     // Check if any baby has missing mandatory data
     hasMissingDatosData(state): boolean {
-      return state.babies.some(baby => !baby.nombre || baby.nombre.trim() === '')
+      return state.babies.some((baby: BabyConfig) => !baby.nombre || baby.nombre.trim() === '')
     },
   },
 
@@ -274,12 +274,12 @@ export const useBirthPosterStore = defineStore('birthPoster', {
         this.posterSize = size
         // Toggle showScale for all babies based on whether it's the 1:1 scale size
         const showScale = size === '50x70'
-        this.babies.forEach(baby => baby.showScale = showScale)
+        this.babies.forEach((baby: BabyConfig) => baby.showScale = showScale)
       } else if (this.babyCount >= 3 && horizontalSizes.includes(size)) {
         this.posterSize = size
         // Toggle showScale for all babies based on whether it's the 1:1 scale size
         const showScale = size === '100x70'
-        this.babies.forEach(baby => baby.showScale = showScale)
+        this.babies.forEach((baby: BabyConfig) => baby.showScale = showScale)
       }
     },
 

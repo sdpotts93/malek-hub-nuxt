@@ -112,7 +112,7 @@ export const useCartStore = defineStore('cart', {
     },
 
     // Get applicable discount codes
-    appliedDiscountCodes: (state) => state.discountCodes.filter(d => d.applicable),
+    appliedDiscountCodes: (state) => state.discountCodes.filter((d: DiscountCode) => d.applicable),
 
     // Check if there's an active discount
     hasDiscount: (state) => state.totalDiscount > 0,
@@ -377,7 +377,7 @@ export const useCartStore = defineStore('cart', {
 
       try {
         // Combine existing codes with the new one (if not already present)
-        const existingCodes = this.discountCodes.map(d => d.code)
+        const existingCodes = this.discountCodes.map((d: DiscountCode) => d.code)
         const normalizedCode = code.trim().toUpperCase()
 
         if (existingCodes.includes(normalizedCode)) {
@@ -402,7 +402,7 @@ export const useCartStore = defineStore('cart', {
 
         // Check if the new code was actually applied
         const appliedCode = this.discountCodes.find(
-          d => d.code.toUpperCase() === normalizedCode
+          (d: DiscountCode) => d.code.toUpperCase() === normalizedCode
         )
         if (appliedCode && !appliedCode.applicable) {
           this.discountError = 'El código no es válido o no aplica a estos productos'
@@ -426,8 +426,8 @@ export const useCartStore = defineStore('cart', {
       try {
         // Filter out the code to remove
         const remainingCodes = this.discountCodes
-          .map(d => d.code)
-          .filter(c => c.toUpperCase() !== code.toUpperCase())
+          .map((d: DiscountCode) => d.code)
+          .filter((c: string) => c.toUpperCase() !== code.toUpperCase())
 
         const response = await $fetch<ShopifyCartResponse>(
           '/api/shopify/cart/discount',

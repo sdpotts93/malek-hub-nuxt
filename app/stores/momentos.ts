@@ -359,47 +359,47 @@ export const useMomentosStore = defineStore('momentos', {
 
   getters: {
     // Get available sizes for current format
-    availableSizes(state): Record<string, SizeData> {
+    availableSizes(state: MomentosState): Record<string, SizeData> {
       return MOMENTOS_SIZES[state.format]
     },
 
     // Get available image counts for current format
-    availableImageCounts(state): number[] {
+    availableImageCounts(state: MomentosState): number[] {
       return IMAGE_COUNTS[state.format]
     },
 
     // Get grid dimensions
-    gridDimensions(state): { cols: number; rows: number } {
+    gridDimensions(state: MomentosState): { cols: number; rows: number } {
       return calculateGridDimensions(state.imageCount, state.format)
     },
 
     // Get count of filled cells
-    filledCellCount(state): number {
-      return state.canvasCells.filter(c => c.imageId !== null).length
+    filledCellCount(state: MomentosState): number {
+      return state.canvasCells.filter((c: CanvasCell) => c.imageId !== null).length
     },
 
     // Get count of empty cells
-    emptyCellCount(state): number {
-      return state.canvasCells.filter(c => c.imageId === null).length
+    emptyCellCount(state: MomentosState): number {
+      return state.canvasCells.filter((c: CanvasCell) => c.imageId === null).length
     },
 
     // Check if all cells are filled
-    allCellsFilled(state): boolean {
-      return state.canvasCells.every(c => c.imageId !== null)
+    allCellsFilled(state: MomentosState): boolean {
+      return state.canvasCells.every((c: CanvasCell) => c.imageId !== null)
     },
 
     // Check if can add more images
-    canAddMoreImages(state): boolean {
+    canAddMoreImages(state: MomentosState): boolean {
       return state.uploadedImages.length < MAX_IMAGES
     },
 
     // Get uploaded image by ID
-    getImageById: (state) => (id: string): UploadedImage | undefined => {
-      return state.uploadedImages.find(img => img.id === id)
+    getImageById: (state: MomentosState) => (id: string): UploadedImage | undefined => {
+      return state.uploadedImages.find((img: UploadedImage) => img.id === id)
     },
 
     // Get minimum required pixels for current configuration
-    minimumImagePixels(state): { width: number; height: number } {
+    minimumImagePixels(state: MomentosState): { width: number; height: number } {
       const sizeData = MOMENTOS_SIZES[state.format]?.[state.posterSize]
       if (!sizeData) return { width: 0, height: 0 }
       const grid = calculateGridDimensions(state.imageCount, state.format)
@@ -408,7 +408,7 @@ export const useMomentosStore = defineStore('momentos', {
 
     // Check which images are too small for the current poster/grid configuration
     // Returns a map of imageId -> warning message (or null if ok)
-    imageWarnings(state): Map<string, string | null> {
+    imageWarnings(state: MomentosState): Map<string, string | null> {
       const warnings = new Map<string, string | null>()
       const sizeData = MOMENTOS_SIZES[state.format]?.[state.posterSize]
       if (!sizeData) return warnings
@@ -433,34 +433,34 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     // Get cell by ID
-    getCellById: (state) => (id: string): CanvasCell | undefined => {
-      return state.canvasCells.find(cell => cell.id === id)
+    getCellById: (state: MomentosState) => (id: string): CanvasCell | undefined => {
+      return state.canvasCells.find((cell: CanvasCell) => cell.id === id)
     },
 
     // Get selected cell
-    selectedCell(state): CanvasCell | null {
+    selectedCell(state: MomentosState): CanvasCell | null {
       if (!state.selectedCellId) return null
-      return state.canvasCells.find(c => c.id === state.selectedCellId) || null
+      return state.canvasCells.find((c: CanvasCell) => c.id === state.selectedCellId) || null
     },
 
     // Check if can undo
-    canUndo(state): boolean {
+    canUndo(state: MomentosState): boolean {
       return state.undoStack.length > 0
     },
 
     // Check if can redo
-    canRedo(state): boolean {
+    canRedo(state: MomentosState): boolean {
       return state.redoStack.length > 0
     },
 
     // Check if design is ready for cart
-    isReadyForCart(state): boolean {
+    isReadyForCart(state: MomentosState): boolean {
       // All cells must have an image
-      return state.canvasCells.every(c => c.imageId !== null)
+      return state.canvasCells.every((c: CanvasCell) => c.imageId !== null)
     },
 
     // Get aspect ratio based on format
-    aspectRatio(state): number {
+    aspectRatio(state: MomentosState): number {
       switch (state.format) {
         case 'square':
           return 1
@@ -468,6 +468,8 @@ export const useMomentosStore = defineStore('momentos', {
           return 7 / 5
         case 'vertical':
           return 5 / 7
+        default:
+          return 1
       }
     },
   },
@@ -513,7 +515,7 @@ export const useMomentosStore = defineStore('momentos', {
     _regenerateCanvasCells() {
       // Save existing image assignments
       const existingAssignments = new Map<number, string | null>()
-      this.canvasCells.forEach((cell, index) => {
+      this.canvasCells.forEach((cell: CanvasCell, index: number) => {
         if (cell.imageId) {
           existingAssignments.set(index, cell.imageId)
         }
@@ -571,7 +573,7 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     updateUploadedImage(id: string, updates: Partial<UploadedImage>) {
-      const index = this.uploadedImages.findIndex(img => img.id === id)
+      const index = this.uploadedImages.findIndex((img: UploadedImage) => img.id === id)
       const existing = this.uploadedImages[index]
       if (index !== -1 && existing) {
         this.uploadedImages[index] = { ...existing, ...updates }
@@ -580,7 +582,7 @@ export const useMomentosStore = defineStore('momentos', {
 
     removeUploadedImage(id: string) {
       // Remove from uploaded images
-      const index = this.uploadedImages.findIndex(img => img.id === id)
+      const index = this.uploadedImages.findIndex((img: UploadedImage) => img.id === id)
       const img = this.uploadedImages[index]
       if (index !== -1 && img) {
         // Revoke blob URLs
@@ -592,7 +594,7 @@ export const useMomentosStore = defineStore('momentos', {
       }
 
       // Remove from any canvas cells using this image
-      this.canvasCells.forEach(cell => {
+      this.canvasCells.forEach((cell: CanvasCell) => {
         if (cell.imageId === id) {
           cell.imageId = null
           cell.rotation = 0
@@ -623,7 +625,7 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     setImageToCell(cellId: string, imageId: string | null) {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell) return
 
       // Save previous state for undo
@@ -661,7 +663,7 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     rotateCell(cellId: string, direction: 'cw' | 'ccw' = 'cw') {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell || !cell.imageId) return
 
       const previousRotation = cell.rotation
@@ -678,7 +680,7 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     zoomCell(cellId: string, delta: number) {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell || !cell.imageId) return
 
       const previousZoom = cell.zoom
@@ -699,7 +701,7 @@ export const useMomentosStore = defineStore('momentos', {
     },
 
     setCellFilter(cellId: string, filter: ImageFilter) {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell || !cell.imageId) return
 
       const previousFilter = cell.filter
@@ -715,7 +717,7 @@ export const useMomentosStore = defineStore('momentos', {
 
     // Live pan without history (used during drag)
     panCellLive(cellId: string, panX: number, panY: number) {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell || !cell.imageId) return
       cell.panX = panX
       cell.panY = panY
@@ -723,7 +725,7 @@ export const useMomentosStore = defineStore('momentos', {
 
     // Pan with history (used when drag ends)
     panCell(cellId: string, panX: number, panY: number, previousPanX: number, previousPanY: number) {
-      const cell = this.canvasCells.find(c => c.id === cellId)
+      const cell = this.canvasCells.find((c: CanvasCell) => c.id === cellId)
       if (!cell || !cell.imageId) return
 
       cell.panX = panX
@@ -739,15 +741,15 @@ export const useMomentosStore = defineStore('momentos', {
 
     // Auto-fill empty cells with available images
     autoFillCells() {
-      const emptyCells = this.canvasCells.filter(c => c.imageId === null)
+      const emptyCells = this.canvasCells.filter((c: CanvasCell) => c.imageId === null)
       const availableImages = this.uploadedImages.filter(
-        img => !this.canvasCells.some(c => c.imageId === img.id)
+        (img: UploadedImage) => !this.canvasCells.some((c: CanvasCell) => c.imageId === img.id)
       )
 
       if (emptyCells.length === 0 || availableImages.length === 0) return
 
       // Save previous state for batch undo
-      const previousCells = this.canvasCells.map(c => ({ ...c }))
+      const previousCells = this.canvasCells.map((c: CanvasCell) => ({ ...c }))
 
       // Fill cells in order
       const fillCount = Math.min(emptyCells.length, availableImages.length)
@@ -763,17 +765,17 @@ export const useMomentosStore = defineStore('momentos', {
         type: 'AUTO_FILL',
         cellId: null,
         previousState: previousCells,
-        newState: this.canvasCells.map(c => ({ ...c })),
+        newState: this.canvasCells.map((c: CanvasCell) => ({ ...c })),
       })
     },
 
     // Clear all images from canvas
     clearAllCells() {
       // Save previous state for undo
-      const previousCells = this.canvasCells.map(c => ({ ...c }))
+      const previousCells = this.canvasCells.map((c: CanvasCell) => ({ ...c }))
 
       // Clear all cells
-      this.canvasCells.forEach(cell => {
+      this.canvasCells.forEach((cell: CanvasCell) => {
         cell.imageId = null
         cell.rotation = 0
         cell.zoom = 1
@@ -786,7 +788,7 @@ export const useMomentosStore = defineStore('momentos', {
         type: 'CLEAR_ALL',
         cellId: null,
         previousState: previousCells,
-        newState: this.canvasCells.map(c => ({ ...c })),
+        newState: this.canvasCells.map((c: CanvasCell) => ({ ...c })),
       })
     },
 
@@ -823,10 +825,10 @@ export const useMomentosStore = defineStore('momentos', {
       // Restore previous state
       if (action.type === 'AUTO_FILL' || action.type === 'CLEAR_ALL') {
         // Batch restore
-        this.canvasCells = (action.previousState as CanvasCell[]).map(c => ({ ...c }))
+        this.canvasCells = (action.previousState as CanvasCell[]).map((c: CanvasCell) => ({ ...c }))
       } else if (action.cellId) {
         // Single cell restore
-        const cell = this.canvasCells.find(c => c.id === action.cellId)
+        const cell = this.canvasCells.find((c: CanvasCell) => c.id === action.cellId)
         if (cell && action.previousState) {
           Object.assign(cell, action.previousState)
         }
@@ -842,10 +844,10 @@ export const useMomentosStore = defineStore('momentos', {
       // Apply new state
       if (action.type === 'AUTO_FILL' || action.type === 'CLEAR_ALL') {
         // Batch apply
-        this.canvasCells = (action.newState as CanvasCell[]).map(c => ({ ...c }))
+        this.canvasCells = (action.newState as CanvasCell[]).map((c: CanvasCell) => ({ ...c }))
       } else if (action.cellId) {
         // Single cell apply
-        const cell = this.canvasCells.find(c => c.id === action.cellId)
+        const cell = this.canvasCells.find((c: CanvasCell) => c.id === action.cellId)
         if (cell && action.newState) {
           Object.assign(cell, action.newState)
         }
@@ -889,7 +891,7 @@ export const useMomentosStore = defineStore('momentos', {
     // Reset to default state
     reset() {
       // Clean up blob URLs
-      this.uploadedImages.forEach(img => {
+      this.uploadedImages.forEach((img: UploadedImage) => {
         if (img.lowResUrl.startsWith('blob:')) URL.revokeObjectURL(img.lowResUrl)
         if (img.mediumResUrl.startsWith('blob:')) URL.revokeObjectURL(img.mediumResUrl)
         if (img.highResUrl.startsWith('blob:')) URL.revokeObjectURL(img.highResUrl)
@@ -902,7 +904,7 @@ export const useMomentosStore = defineStore('momentos', {
     // Load state from saved design
     loadState(state: Partial<MomentosState>) {
       // Clean up existing blob URLs
-      this.uploadedImages.forEach(img => {
+      this.uploadedImages.forEach((img: UploadedImage) => {
         if (img.lowResUrl.startsWith('blob:')) URL.revokeObjectURL(img.lowResUrl)
         if (img.mediumResUrl.startsWith('blob:')) URL.revokeObjectURL(img.mediumResUrl)
         if (img.highResUrl.startsWith('blob:')) URL.revokeObjectURL(img.highResUrl)
@@ -911,7 +913,7 @@ export const useMomentosStore = defineStore('momentos', {
       // Prefer S3 URLs for blob URLs (which won't work after reload)
       // Only replace if S3 URL exists, otherwise keep original for restore detection
       if (state.uploadedImages) {
-        state.uploadedImages = state.uploadedImages.map(img => ({
+        state.uploadedImages = state.uploadedImages.map((img: UploadedImage) => ({
           ...img,
           lowResUrl: (img.lowResUrl?.startsWith('blob:') && img.s3LowResUrl) ? img.s3LowResUrl : img.lowResUrl,
           mediumResUrl: (img.mediumResUrl?.startsWith('blob:') && img.s3MediumResUrl) ? img.s3MediumResUrl : img.mediumResUrl,
@@ -928,7 +930,7 @@ export const useMomentosStore = defineStore('momentos', {
 
       // Prefer S3 URLs for persistence (blob URLs won't work after reload)
       // But keep original URLs if S3 isn't ready, so restore knows there were images
-      const cleanedImages = rest.uploadedImages.map(img => ({
+      const cleanedImages = rest.uploadedImages.map((img: UploadedImage) => ({
         ...img,
         lowResUrl: img.s3LowResUrl || img.lowResUrl,
         mediumResUrl: img.s3MediumResUrl || img.mediumResUrl,
