@@ -154,12 +154,12 @@ $breakpoints: (
 // Fixed full screen (for tool pages)
 @mixin fixed-fullscreen {
   position: fixed;
-  top: 0;
+  top: var(--app-banner-offset);
   left: 0;
   right: 0;
   bottom: 0;
   height: 100dvh;
-  max-height: 100dvh;
+  max-height: calc(100dvh - var(--app-banner-offset));
   overflow: hidden;
 }
 

@@ -38,7 +38,7 @@ onMounted(async () => {
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
 const isHomeRoute = computed(() => route.path === '/')
-const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value && !isHomeRoute.value)
+const shouldShowBanner = computed(() => showBanner.value)
 
 watchEffect(() => {
   const currentBanner = banner.value
