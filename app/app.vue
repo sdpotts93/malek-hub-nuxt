@@ -6,6 +6,7 @@
         v-if="shouldShowBanner"
         ref="bannerRef"
         class="app-banner"
+        data-html2canvas-ignore
         :style="bannerStyle"
       >
         <span class="app-banner__text" v-html="bannerTextHtml"></span>
@@ -38,7 +39,7 @@ onMounted(async () => {
 const showBanner = computed(() => Boolean(banner.value?.text))
 const isToolRoute = computed(() => route.path.startsWith('/app/') || route.path.startsWith('/render/'))
 const isHomeRoute = computed(() => route.path === '/')
-const shouldShowBanner = computed(() => showBanner.value)
+const shouldShowBanner = computed(() => showBanner.value && !isToolRoute.value)
 
 watchEffect(() => {
   const currentBanner = banner.value
@@ -102,12 +103,18 @@ const bannerOffset = computed(() => (
   shouldShowBanner.value ? `${bannerHeight.value}px` : '0px'
 ))
 
-const appShellStyle = computed(() => ({
-  '--app-banner-offset': bannerOffset.value,
-}))
+const appShellStyle = computed(() => (
+  isToolRoute.value
+    ? undefined
+    : { '--app-banner-offset': bannerOffset.value }
+))
 
 if (import.meta.client) {
   watchEffect(() => {
+    if (isToolRoute.value) {
+      document.documentElement.style.removeProperty('--app-banner-offset')
+      return
+    }
     document.documentElement.style.setProperty('--app-banner-offset', bannerOffset.value)
   })
 }
