@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IMAGE_FILTERS, type ImageFilter, type CanvasCell } from '~/stores/momentos'
+import { IMAGE_FILTERS, getMomentosFrameImagePath, type ImageFilter, type CanvasCell } from '~/stores/momentos'
 
 const store = useMomentosStore()
 
@@ -10,16 +10,7 @@ const emit = defineEmits<{
 
 // Get the correct frame image based on format
 const currentFrameImage = computed(() => {
-  if (!store.frameStyle) return null
-  switch (store.format) {
-    case 'horizontal':
-      return store.frameStyle.frameImageHorizontal
-    case 'square':
-      return store.frameStyle.frameImageSquare
-    case 'vertical':
-    default:
-      return store.frameStyle.frameImage
-  }
+  return getMomentosFrameImagePath(store.frameStyle, store.format, store.usePaspartu)
 })
 
 // Compute aspect ratio class based on format
@@ -420,6 +411,7 @@ const editMenuStyle = computed((): Record<string, string> => {
       {
         'momentos-canvas--has-frame': store.frameStyle,
         'momentos-canvas--has-margin': store.hasMargin,
+        'momentos-canvas--use-paspartu': store.usePaspartu,
       }
     ]"
     :style="store.hasMargin ? { backgroundColor: store.marginColor } : {}"
@@ -696,14 +688,26 @@ const editMenuStyle = computed((): Record<string, string> => {
     padding: #{$padding-base}cqw;
   }
 
+  &--square.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__content {
+    padding: 15cqw;
+  }
+
   // Horizontal format - use cqh (height is the smaller dimension)
   &--horizontal.momentos-canvas--has-margin &__content {
     padding: #{$padding-base}cqh;
   }
 
+  &--horizontal.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__content {
+    padding: 15cqh;
+  }
+
   // Vertical format - use cqw (width is the smaller dimension)
   &--vertical.momentos-canvas--has-margin &__content {
     padding: #{$padding-base}cqw;
+  }
+
+  &--vertical.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__content {
+    padding: 15cqw;
   }
 
   // ==========================================================================

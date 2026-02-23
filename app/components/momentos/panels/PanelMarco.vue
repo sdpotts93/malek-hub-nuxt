@@ -82,6 +82,19 @@ function selectFrame(frame: FrameStyle) {
         <span class="panel-marco__frame-label">{{ frame.name }}</span>
       </div>
     </div>
+
+    <div class="panel-marco__paspartu-toggle">
+      <label class="panel-marco__switch">
+        <input
+          :checked="store.usePaspartu"
+          type="checkbox"
+          class="panel-marco__switch-input"
+          @change="store.setUsePaspartu(($event.target as HTMLInputElement).checked)"
+        >
+        <span class="panel-marco__switch-slider" />
+      </label>
+      <span class="panel-marco__paspartu-label">Paspartú (Con Marialuisa)</span>
+    </div>
   </div>
 </template>
 
@@ -190,6 +203,71 @@ function selectFrame(frame: FrameStyle) {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  &__paspartu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 4px;
+    padding-inline: 20px;
+  }
+
+  &__paspartu-label {
+    font-family: $font-primary;
+    font-size: 14px;
+    font-weight: $font-weight-medium;
+    color: #2f3038;
+  }
+
+  &__switch {
+    position: relative;
+    display: inline-flex;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+  }
+
+  &__switch-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    border: 0;
+    padding: 0;
+    clip: rect(0 0 0 0);
+    overflow: hidden;
+    white-space: nowrap;
+
+    &:checked + .panel-marco__switch-slider {
+      background: $color-brand;
+
+      &::before {
+        transform: translateX(20px);
+      }
+    }
+  }
+
+  &__switch-slider {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: #d5d7da;
+    transition: background $transition-fast;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      transition: transform $transition-fast;
+    }
   }
 }
 </style>

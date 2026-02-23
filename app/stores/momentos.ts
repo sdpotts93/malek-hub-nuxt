@@ -178,6 +178,50 @@ export const MOMENTOS_PRODUCT_ID = '9281694335211'
 export const MAX_IMAGES = 100
 export const MAX_IMAGE_SIZE_MB = 20
 
+const FRAME_TYPE_BY_STYLE_ID: Record<string, 'black' | 'white' | 'roble' | 'nogal'> = {
+  'frame-negro': 'black',
+  'frame-blanco': 'white',
+  'frame-roble': 'roble',
+  'frame-nogal': 'nogal',
+}
+
+const getDefaultFrameImagePath = (frameStyle: FrameStyle, format: MomentosFormat): string => {
+  switch (format) {
+    case 'horizontal':
+      return frameStyle.frameImageHorizontal
+    case 'square':
+      return frameStyle.frameImageSquare
+    case 'vertical':
+    default:
+      return frameStyle.frameImage
+  }
+}
+
+export const getMomentosFrameImagePath = (
+  frameStyle: FrameStyle | null,
+  format: MomentosFormat,
+  usePaspartu: boolean
+): string | null => {
+  if (!frameStyle) return null
+
+  if (!usePaspartu) {
+    return getDefaultFrameImagePath(frameStyle, format)
+  }
+
+  const frameType = FRAME_TYPE_BY_STYLE_ID[frameStyle.id]
+  if (!frameType) {
+    return getDefaultFrameImagePath(frameStyle, format)
+  }
+
+  const suffix = format === 'horizontal'
+    ? '-horizontal'
+    : format === 'square'
+      ? '-square'
+      : ''
+
+  return `/frame-paspartu-images/marialuisa-${frameType}${suffix}.png`
+}
+
 // ==========================================================================
 // Helper Functions
 // ==========================================================================
@@ -273,6 +317,7 @@ export interface MomentosState {
 
   // Frame
   frameStyle: FrameStyle | null
+  usePaspartu: boolean
 
   // Uploaded images library
   uploadedImages: UploadedImage[]
@@ -328,6 +373,7 @@ export const createDefaultMomentosState = (): MomentosState => {
 
     // Frame
     frameStyle: null,
+    usePaspartu: false,
 
     // Images
     uploadedImages: [],
@@ -558,6 +604,10 @@ export const useMomentosStore = defineStore('momentos', {
 
     setFrameStyle(frame: FrameStyle | null) {
       this.frameStyle = frame
+    },
+
+    setUsePaspartu(usePaspartu: boolean) {
+      this.usePaspartu = usePaspartu
     },
 
     // ==========================================================================
@@ -919,6 +969,10 @@ export const useMomentosStore = defineStore('momentos', {
           mediumResUrl: (img.mediumResUrl?.startsWith('blob:') && img.s3MediumResUrl) ? img.s3MediumResUrl : img.mediumResUrl,
           highResUrl: (img.highResUrl?.startsWith('blob:') && img.s3HighResUrl) ? img.s3HighResUrl : img.highResUrl,
         }))
+      }
+
+      if (state.usePaspartu === undefined) {
+        state.usePaspartu = false
       }
 
       this.$patch(state)

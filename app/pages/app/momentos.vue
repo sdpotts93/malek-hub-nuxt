@@ -128,6 +128,7 @@ const historySaveKey = computed(() => ({
   hasMargin: momentosStore.hasMargin,
   marginColor: momentosStore.marginColor,
   frameStyleId: momentosStore.frameStyle?.id || null,
+  usePaspartu: momentosStore.usePaspartu,
   cells: momentosStore.canvasCells.map((cell: MomentosCanvasCell) => ({
     imageId: cell.imageId,
     rotation: cell.rotation,
