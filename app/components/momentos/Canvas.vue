@@ -43,6 +43,19 @@ const gapClass = computed(() => {
   return null
 })
 
+const hasVerticalFrameOffset = computed(() => {
+  if (store.format !== 'vertical') return false
+
+  const frameId = store.frameStyle?.id
+  return frameId === 'frame-negro'
+    || frameId === 'frame-blanco'
+    || frameId === 'frame-roble'
+})
+
+const hasHorizontalNogalOffset = computed(() => {
+  return store.format === 'horizontal' && store.frameStyle?.id === 'frame-nogal'
+})
+
 // Get grid dimensions
 const gridDimensions = computed(() => store.gridDimensions)
 
@@ -412,6 +425,8 @@ const editMenuStyle = computed((): Record<string, string> => {
         'momentos-canvas--has-frame': store.frameStyle,
         'momentos-canvas--has-margin': store.hasMargin,
         'momentos-canvas--use-paspartu': store.usePaspartu,
+        'momentos-canvas--vertical-frame-offset': hasVerticalFrameOffset,
+        'momentos-canvas--horizontal-nogal-offset': hasHorizontalNogalOffset,
       }
     ]"
     :style="store.hasMargin ? { backgroundColor: store.marginColor } : {}"
@@ -630,7 +645,7 @@ const editMenuStyle = computed((): Record<string, string> => {
 
     .momentos-canvas__frame {
       inset: -31%;
-      transform: translate(0.3%, 0%);
+      transform: translate(0.9%, 0.5%);
     }
   }
 
@@ -646,9 +661,13 @@ const editMenuStyle = computed((): Record<string, string> => {
     }
 
     .momentos-canvas__frame {
-      inset: -40.5%;
+      inset: -40.5% -41% -39% -40.5%;
       transform: translate(0.3%, 0.8%);
     }
+  }
+
+  &--horizontal.momentos-canvas--horizontal-nogal-offset .momentos-canvas__frame {
+    transform: translate(0.8%, 0.6%);
   }
 
   // Vertical (5:7)
@@ -661,6 +680,10 @@ const editMenuStyle = computed((): Record<string, string> => {
       height: auto;
       width: 75%;
     }
+  }
+
+  &--vertical.momentos-canvas--vertical-frame-offset .momentos-canvas__frame {
+    transform: translate(1%, 0.5%);
   }
 
   // ==========================================================================

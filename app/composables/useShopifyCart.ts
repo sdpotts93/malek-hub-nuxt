@@ -95,6 +95,11 @@ export function useShopifyCart() {
     }
   }
 
+  const getAddToCartDevice = (): 'mobile' | 'desktop' => {
+    if (!import.meta.client) return 'desktop'
+    return window.innerWidth < 768 ? 'mobile' : 'desktop'
+  }
+
   /**
    * Fetch birth poster product with all variants (idempotent)
    */
@@ -626,6 +631,7 @@ export function useShopifyCart() {
       // 9. Build description from snapshot (not reactive state)
       const formatLabel = snapshot.imageFormat === '1:1' ? 'Cuadrado' : snapshot.imageFormat === '7:5' ? 'Horizontal' : 'Vertical'
       const textInfo = snapshot.title ? `"${snapshot.title}"` : 'Sin texto'
+      const addedFromDevice = getAddToCartDevice()
 
       // 10. Add to Shopify cart with config URL (server renders full image on order)
       const cartStart = performance.now()
@@ -633,6 +639,7 @@ export function useShopifyCart() {
         { key: '_config', value: finalConfigUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Personaliza' },
+        { key: '_dispostivo', value: addedFromDevice },
         { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Formato', value: formatLabel },
         { key: 'Marco', value: snapshot.frameStyleName },
@@ -1457,17 +1464,24 @@ export function useShopifyCart() {
 
       // 5. Build description from snapshot (not reactive state)
       const formatLabel = snapshot.format === 'square' ? 'Cuadrado' : snapshot.format === 'horizontal' ? 'Horizontal' : 'Vertical'
-
-      // 6. Add to Shopify cart with config URL (server renders full image on order)
-      await cartStore.addItem(variant.id, 1, [
+      const addedFromDevice = getAddToCartDevice()
+      const lineAttributes: { key: string; value: string }[] = [
         { key: '_config', value: configUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'Momentos' },
+        { key: '_dispostivo', value: addedFromDevice },
         { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Formato', value: formatLabel },
         { key: 'Imágenes', value: `${snapshot.imageCount} fotos` },
         { key: 'Marco', value: snapshot.frameStyleName },
-      ])
+      ]
+
+      if (state.usePaspartu) {
+        lineAttributes.push({ key: 'Paspartú', value: 'Con Marialuisa' })
+      }
+
+      // 6. Add to Shopify cart with config URL (server renders full image on order)
+      await cartStore.addItem(variant.id, 1, lineAttributes)
 
       trackAddToCart({
         price: Number(variant.price),
@@ -1737,12 +1751,14 @@ export function useShopifyCart() {
         uploader.uploadConfig(designConfig as unknown as Record<string, unknown>, 'birth-poster-config', 'momentos-malek'),
         uploader.uploadDesignImage(thumbnailBlob, 'birth-poster-thumb', 'momentos-malek'),
       ])
+      const addedFromDevice = getAddToCartDevice()
 
       // 5. Add to Shopify cart with config URL (server renders full image on order)
       await cartStore.addItem(variant.id, 1, [
         { key: '_config', value: configUpload.url },
         { key: '_thumbnail', value: thumbnailUpload.url },
         { key: '_shop', value: 'BirthPoster' },
+        { key: '_dispostivo', value: addedFromDevice },
         { key: 'Tamaño', value: snapshot.posterSize },
         { key: 'Marco', value: snapshot.frameStyleName },
         { key: 'Bebés', value: snapshot.babyNames },

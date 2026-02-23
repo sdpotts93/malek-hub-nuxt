@@ -88,6 +88,9 @@ watch(shouldShowBanner, async () => {
 
 onUnmounted(() => {
   bannerObserver?.disconnect()
+  if (import.meta.client) {
+    document.documentElement.style.removeProperty('--app-banner-offset')
+  }
 })
 
 const bannerStyle = computed(() => ({
@@ -95,9 +98,19 @@ const bannerStyle = computed(() => ({
   color: banner.value?.textColor || '#ffffff',
 }))
 
+const bannerOffset = computed(() => (
+  shouldShowBanner.value ? `${bannerHeight.value}px` : '0px'
+))
+
 const appShellStyle = computed(() => ({
-  '--app-banner-offset': shouldShowBanner.value ? `${bannerHeight.value}px` : '0px',
+  '--app-banner-offset': bannerOffset.value,
 }))
+
+if (import.meta.client) {
+  watchEffect(() => {
+    document.documentElement.style.setProperty('--app-banner-offset', bannerOffset.value)
+  })
+}
 
 // Cart initialization is handled by each tool page (birth-poster, personaliza, momentos)
 // to avoid duplicate fetches and allow each page to fetch only the products it needs

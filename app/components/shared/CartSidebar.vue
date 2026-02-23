@@ -301,11 +301,12 @@ onMounted(() => {
 <style lang="scss" scoped>
 .cart-sidebar {
   position: fixed;
-  top: 0;
+  top: var(--app-banner-offset, 0px);
   right: 0;
   width: 100%;
   max-width: 400px;
-  height: 100dvh;
+  height: calc(100dvh - var(--app-banner-offset, 0px));
+  max-height: calc(100dvh - var(--app-banner-offset, 0px));
   background: $color-bg-primary;
   box-shadow: $shadow-xl;
   z-index: $z-modal;
@@ -318,7 +319,7 @@ onMounted(() => {
 
   &__overlay {
     position: fixed;
-    inset: 0;
+    inset: var(--app-banner-offset, 0px) 0 0 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: $z-modal-backdrop;
   }
