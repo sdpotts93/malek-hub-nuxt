@@ -1480,6 +1480,11 @@ export function useShopifyCart() {
         lineAttributes.push({ key: 'Paspartú', value: 'Con Marialuisa' })
       }
 
+      if (import.meta.client) {
+        const renderTestUrl = `${window.location.origin}/render/momentos?configUrl=${encodeURIComponent(configUpload.url)}`
+        console.log('[Momentos] Render test URL:', renderTestUrl)
+      }
+
       // 6. Add to Shopify cart with config URL (server renders full image on order)
       await cartStore.addItem(variant.id, 1, lineAttributes)
 

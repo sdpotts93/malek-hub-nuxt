@@ -145,7 +145,10 @@ definePageMeta({
         'render-canvas',
         aspectClass,
         gapClass,
-        { 'render-canvas--has-margin': config.hasMargin }
+        {
+          'render-canvas--has-margin': config.hasMargin,
+          'render-canvas--use-paspartu': config.usePaspartu,
+        }
       ]"
       :style="config.hasMargin ? { backgroundColor: config.marginColor } : {}"
     >
@@ -233,15 +236,15 @@ definePageMeta({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  container-type: size;
   // Fill the entire viewport (Browserless sets correct aspect ratio)
   width: 100vw;
   height: 100vh;
 
   // ==========================================================================
-  // Content Layout - using vmin for consistent sizing across all formats
-  // vmin = smaller of viewport width or height, works for any aspect ratio
+  // Content Layout - use container units to match app preview behavior
   // ==========================================================================
-  $padding-base: 5vmin;
+  $padding-base: 5;
 
   &__content {
     position: relative;
@@ -252,9 +255,29 @@ definePageMeta({
     padding: 0;
   }
 
-  // Margin padding (same for all formats using vmin)
-  &--has-margin &__content {
-    padding: $padding-base;
+  // Margin padding by format (same logic as app/components/momentos/Canvas.vue)
+  &--square.render-canvas--has-margin &__content {
+    padding: #{$padding-base}cqw;
+  }
+
+  &--horizontal.render-canvas--has-margin &__content {
+    padding: #{$padding-base}cqh;
+  }
+
+  &--vertical.render-canvas--has-margin &__content {
+    padding: #{$padding-base}cqw;
+  }
+
+  &--square.render-canvas--has-margin.render-canvas--use-paspartu &__content {
+    padding: 15cqw;
+  }
+
+  &--horizontal.render-canvas--has-margin.render-canvas--use-paspartu &__content {
+    padding: 15cqh;
+  }
+
+  &--vertical.render-canvas--has-margin.render-canvas--use-paspartu &__content {
+    padding: 15cqw;
   }
 
   // ==========================================================================
@@ -268,24 +291,104 @@ definePageMeta({
     height: 100%;
   }
 
-  // Base gap when margin is enabled
-  &--has-margin &__grid {
-    gap: 1.5vmin;
+  // Base gap by format when margin is enabled
+  &--square.render-canvas--has-margin &__grid {
+    gap: 1.5cqw;
   }
 
-  // ==========================================================================
-  // Dynamic gap based on image count (using vmin for all formats)
-  // ==========================================================================
-  &--gap-small .render-canvas__grid {
-    gap: 3.5vmin;
+  &--horizontal.render-canvas--has-margin &__grid {
+    gap: 1.5cqh;
   }
 
-  &--gap-medium .render-canvas__grid {
-    gap: 2.5vmin;
+  &--vertical.render-canvas--has-margin &__grid {
+    gap: 1.5cqw;
   }
 
-  &--gap-large .render-canvas__grid {
-    gap: 1.75vmin;
+  // Dynamic gap by format
+  &--square.render-canvas--gap-small .render-canvas__grid {
+    gap: 3.5cqw;
+  }
+
+  &--square.render-canvas--gap-medium .render-canvas__grid {
+    gap: 2.5cqw;
+  }
+
+  &--square.render-canvas--gap-large .render-canvas__grid {
+    gap: 1.75cqw;
+  }
+
+  &--horizontal.render-canvas--gap-small .render-canvas__grid {
+    gap: 3.5cqh;
+  }
+
+  &--horizontal.render-canvas--gap-medium .render-canvas__grid {
+    gap: 2.5cqh;
+  }
+
+  &--horizontal.render-canvas--gap-large .render-canvas__grid {
+    gap: 1.75cqh;
+  }
+
+  &--vertical.render-canvas--gap-small .render-canvas__grid {
+    gap: 3.5cqw;
+  }
+
+  &--vertical.render-canvas--gap-medium .render-canvas__grid {
+    gap: 2.5cqw;
+  }
+
+  &--vertical.render-canvas--gap-large .render-canvas__grid {
+    gap: 1.75cqw;
+  }
+
+  // Keep gap/content proportion consistent when Paspartu increases padding 5 -> 15.
+  // Scale factor = (100 - 2*15) / (100 - 2*5) = 7/9.
+  &--square.render-canvas--has-margin.render-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqw * 7 / 9);
+  }
+
+  &--horizontal.render-canvas--has-margin.render-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqh * 7 / 9);
+  }
+
+  &--vertical.render-canvas--has-margin.render-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqw * 7 / 9);
+  }
+
+  &--square.render-canvas--gap-small.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(3.5cqw * 7 / 9);
+  }
+
+  &--square.render-canvas--gap-medium.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(2.5cqw * 7 / 9);
+  }
+
+  &--square.render-canvas--gap-large.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(1.75cqw * 7 / 9);
+  }
+
+  &--horizontal.render-canvas--gap-small.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(3.5cqh * 7 / 9);
+  }
+
+  &--horizontal.render-canvas--gap-medium.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(2.5cqh * 7 / 9);
+  }
+
+  &--horizontal.render-canvas--gap-large.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(1.75cqh * 7 / 9);
+  }
+
+  &--vertical.render-canvas--gap-small.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(3.5cqw * 7 / 9);
+  }
+
+  &--vertical.render-canvas--gap-medium.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(2.5cqw * 7 / 9);
+  }
+
+  &--vertical.render-canvas--gap-large.render-canvas--use-paspartu .render-canvas__grid {
+    gap: calc(1.75cqw * 7 / 9);
   }
 
   // ==========================================================================
