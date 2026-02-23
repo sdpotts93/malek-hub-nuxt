@@ -604,6 +604,9 @@ export const useMomentosStore = defineStore('momentos', {
 
     setFrameStyle(frame: FrameStyle | null) {
       this.frameStyle = frame
+      if (!frame) {
+        this.usePaspartu = false
+      }
     },
 
     setUsePaspartu(usePaspartu: boolean) {

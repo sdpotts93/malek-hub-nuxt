@@ -83,7 +83,7 @@ function selectFrame(frame: FrameStyle) {
       </div>
     </div>
 
-    <div class="panel-marco__paspartu-toggle">
+    <div v-if="store.frameStyle" class="panel-marco__paspartu-toggle">
       <label class="panel-marco__switch">
         <input
           :checked="store.usePaspartu"

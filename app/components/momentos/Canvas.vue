@@ -789,6 +789,56 @@ const editMenuStyle = computed((): Record<string, string> => {
     }
   }
 
+  // Keep gap/content proportion consistent when Paspartu increases padding from 5 -> 15.
+  // Scale factor = (100 - 2*15) / (100 - 2*5) = 70 / 90 = 7/9.
+  &--square.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqw * 7 / 9);
+  }
+
+  &--horizontal.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqh * 7 / 9);
+  }
+
+  &--vertical.momentos-canvas--has-margin.momentos-canvas--use-paspartu &__grid {
+    gap: calc(1.5cqw * 7 / 9);
+  }
+
+  &--square.momentos-canvas--gap-small.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(3.5cqw * 7 / 9);
+  }
+
+  &--square.momentos-canvas--gap-medium.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(2.5cqw * 7 / 9);
+  }
+
+  &--square.momentos-canvas--gap-large.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(1.75cqw * 7 / 9);
+  }
+
+  &--horizontal.momentos-canvas--gap-small.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(3.5cqh * 7 / 9);
+  }
+
+  &--horizontal.momentos-canvas--gap-medium.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(2.5cqh * 7 / 9);
+  }
+
+  &--horizontal.momentos-canvas--gap-large.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(1.75cqh * 7 / 9);
+  }
+
+  &--vertical.momentos-canvas--gap-small.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(3.5cqw * 7 / 9);
+  }
+
+  &--vertical.momentos-canvas--gap-medium.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(2.5cqw * 7 / 9);
+  }
+
+  &--vertical.momentos-canvas--gap-large.momentos-canvas--use-paspartu .momentos-canvas__grid {
+    gap: calc(1.75cqw * 7 / 9);
+  }
+
   &__cell {
     position: relative;
     background: transparent;
